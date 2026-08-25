@@ -1,0 +1,619 @@
+/* static/css/style.css */
+
+/* ============================================
+   CSS RESET & BASE STYLES
+   ============================================ */
+
+/* Remove default browser styling for consistency */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    /* box-sizing: border-box means padding and border are INCLUDED 
+       in the element's width/height, not added on top */
+}
+
+:root {
+    /* CSS Variables — define colors once, use everywhere
+       Access with var(--variable-name) */
+    --primary: #6C63FF;        /* Purple — main brand color */
+    --primary-dark: #5A52D5;   /* Darker purple for hover */
+    --secondary: #FF6584;      /* Pink — accent color */
+    --bg-dark: #0a0a1a;        /* Very dark blue — background */
+    --bg-card: #12122a;        /* Slightly lighter — card backgrounds */
+    --bg-card-hover: #1a1a3e;  /* Card hover state */
+    --text-primary: #ffffff;   /* White — main text */
+    --text-secondary: #a0a0b8; /* Gray — secondary text */
+    --border-color: #2a2a4a;   /* Subtle borders */
+    --gradient-1: linear-gradient(135deg, #6C63FF, #FF6584);
+    --gradient-2: linear-gradient(135deg, #00d2ff, #6C63FF);
+    --shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    --radius: 16px;            /* Border radius for rounded corners */
+    --transition: all 0.3s ease;  /* Smooth transitions */
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    min-height: 100vh;  /* vh = viewport height, 100vh = full screen height */
+    display: flex;
+    flex-direction: column;
+    /* This + main { flex: 1 } pushes footer to bottom */
+}
+
+/* ============================================
+   NAVBAR
+   ============================================ */
+
+.navbar {
+    background: rgba(10, 10, 26, 0.9);
+    /* rgba = red, green, blue, alpha(opacity)
+       0.9 alpha = slightly transparent */
+    backdrop-filter: blur(10px);
+    /* backdrop-filter: blur() — makes the content behind the navbar blurry
+       Creates a frosted glass effect */
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 2rem;
+    position: sticky;
+    /* sticky = stays at the top when you scroll */
+    top: 0;
+    z-index: 1000;
+    /* z-index controls stacking order — higher = on top of other elements */
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    /* margin: 0 auto centers the container horizontally */
+    display: flex;
+    justify-content: space-between;
+    /* space-between = first item at start, last item at end */
+    align-items: center;
+}
+
+.nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    /* gap = space between flex children */
+    text-decoration: none;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.nav-logo i {
+    color: var(--primary);
+    font-size: 1.8rem;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+}
+
+.nav-link {
+    text-decoration: none;
+    color: var(--text-secondary);
+    font-weight: 500;
+    transition: var(--transition);
+    /* transition makes property changes smooth instead of instant */
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+}
+
+.nav-link:hover {
+    color: var(--primary);
+    background: rgba(108, 99, 255, 0.1);
+}
+
+/* ============================================
+   MAIN CONTENT
+   ============================================ */
+
+.main-content {
+    flex: 1;
+    /* flex: 1 means "take up all available space"
+       This pushes the footer to the bottom */
+}
+
+/* ============================================
+   HERO SECTION
+   ============================================ */
+
+.hero {
+    padding: 6rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4rem;
+    min-height: 80vh;
+}
+
+.hero-content {
+    max-width: 600px;
+}
+
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+}
+
+.gradient-text {
+    background: var(--gradient-1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    /* These 3 properties make the gradient appear AS the text color
+       instead of behind the text. It "clips" the background to the text shape */
+}
+
+.hero-subtitle {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: 2.5rem;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    /* flex-wrap: wrap = items go to next line if no space */
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: var(--transition);
+    border: none;
+    font-family: 'Poppins', sans-serif;
+}
+
+.btn-primary {
+    background: var(--gradient-1);
+    color: white;
+    box-shadow: 0 4px 20px rgba(108, 99, 255, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    /* translateY(-2px) moves the button UP by 2 pixels — subtle lift effect */
+    box-shadow: 0 6px 30px rgba(108, 99, 255, 0.6);
+}
+
+.btn-secondary {
+    background: transparent;
+    color: var(--text-primary);
+    border: 2px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    border-color: var(--primary);
+    background: rgba(108, 99, 255, 0.1);
+}
+
+.btn-large {
+    padding: 18px 40px;
+    font-size: 1.1rem;
+    width: 100%;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+/* ============================================
+   ANIMATED SOUND BARS (Hero decoration)
+   ============================================ */
+
+.hero-visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sound-bars {
+    display: flex;
+    align-items: flex-end;
+    /* flex-end = align items to the bottom */
+    gap: 8px;
+    height: 200px;
+}
+
+.bar {
+    width: 12px;
+    background: var(--gradient-1);
+    border-radius: 6px;
+    animation: soundBar 1.2s ease-in-out infinite;
+    /* animation: name duration timing-function iteration-count
+       infinite = loops forever */
+}
+
+/* Each bar gets a different delay so they animate out of sync */
+.bar:nth-child(1) { animation-delay: 0s; height: 60px; }
+.bar:nth-child(2) { animation-delay: 0.15s; height: 100px; }
+.bar:nth-child(3) { animation-delay: 0.3s; height: 140px; }
+.bar:nth-child(4) { animation-delay: 0.45s; height: 80px; }
+.bar:nth-child(5) { animation-delay: 0.6s; height: 180px; }
+.bar:nth-child(6) { animation-delay: 0.75s; height: 120px; }
+.bar:nth-child(7) { animation-delay: 0.9s; height: 160px; }
+.bar:nth-child(8) { animation-delay: 1.05s; height: 90px; }
+.bar:nth-child(9) { animation-delay: 1.2s; height: 130px; }
+
+/* nth-child(n) selects the nth element among siblings */
+
+@keyframes soundBar {
+    /* @keyframes defines the animation steps */
+    0%, 100% {
+        transform: scaleY(0.3);
+        /* scaleY = vertical scaling. 0.3 = 30% of original height */
+    }
+    50% {
+        transform: scaleY(1);
+        /* At halfway point, full height */
+    }
+}
+
+/* ============================================
+   FEATURES SECTION
+   ============================================ */
+
+.features {
+    padding: 6rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 2.5rem;
+    margin-bottom: 3rem;
+    background: var(--gradient-2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    /* grid-template-columns defines column sizes
+       repeat(auto-fit, minmax(250px, 1fr)):
+       - auto-fit = as many columns as fit
+       - minmax(250px, 1fr) = each column is at least 250px, 
+         at most equal share of space (1fr)
+       This makes a RESPONSIVE grid without media queries! */
+    gap: 2rem;
+}
+
+.feature-card {
+    background: var(--bg-card);
+    padding: 2.5rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+    text-align: center;
+}
+
+.feature-card:hover {
+    transform: translateY(-8px);
+    border-color: var(--primary);
+    box-shadow: var(--shadow);
+    background: var(--bg-card-hover);
+}
+
+.feature-icon {
+    margin-bottom: 1.5rem;
+    color: var(--primary);
+}
+
+.feature-card h3 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+}
+
+.feature-card p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+/* ============================================
+   METHODS COMPARISON SECTION
+   ============================================ */
+
+.methods-section {
+    padding: 6rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.methods-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+}
+
+.method-card {
+    background: var(--bg-card);
+    padding: 2.5rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.method-card:hover {
+    border-color: var(--secondary);
+    box-shadow: 0 10px 40px rgba(255, 101, 132, 0.2);
+}
+
+.method-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.method-card h3 i {
+    color: var(--secondary);
+    margin-right: 8px;
+}
+
+.method-type {
+    color: var(--secondary);
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.method-card ul {
+    list-style: none;
+    /* Remove default bullet points */
+}
+
+.method-card li {
+    color: var(--text-secondary);
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.method-card li::before {
+    /* ::before creates a pseudo-element BEFORE the content
+       We use it to create custom bullet points */
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: var(--primary);
+}
+
+/* ============================================
+   UPLOAD PAGE STYLES
+   ============================================ */
+
+.upload-section {
+    padding: 4rem 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.page-title {
+    text-align: center;
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.page-title i {
+    color: var(--primary);
+}
+
+.page-subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    margin-bottom: 3rem;
+}
+
+.upload-container {
+    background: var(--bg-card);
+    padding: 3rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow);
+}
+
+/* Drop Zone */
+.drop-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius);
+    padding: 4rem 2rem;
+    text-align: center;
+    transition: var(--transition);
+    cursor: pointer;
+    margin-bottom: 2rem;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+    border-color: var(--primary);
+    background: rgba(108, 99, 255, 0.05);
+}
+
+.drop-zone-content i {
+    color: var(--primary);
+    margin-bottom: 1rem;
+}
+
+.drop-text {
+    font-size: 1.2rem;
+    font-weight: 500;
+    margin: 1rem 0 0.5rem;
+}
+
+.drop-subtext {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.file-input-hidden {
+    display: none;
+    /* We hide the default file input because it's ugly
+       and use a styled label instead */
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    color: var(--primary);
+    font-weight: 500;
+}
+
+/* Options Panel */
+.options-panel {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+}
+
+.options-panel h3 {
+    margin-bottom: 1.5rem;
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.options-panel h3 i {
+    color: var(--primary);
+    margin-right: 8px;
+}
+
+.options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.option-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.form-select {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: var(--transition);
+    appearance: none;
+    /* appearance: none removes default browser styling for select elements */
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.2);
+    /* This creates a glow effect on focus
+       0 0 0 3px = no offset, 3px spread */
+}
+
+/* Results */
+.results-section {
+    margin-top: 3rem;
+    text-align: center;
+}
+
+.results-section h2 {
+    color: #4CAF50;
+    margin-bottom: 1.5rem;
+}
+
+.result-card {
+    background: var(--bg-card);
+    padding: 2rem;
+    border-radius: var(--radius);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.result-card p {
+    margin: 0.5rem 0;
+    color: var(--text-secondary);
+}
+
+.processing-note {
+    margin-top: 1rem !important;
+    color: var(--primary) !important;
+    font-style: italic;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+
+.footer {
+    background: rgba(10, 10, 26, 0.8);
+    border-top: 1px solid var(--border-color);
+    padding: 2rem;
+    text-align: center;
+    margin-top: auto;
+}
+
+.footer-content p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* @media queries apply styles only when screen width matches */
+@media (max-width: 768px) {
+    .hero {
+        flex-direction: column;
+        text-align: center;
+        padding: 3rem 1.5rem;
+    }
+
+    .hero-title {
+        font-size: 2.2rem;
+    }
+
+    .hero-buttons {
+        justify-content: center;
+    }
+
+    .options-grid {
+        grid-template-columns: 1fr;
+        /* On small screens, stack options vertically */
+    }
+    
+    .nav-container {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}

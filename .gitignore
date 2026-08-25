@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual Environment (NEVER push thousands of library files)
+venv/
+env/
+.venv/
+
+# Django specific
+db.sqlite3
+db.sqlite3-journal
+media/
+*.log
+
+# IDE files (VS Code, PyCharm, etc.)
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Environment variables (if you use them later)
+.env
+.env.local

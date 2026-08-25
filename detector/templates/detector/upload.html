@@ -1,0 +1,131 @@
+{% extends 'detector/base.html' %}
+{% load static %}
+
+{% block title %}Upload Audio — ChordSense{% endblock %}
+
+{% block content %}
+
+<section class="upload-section">
+    <h1 class="page-title">
+        <i class="fas fa-cloud-upload-alt"></i> Upload Your Audio
+    </h1>
+    <p class="page-subtitle">
+        Upload a music file (.wav, .mp3) to detect chords and notes
+    </p>
+
+    <!-- UPLOAD FORM -->
+    <div class="upload-container">
+        <form method="POST" enctype="multipart/form-data" class="upload-form" id="uploadForm">
+            {% csrf_token %}
+
+            <!-- Custom drag-and-drop file upload area -->
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-content">
+                    <i class="fas fa-cloud-upload-alt fa-4x"></i>
+                    <p class="drop-text">Drag & drop your audio file here</p>
+                    <p class="drop-subtext">or</p>
+                    <label for="audioFile" class="btn btn-primary">
+                        <i class="fas fa-folder-open"></i> Choose File
+                    </label>
+                    <input type="file" name="audio_file" id="audioFile" 
+                           accept=".wav,.mp3,.ogg,.flac" class="file-input-hidden">
+                </div>
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <i class="fas fa-file-audio fa-2x"></i>
+                    <span id="fileName"></span>
+                    <span id="fileSize"></span>
+                </div>
+            </div>
+
+            <!-- Analysis options -->
+            <div class="options-panel">
+                <h3><i class="fas fa-sliders-h"></i> Analysis Options</h3>
+                <div class="options-grid">
+                    <div class="option-group">
+                        <label for="method">Detection Method:</label>
+                        <select name="method" id="method" class="form-select">
+                            <option value="fft">FFT (Frequency Spectrum)</option>
+                            <option value="autocorrelation">Autocorrelation</option>
+                            <option value="both">Compare Both</option>
+                        </select>
+                    </div>
+                    <div class="option-group">
+                        <label for="instrument">Target Instrument:</label>
+                        <select name="instrument" id="instrument" class="form-select">
+                            <option value="auto">Auto Detect</option>
+                            <option value="guitar">Guitar</option>
+                            <option value="piano">Piano</option>
+                            <option value="voice">Voice</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-large" id="analyzeBtn">
+                <i class="fas fa-search"></i> Analyze Audio
+            </button>
+        </form>
+    </div>
+
+    <!-- RESULTS SECTION — shown after upload -->
+    {% if uploaded %}
+    <div class="results-section">
+        <h2><i class="fas fa-check-circle"></i> File Uploaded Successfully!</h2>
+        <div class="result-card">
+            <p><strong>File:</strong> {{ filename }}</p>
+            <p><strong>Size:</strong> {{ filesize }} KB</p>
+            <p class="processing-note">
+                <i class="fas fa-cog fa-spin"></i> 
+                Signal processing will be implemented in the next step!
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('audioFile');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const dropContent = document.querySelector('.drop-zone-content');
+
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            showFileInfo(this.files[0]);
+        }
+    });
+
+    dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', function() {
+        this.classList.remove('drag-over');
+    });
+
+    dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+        
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            showFileInfo(files[0]);
+        }
+    });
+
+    function showFileInfo(file) {
+        dropContent.style.display = 'none';
+        fileInfo.style.display = 'flex';
+        fileName.textContent = file.name;
+        fileSize.textContent = `(${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+    }
+</script>
+{% endblock %}
