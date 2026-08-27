@@ -5,104 +5,148 @@
 
 {% block content %}
 
-<!-- HERO SECTION -->
 <section class="hero">
     <div class="hero-content">
+        <div class="hero-badge">
+            <span class="dot"></span>
+            Praggo Protim Datta
+        </div>
         <h1 class="hero-title">
-            <span class="gradient-text">Detect Chords</span> 
-            From Any Music
+            Detect <span class="gradient-text" id="typewriterText"></span><span class="typewriter-cursor"></span>
+            <br>From Any Music
         </h1>
         <p class="hero-subtitle">
-            Upload a song or sing directly — our signal processing engine 
-            will identify chords, notes, and more in real-time.
+            Upload a song or sing directly — our engine uses FFT and autocorrelation 
+            to identify chords, notes, and harmonics in real-time.
         </p>
         <div class="hero-buttons">
             <a href="{% url 'upload' %}" class="btn btn-primary">
-                <i class="fas fa-upload"></i> Upload Audio
+                <i class="fas fa-wand-magic-sparkles"></i> Start Detecting
             </a>
-            <a href="#features" class="btn btn-secondary">
-                <i class="fas fa-info-circle"></i> Learn More
+            <a href="#how-it-works" class="btn btn-secondary">
+                <i class="fas fa-play"></i> How It Works
             </a>
         </div>
     </div>
-    
-    <!-- Animated music visualization (decorative) -->
     <div class="hero-visual">
-        <div class="sound-bars">
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-        </div>
+        <canvas id="waveformCanvas" width="400" height="250"></canvas>
     </div>
 </section>
 
-<!-- FEATURES SECTION -->
 <section id="features" class="features">
-    <h2 class="section-title">How It Works</h2>
+    <h2 class="section-title reveal">
+        <span class="gradient-text">Powerful Features</span>
+    </h2>
+    <p class="section-subtitle reveal">
+        Built with real signal processing algorithms, not magic (well, maybe a little)
+    </p>
     <div class="feature-grid">
-        <div class="feature-card">
-            <div class="feature-icon">
-                <i class="fas fa-wave-square fa-3x"></i>
-            </div>
-            <h3>Signal Analysis</h3>
-            <p>We use FFT and autocorrelation to break down audio into its frequency components.</p>
+        <div class="feature-card reveal reveal-delay-1">
+            <div class="feature-icon"><i class="fas fa-wave-square"></i></div>
+            <h3>FFT Analysis</h3>
+            <p>Decomposes audio into frequency components using Fast Fourier Transform to reveal every note.</p>
         </div>
-        
-        <div class="feature-card">
-            <div class="feature-icon">
-                <i class="fas fa-music fa-3x"></i>
-            </div>
-            <h3>Note Detection</h3>
-            <p>Each frequency peak is mapped to the nearest musical note with precision.</p>
+        <div class="feature-card reveal reveal-delay-2">
+            <div class="feature-icon"><i class="fas fa-clock-rotate-left"></i></div>
+            <h3>Autocorrelation</h3>
+            <p>Time-domain pitch detection that finds repeating patterns in the raw audio waveform.</p>
         </div>
-        
-        <div class="feature-card">
-            <div class="feature-icon">
-                <i class="fas fa-guitar fa-3x"></i>
-            </div>
+        <div class="feature-card reveal reveal-delay-3">
+            <div class="feature-icon"><i class="fas fa-guitar"></i></div>
             <h3>Chord Recognition</h3>
-            <p>Detected notes are matched against chord templates to identify chords over time.</p>
+            <p>Maps detected notes to chord templates — major, minor, seventh, and more.</p>
         </div>
-
-        <div class="feature-card">
-            <div class="feature-icon">
-                <i class="fas fa-chart-line fa-3x"></i>
-            </div>
-            <h3>Visual Timeline</h3>
-            <p>See chords displayed along a timeline synchronized with your audio.</p>
+        <div class="feature-card reveal reveal-delay-4">
+            <div class="feature-icon"><i class="fas fa-timeline"></i></div>
+            <h3>Timeline View</h3>
+            <p>Visual chord progression displayed along a synchronized audio timeline.</p>
         </div>
     </div>
 </section>
 
-<!-- METHODS COMPARISON SECTION -->
+<section id="how-it-works" class="how-it-works">
+    <h2 class="section-title reveal">
+        <span class="gradient-text">How It Works</span>
+    </h2>
+    <p class="section-subtitle reveal">Four simple steps from audio to chords</p>
+    <div class="steps-container">
+        <div class="step reveal">
+            <div class="step-number">1</div>
+            <div class="step-content">
+                <h3>Upload Your Audio</h3>
+                <p>Drop any .wav or .mp3 file — a song, a guitar recording, or even your voice humming a melody.</p>
+            </div>
+        </div>
+        <div class="step reveal">
+            <div class="step-number">2</div>
+            <div class="step-content">
+                <h3>Signal Decomposition</h3>
+                <p>The audio is split into tiny windows. Each window is analyzed using FFT to extract frequency peaks.</p>
+            </div>
+        </div>
+        <div class="step reveal">
+            <div class="step-number">3</div>
+            <div class="step-content">
+                <h3>Note & Chroma Mapping</h3>
+                <p>Frequencies are mapped to the 12 musical pitch classes (C, C#, D... B) creating a chroma profile.</p>
+            </div>
+        </div>
+        <div class="step reveal">
+            <div class="step-number">4</div>
+            <div class="step-content">
+                <h3>Chord Matching</h3>
+                <p>The chroma profile is compared against known chord templates to identify the most likely chord.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
 <section class="methods-section">
-    <h2 class="section-title">Two Detection Methods</h2>
+    <h2 class="section-title reveal">
+        <span class="gradient-text">Two Detection Methods</span>
+    </h2>
+    <p class="section-subtitle reveal">Compare time-domain vs frequency-domain approaches</p>
     <div class="methods-grid">
-        <div class="method-card">
+        <div class="method-card reveal reveal-delay-1">
             <h3><i class="fas fa-wave-square"></i> Autocorrelation</h3>
-            <p class="method-type">Time-Domain Method</p>
+            <p class="method-type">Time-Domain</p>
             <ul>
-                <li>Works directly with the raw audio waveform</li>
-                <li>Finds how the signal repeats itself</li>
-                <li>Great for single-note detection</li>
-                <li>Less effective with complex harmonies</li>
+                <li>Slides the signal over itself to find repeating patterns</li>
+                <li>The lag with highest correlation = the wave period</li>
+                <li>Frequency = 1 / Period</li>
+                <li>Best for clean, single-note signals</li>
             </ul>
         </div>
-        <div class="method-card">
+        <div class="method-card reveal reveal-delay-2">
             <h3><i class="fas fa-chart-bar"></i> FFT Spectrum</h3>
-            <p class="method-type">Frequency-Domain Method</p>
+            <p class="method-type">Frequency-Domain</p>
             <ul>
-                <li>Transforms audio into frequency components</li>
-                <li>Reveals all frequencies present at once</li>
-                <li>Better for chord detection (multiple notes)</li>
-                <li>Uses Chroma features for robust matching</li>
+                <li>Transforms audio into a frequency amplitude spectrum</li>
+                <li>Reveals all simultaneous frequencies at once</li>
+                <li>Chroma features group harmonics into note classes</li>
+                <li>Better for complex chords and polyphonic audio</li>
             </ul>
+        </div>
+    </div>
+</section>
+
+<section class="stats-section">
+    <div class="stats-grid">
+        <div class="stat-card reveal reveal-delay-1">
+            <div class="stat-number">12</div>
+            <div class="stat-label">Pitch Classes Detected</div>
+        </div>
+        <div class="stat-card reveal reveal-delay-2">
+            <div class="stat-number">44.1k</div>
+            <div class="stat-label">Samples Per Second</div>
+        </div>
+        <div class="stat-card reveal reveal-delay-3">
+            <div class="stat-number">2</div>
+            <div class="stat-label">Detection Methods</div>
+        </div>
+        <div class="stat-card reveal reveal-delay-4">
+            <div class="stat-number">∞</div>
+            <div class="stat-label">Songs to Analyze</div>
         </div>
     </div>
 </section>

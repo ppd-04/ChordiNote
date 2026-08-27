@@ -1,27 +1,25 @@
 {% extends 'detector/base.html' %}
 {% load static %}
 
-{% block title %}Upload Audio — ChordSense{% endblock %}
+{% block title %}Upload — ChordSense{% endblock %}
 
 {% block content %}
 
 <section class="upload-section">
-    <h1 class="page-title">
-        <i class="fas fa-cloud-upload-alt"></i> Upload Your Audio
+    <h1 class="page-title reveal">
+        <i class="fas fa-wand-magic-sparkles"></i> Upload Your Audio
     </h1>
-    <p class="page-subtitle">
-        Upload a music file (.wav, .mp3) to detect chords and notes
+    <p class="page-subtitle reveal">
+        Drop a song and watch the chords appear like magic
     </p>
 
-    <!-- UPLOAD FORM -->
-    <div class="upload-container">
+    <div class="upload-container reveal">
         <form method="POST" enctype="multipart/form-data" class="upload-form" id="uploadForm">
             {% csrf_token %}
 
-            <!-- Custom drag-and-drop file upload area -->
             <div class="drop-zone" id="dropZone">
                 <div class="drop-zone-content">
-                    <i class="fas fa-cloud-upload-alt fa-4x"></i>
+                    <i class="fas fa-cloud-arrow-up fa-4x"></i>
                     <p class="drop-text">Drag & drop your audio file here</p>
                     <p class="drop-subtext">or</p>
                     <label for="audioFile" class="btn btn-primary">
@@ -37,9 +35,8 @@
                 </div>
             </div>
 
-            <!-- Analysis options -->
             <div class="options-panel">
-                <h3><i class="fas fa-sliders-h"></i> Analysis Options</h3>
+                <h3><i class="fas fa-sliders"></i> Analysis Options</h3>
                 <div class="options-grid">
                     <div class="option-group">
                         <label for="method">Detection Method:</label>
@@ -62,26 +59,24 @@
             </div>
 
             <button type="submit" class="btn btn-primary btn-large" id="analyzeBtn">
-                <i class="fas fa-search"></i> Analyze Audio
+                <i class="fas fa-wand-magic-sparkles"></i> Analyze Audio
             </button>
         </form>
     </div>
 
-    <!-- RESULTS SECTION — shown after upload -->
     {% if uploaded %}
-    <div class="results-section">
-        <h2><i class="fas fa-check-circle"></i> File Uploaded Successfully!</h2>
+    <div class="results-section reveal">
+        <h2><i class="fas fa-circle-check"></i> File Uploaded!</h2>
         <div class="result-card">
             <p><strong>File:</strong> {{ filename }}</p>
             <p><strong>Size:</strong> {{ filesize }} KB</p>
             <p class="processing-note">
                 <i class="fas fa-cog fa-spin"></i> 
-                Signal processing will be implemented in the next step!
+                Signal processing engine coming soon!
             </p>
         </div>
     </div>
     {% endif %}
-
 </section>
 
 {% endblock %}
@@ -96,9 +91,7 @@
     const dropContent = document.querySelector('.drop-zone-content');
 
     fileInput.addEventListener('change', function() {
-        if (this.files.length > 0) {
-            showFileInfo(this.files[0]);
-        }
+        if (this.files.length > 0) showFileInfo(this.files[0]);
     });
 
     dropZone.addEventListener('dragover', function(e) {
@@ -113,7 +106,6 @@
     dropZone.addEventListener('drop', function(e) {
         e.preventDefault();
         this.classList.remove('drag-over');
-        
         const files = e.dataTransfer.files;
         if (files.length > 0) {
             fileInput.files = files;
