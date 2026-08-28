@@ -1,0 +1,80 @@
+{% extends 'detector/base.html' %}
+{% load static %}
+
+{% block title %}Games — ChordSense{% endblock %}
+
+{% block content %}
+
+<section class="game-lobby">
+    <h1 class="page-title reveal">
+        <i class="fas fa-gamepad"></i> Music Games
+    </h1>
+    <p class="page-subtitle reveal">
+        Train your ear and test your music theory knowledge
+    </p>
+
+    <div class="games-grid">
+        <!-- Chord Detection Game -->
+        <div class="game-card reveal reveal-delay-1">
+            <div class="game-card-glow"></div>
+            <div class="game-card-content">
+                <div class="game-icon">
+                    <i class="fas fa-headphones fa-3x"></i>
+                </div>
+                <h2>Chord Detective</h2>
+                <p>Listen to a chord and identify it from four options. Can you hear the difference between major and minor?</p>
+                <div class="game-meta">
+                    <span><i class="fas fa-clock"></i> 10 Questions</span>
+                    <span><i class="fas fa-star"></i> 2 Modes</span>
+                </div>
+                <div class="game-modes">
+                    <a href="{% url 'chord_quiz' %}?mode=normal" class="btn btn-primary">
+                        <i class="fas fa-play"></i> Normal Mode
+                    </a>
+                    <a href="{% url 'chord_quiz' %}?mode=hard" class="btn btn-secondary">
+                        <i class="fas fa-fire"></i> Hard Mode
+                    </a>
+                </div>
+                <div class="mode-tooltips">
+                    <div class="tooltip-item">
+                        <span class="tooltip-label">Normal:</span> 
+                        Basic major & minor chords (C, Am, G, Dm...)
+                    </div>
+                    <div class="tooltip-item">
+                        <span class="tooltip-label">Hard:</span> 
+                        Adds sharps, flats, 7ths, sus, dim, aug chords
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coming Soon Cards -->
+        <div class="game-card coming-soon reveal reveal-delay-2">
+            <div class="game-card-content">
+                <div class="game-icon">
+                    <i class="fas fa-music fa-3x"></i>
+                </div>
+                <h2>Note Sprint</h2>
+                <p>Identify single notes as fast as possible. Race against the clock!</p>
+                <div class="coming-soon-badge">
+                    <i class="fas fa-lock"></i> Coming Soon
+                </div>
+            </div>
+        </div>
+
+        <div class="game-card coming-soon reveal reveal-delay-3">
+            <div class="game-card-content">
+                <div class="game-icon">
+                    <i class="fas fa-ranking-star fa-3x"></i>
+                </div>
+                <h2>Interval Master</h2>
+                <p>Can you tell a perfect fifth from a major third? Test your interval recognition!</p>
+                <div class="coming-soon-badge">
+                    <i class="fas fa-lock"></i> Coming Soon
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

@@ -1,0 +1,432 @@
+{% extends 'detector/base.html' %}
+{% load static %}
+
+{% block title %}Chord Quiz — ChordSense{% endblock %}
+
+{% block content %}
+
+<section class="quiz-page">
+
+    {# ===== PRE-GAME SCREEN ===== #}
+    <div class="quiz-pregame" id="pregameScreen">
+        <div class="pregame-card reveal">
+            <div class="pregame-icon">
+                <i class="fas fa-headphones fa-4x"></i>
+            </div>
+            <h1>Chord Detective</h1>
+            <p class="pregame-mode">{{ mode_label }}</p>
+            <p class="pregame-desc">
+                Listen to each chord and pick the correct name.<br>
+                {{ total_questions }} questions. Let's see how sharp your ears are!
+            </p>
+
+            <div class="reference-section">
+                <p class="reference-label">
+                    <i class="fas fa-volume-high"></i> 
+                    Hear a reference C Major chord first:
+                </p>
+                <button class="btn btn-secondary" id="playReferenceBtn" onclick="playReference()">
+                    <i class="fas fa-play"></i> Play C Major
+                </button>
+            </div>
+
+            <button class="btn btn-primary btn-large" onclick="startGame()">
+                <i class="fas fa-rocket"></i> Start Game!
+            </button>
+        </div>
+    </div>
+
+    {# ===== GAME SCREEN ===== #}
+    <div class="quiz-game" id="gameScreen" style="display: none;">
+        {# Progress Bar #}
+        <div class="quiz-progress">
+            <div class="progress-info">
+                <span>Question <span id="currentQ">1</span> / {{ total_questions }}</span>
+                <span class="score-display">
+                    Score: <span id="currentScore">0</span>
+                </span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        {# Question Card #}
+        <div class="question-card">
+            <div class="question-header">
+                <span class="question-number" id="questionLabel">Q1</span>
+                <span class="question-timer" id="questionTimer">
+                    <i class="fas fa-clock"></i> <span id="timerValue">15</span>s
+                </span>
+            </div>
+
+            <h2 class="question-text">What chord is this?</h2>
+
+            <button class="play-chord-btn" id="playChordBtn" onclick="playCurrentChord()">
+                <div class="play-icon-wrapper">
+                    <i class="fas fa-play fa-2x"></i>
+                </div>
+                <span>Play Chord</span>
+                <span class="play-hint">Click to listen</span>
+            </button>
+
+            <div class="options-container" id="optionsContainer">
+                {# Options are inserted by JavaScript #}
+            </div>
+
+            <div class="feedback-container" id="feedbackContainer" style="display: none;">
+                <div class="feedback-icon" id="feedbackIcon"></div>
+                <p class="feedback-text" id="feedbackText"></p>
+                <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()">
+                    Next Question <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {# ===== RESULTS SCREEN ===== #}
+    <div class="quiz-results" id="resultsScreen" style="display: none;">
+        <div class="results-card reveal">
+            <div class="results-emoji" id="resultsEmoji"></div>
+            <h1 class="results-title" id="resultsTitle"></h1>
+            <p class="results-subtitle" id="resultsSubtitle"></p>
+
+            <div class="results-score-circle">
+                <svg viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="54" class="score-bg"></circle>
+                    <circle cx="60" cy="60" r="54" class="score-ring" id="scoreRing"></circle>
+                </svg>
+                <div class="score-center">
+                    <span class="score-big" id="finalScore">0</span>
+                    <span class="score-label">/ {{ total_questions }}</span>
+                </div>
+            </div>
+
+            <div class="results-stats" id="resultsStats"></div>
+
+            <div class="results-review" id="resultsReview"></div>
+
+            <div class="results-actions">
+                <a href="{% url 'chord_quiz' %}?mode={{ mode }}" class="btn btn-primary">
+                    <i class="fas fa-redo"></i> Play Again
+                </a>
+                <a href="{% url 'game_lobby' %}" class="btn btn-secondary">
+                    <i class="fas fa-gamepad"></i> Back to Games
+                </a>
+            </div>
+        </div>
+    </div>
+
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ============================================
+    // GAME DATA — passed from Django
+    // ============================================
+    const questions = {{ questions_json|safe }};
+    // |safe tells Django "don't escape this HTML/JS"
+    // Without it, Django would convert < > " to &lt; &gt; &quot;
+
+    const referenceAudio = "{{ reference_audio }}";
+    const totalQuestions = {{ total_questions }};
+    const gameMode = "{{ mode }}";
+
+    // ============================================
+    // GAME STATE
+    // ============================================
+    let currentQuestion = 0;
+    let score = 0;
+    let answered = false;
+    let timerInterval = null;
+    let timeLeft = 15;
+    let answers = [];  // Track all answers for the review
+
+    // ============================================
+    // AUDIO PLAYBACK
+    // ============================================
+    function playAudio(base64Data) {
+        // Create an audio element from base64 data
+        const audio = new Audio('data:audio/wav;base64,' + base64Data);
+        // data:audio/wav;base64,... is a "data URI"
+        // The browser treats it as if it loaded a WAV file
+        audio.play();
+        return audio;
+    }
+
+    function playReference() {
+        const btn = document.getElementById('playReferenceBtn');
+        btn.innerHTML = '<i class="fas fa-volume-high fa-beat"></i> Playing...';
+        const audio = playAudio(referenceAudio);
+        audio.onended = () => {
+            btn.innerHTML = '<i class="fas fa-play"></i> Play C Major';
+        };
+    }
+
+    function playCurrentChord() {
+        const btn = document.getElementById('playChordBtn');
+        btn.classList.add('playing');
+        const audio = playAudio(questions[currentQuestion].audio);
+        audio.onended = () => {
+            btn.classList.remove('playing');
+        };
+    }
+
+    // ============================================
+    // GAME FLOW
+    // ============================================
+    function startGame() {
+        document.getElementById('pregameScreen').style.display = 'none';
+        document.getElementById('gameScreen').style.display = 'block';
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        const q = questions[currentQuestion];
+        answered = false;
+
+        // Update progress
+        document.getElementById('currentQ').textContent = currentQuestion + 1;
+        document.getElementById('questionLabel').textContent = `Q${currentQuestion + 1}`;
+        document.getElementById('progressFill').style.width =
+            `${((currentQuestion) / totalQuestions) * 100}%`;
+
+        // Reset feedback
+        document.getElementById('feedbackContainer').style.display = 'none';
+
+        // Build options
+        const container = document.getElementById('optionsContainer');
+        container.innerHTML = '';
+        container.style.display = 'grid';
+
+        q.options.forEach((option, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerHTML = `
+                <span class="option-letter">${String.fromCharCode(65 + index)}</span>
+                <span class="option-text">${option}</span>
+            `;
+            // String.fromCharCode(65) = 'A', 66 = 'B', etc.
+            btn.onclick = () => selectAnswer(option, btn);
+            container.appendChild(btn);
+        });
+
+        // Start timer
+        timeLeft = 15;
+        document.getElementById('timerValue').textContent = timeLeft;
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            document.getElementById('timerValue').textContent = timeLeft;
+            if (timeLeft <= 5) {
+                document.getElementById('questionTimer').classList.add('timer-warning');
+            }
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timeUp();
+            }
+        }, 1000);
+
+        // Auto-play the chord after a short delay
+        setTimeout(() => playCurrentChord(), 500);
+    }
+
+    function selectAnswer(selected, btnElement) {
+        if (answered) return;
+        answered = true;
+        clearInterval(timerInterval);
+
+        const q = questions[currentQuestion];
+        const isCorrect = selected === q.correct;
+
+        if (isCorrect) {
+            score++;
+            document.getElementById('currentScore').textContent = score;
+        }
+
+        // Track this answer
+        answers.push({
+            question: currentQuestion + 1,
+            correct: q.correct,
+            selected: selected,
+            isCorrect: isCorrect,
+            timedOut: false,
+        });
+
+        // Highlight correct/wrong
+        const allBtns = document.querySelectorAll('.option-btn');
+        allBtns.forEach(btn => {
+            btn.disabled = true;
+            const text = btn.querySelector('.option-text').textContent;
+            if (text === q.correct) {
+                btn.classList.add('correct');
+            } else if (text === selected && !isCorrect) {
+                btn.classList.add('wrong');
+            } else {
+                btn.classList.add('dimmed');
+            }
+        });
+
+        // Show feedback
+        showFeedback(isCorrect, q.correct);
+    }
+
+    function timeUp() {
+        if (answered) return;
+        answered = true;
+
+        const q = questions[currentQuestion];
+        answers.push({
+            question: currentQuestion + 1,
+            correct: q.correct,
+            selected: 'Time Up',
+            isCorrect: false,
+            timedOut: true,
+        });
+
+        const allBtns = document.querySelectorAll('.option-btn');
+        allBtns.forEach(btn => {
+            btn.disabled = true;
+            const text = btn.querySelector('.option-text').textContent;
+            if (text === q.correct) {
+                btn.classList.add('correct');
+            } else {
+                btn.classList.add('dimmed');
+            }
+        });
+
+        showFeedback(false, q.correct, true);
+    }
+
+    function showFeedback(isCorrect, correctAnswer, timedOut = false) {
+        const container = document.getElementById('feedbackContainer');
+        const icon = document.getElementById('feedbackIcon');
+        const text = document.getElementById('feedbackText');
+        const nextBtn = document.getElementById('nextBtn');
+
+        container.style.display = 'block';
+
+        if (timedOut) {
+            icon.innerHTML = '<i class="fas fa-hourglass-end fa-3x"></i>';
+            icon.className = 'feedback-icon timeout';
+            text.innerHTML = `Time's up! The correct answer was <strong>${correctAnswer}</strong>`;
+        } else if (isCorrect) {
+            icon.innerHTML = '<i class="fas fa-check-circle fa-3x"></i>';
+            icon.className = 'feedback-icon correct';
+            const praises = ['Perfect!', 'Excellent!', 'Spot on!', 'Great ear!', 'Nailed it!'];
+            text.textContent = praises[Math.floor(Math.random() * praises.length)];
+        } else {
+            icon.innerHTML = '<i class="fas fa-times-circle fa-3x"></i>';
+            icon.className = 'feedback-icon wrong';
+            text.innerHTML = `Not quite! It was <strong>${correctAnswer}</strong>`;
+        }
+
+        if (currentQuestion >= totalQuestions - 1) {
+            nextBtn.innerHTML = 'See Results <i class="fas fa-trophy"></i>';
+        } else {
+            nextBtn.innerHTML = 'Next Question <i class="fas fa-arrow-right"></i>';
+        }
+    }
+
+    function nextQuestion() {
+        currentQuestion++;
+        if (currentQuestion >= totalQuestions) {
+            showResults();
+        } else {
+            loadQuestion();
+        }
+    }
+
+    // ============================================
+    // RESULTS
+    // ============================================
+    function showResults() {
+        document.getElementById('gameScreen').style.display = 'none';
+        const resultsScreen = document.getElementById('resultsScreen');
+        resultsScreen.style.display = 'block';
+
+        const percentage = (score / totalQuestions) * 100;
+
+        // Score-based comments and emojis
+        let emoji, title, subtitle;
+        if (percentage === 100) {
+            emoji = '🏆👑✨';
+            title = 'Perfect Score!';
+            subtitle = 'You have the ears of a maestro! Absolute perfection.';
+        } else if (percentage >= 80) {
+            emoji = '🌟🎵🔥';
+            title = 'Outstanding!';
+            subtitle = 'Your ear training is seriously impressive. Almost flawless!';
+        } else if (percentage >= 60) {
+            emoji = '😊🎶👍';
+            title = 'Great Job!';
+            subtitle = 'You\'ve got a solid ear. Keep practicing and you\'ll be a pro!';
+        } else if (percentage >= 40) {
+            emoji = '🎧💪📈';
+            title = 'Not Bad!';
+            subtitle = 'You\'re learning! Regular listening practice will sharpen those ears.';
+        } else if (percentage >= 20) {
+            emoji = '😅🎸📚';
+            title = 'Keep Trying!';
+            subtitle = 'Chords can be tricky. Try the reference C chord to calibrate your ears!';
+        } else {
+            emoji = '🫂🎵💫';
+            title = 'Just Getting Started!';
+            subtitle = 'Everyone starts somewhere. Try Normal mode and listen carefully to each chord!';
+        }
+
+        document.getElementById('resultsEmoji').textContent = emoji;
+        document.getElementById('resultsTitle').textContent = title;
+        document.getElementById('resultsSubtitle').textContent = subtitle;
+        document.getElementById('finalScore').textContent = score;
+
+        // Animate the score ring
+        const ring = document.getElementById('scoreRing');
+        const circumference = 2 * Math.PI * 54;
+        ring.style.strokeDasharray = circumference;
+        ring.style.strokeDashoffset = circumference;
+        // After a tiny delay, animate it
+        setTimeout(() => {
+            const offset = circumference - (percentage / 100) * circumference;
+            ring.style.strokeDashoffset = offset;
+        }, 300);
+
+        // Stats
+        const correct = answers.filter(a => a.isCorrect).length;
+        const wrong = answers.filter(a => !a.isCorrect && !a.timedOut).length;
+        const timedOut = answers.filter(a => a.timedOut).length;
+
+        document.getElementById('resultsStats').innerHTML = `
+            <div class="result-stat correct-stat">
+                <i class="fas fa-check"></i> ${correct} Correct
+            </div>
+            <div class="result-stat wrong-stat">
+                <i class="fas fa-times"></i> ${wrong} Wrong
+            </div>
+            <div class="result-stat timeout-stat">
+                <i class="fas fa-hourglass"></i> ${timedOut} Timed Out
+            </div>
+        `;
+
+        // Build answer review
+        let reviewHTML = '<h3>Answer Review</h3><div class="review-list">';
+        answers.forEach(a => {
+            const icon = a.isCorrect ? '✅' : (a.timedOut ? '⏰' : '❌');
+            reviewHTML += `
+                <div class="review-item ${a.isCorrect ? 'review-correct' : 'review-wrong'}">
+                    <span class="review-q">Q${a.question}</span>
+                    <span class="review-icon">${icon}</span>
+                    <span class="review-answer">
+                        ${a.isCorrect ? a.correct :
+                          `<span class="your-answer">${a.selected}</span> → <span class="correct-answer">${a.correct}</span>`}
+                    </span>
+                </div>
+            `;
+        });
+        reviewHTML += '</div>';
+        document.getElementById('resultsReview').innerHTML = reviewHTML;
+    }
+</script>
+{% endblock %}
