@@ -10,8 +10,14 @@
         <i class="fas fa-wand-magic-sparkles"></i> Upload Your Audio
     </h1>
     <p class="page-subtitle reveal">
-        Drop a song and watch the chords appear like magic
+        Drop a melody and watch the notes appear like magic
     </p>
+
+    {% if error %}
+    <div class="error-banner reveal">
+        <i class="fas fa-exclamation-triangle"></i> {{ error }}
+    </div>
+    {% endif %}
 
     <div class="upload-container reveal">
         <form method="POST" enctype="multipart/form-data" class="upload-form" id="uploadForm">
@@ -25,7 +31,7 @@
                     <label for="audioFile" class="btn btn-primary">
                         <i class="fas fa-folder-open"></i> Choose File
                     </label>
-                    <input type="file" name="audio_file" id="audioFile" 
+                    <input type="file" name="audio_file" id="audioFile"
                            accept=".wav,.mp3,.ogg,.flac" class="file-input-hidden">
                 </div>
                 <div class="file-info" id="fileInfo" style="display: none;">
@@ -36,25 +42,19 @@
             </div>
 
             <div class="options-panel">
-                <h3><i class="fas fa-sliders"></i> Analysis Options</h3>
-                <div class="options-grid">
-                    <div class="option-group">
-                        <label for="method">Detection Method:</label>
-                        <select name="method" id="method" class="form-select">
-                            <option value="fft">FFT (Frequency Spectrum)</option>
-                            <option value="autocorrelation">Autocorrelation</option>
-                            <option value="both">Compare Both</option>
-                        </select>
-                    </div>
-                    <div class="option-group">
-                        <label for="instrument">Target Instrument:</label>
-                        <select name="instrument" id="instrument" class="form-select">
-                            <option value="auto">Auto Detect</option>
-                            <option value="guitar">Guitar</option>
-                            <option value="piano">Piano</option>
-                            <option value="voice">Voice</option>
-                        </select>
-                    </div>
+                <h3><i class="fas fa-sliders"></i> Analysis Profile</h3>
+                <p class="options-hint">Choose the profile that best matches your audio</p>
+                <div class="profile-grid">
+                    {% for key, profile in profiles.items %}
+                    <label class="profile-option {% if forloop.first %}selected{% endif %}">
+                        <input type="radio" name="profile" value="{{ key }}"
+                               {% if forloop.first %}checked{% endif %}>
+                        <div class="profile-card">
+                            <h4>{{ profile.label }}</h4>
+                            <span class="profile-detail">Range: {{ profile.fmin }} – {{ profile.fmax }}</span>
+                        </div>
+                    </label>
+                    {% endfor %}
                 </div>
             </div>
 
@@ -63,20 +63,6 @@
             </button>
         </form>
     </div>
-
-    {% if uploaded %}
-    <div class="results-section reveal">
-        <h2><i class="fas fa-circle-check"></i> File Uploaded!</h2>
-        <div class="result-card">
-            <p><strong>File:</strong> {{ filename }}</p>
-            <p><strong>Size:</strong> {{ filesize }} KB</p>
-            <p class="processing-note">
-                <i class="fas fa-cog fa-spin"></i> 
-                Signal processing engine coming soon!
-            </p>
-        </div>
-    </div>
-    {% endif %}
 </section>
 
 {% endblock %}
@@ -89,6 +75,8 @@
     const fileName = document.getElementById('fileName');
     const fileSize = document.getElementById('fileSize');
     const dropContent = document.querySelector('.drop-zone-content');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const uploadForm = document.getElementById('uploadForm');
 
     fileInput.addEventListener('change', function() {
         if (this.files.length > 0) showFileInfo(this.files[0]);
@@ -119,5 +107,23 @@
         fileName.textContent = file.name;
         fileSize.textContent = `(${(file.size / 1024 / 1024).toFixed(2)} MB)`;
     }
+
+    // Profile selection visual feedback
+    document.querySelectorAll('.profile-option input').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.querySelectorAll('.profile-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            this.closest('.profile-option').classList.add('selected');
+        });
+    });
+
+    // Show processing overlay when form is submitted
+    uploadForm.addEventListener('submit', function() {
+        if (fileInput.files.length > 0) {
+            const overlay = document.getElementById('processingOverlay');
+            if (overlay) overlay.classList.add('active');
+        }
+    });
 </script>
 {% endblock %}

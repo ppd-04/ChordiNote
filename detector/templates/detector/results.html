@@ -1,0 +1,121 @@
+{% extends 'detector/base.html' %}
+{% load static %}
+
+{% block title %}Results — ChordSense{% endblock %}
+
+{% block content %}
+
+<section class="results-page">
+    <h1 class="page-title reveal">
+        <i class="fas fa-sparkles"></i> Analysis Complete!
+    </h1>
+    <p class="page-subtitle reveal">
+        Detected <strong>{{ total_notes }}</strong> notes across
+        <strong>{{ unique_notes }}</strong> unique pitches
+    </p>
+
+    <!-- STATS ROW -->
+    <div class="stats-grid reveal">
+        <div class="stat-card">
+            <div class="stat-number">{{ total_notes }}</div>
+            <div class="stat-label">Notes Detected</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ unique_notes }}</div>
+            <div class="stat-label">Unique Pitches</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ total_rests }}</div>
+            <div class="stat-label">Rests / Silences</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ profile_used }}</div>
+            <div class="stat-label">Profile Used</div>
+        </div>
+    </div>
+
+    <!-- AUDIO PLAYERS -->
+    <div class="audio-players reveal">
+        <div class="player-card">
+            <h3><i class="fas fa-file-audio"></i> Original Audio</h3>
+            <audio controls class="audio-player">
+                <source src="{{ original_url }}" type="audio/mpeg">
+                <source src="{{ original_url }}" type="audio/wav">
+            </audio>
+        </div>
+        {% if has_reconstruction %}
+        <div class="player-card">
+            <h3><i class="fas fa-wand-magic-sparkles"></i> Reconstructed from Detected Notes</h3>
+            <audio controls class="audio-player">
+                <source src="{{ reconstructed_url }}" type="audio/wav">
+            </audio>
+            <p class="player-hint">This is synthesized purely from the detected pitches!</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- NOTE TIMELINE VISUALIZATION -->
+    <div class="timeline-section reveal">
+        <h2 class="section-title"><span class="gradient-text">Note Timeline</span></h2>
+        <div class="chord-timeline">
+            <div class="timeline-track" id="timelineTrack">
+                {% for note in notes %}
+                {% if note.note != "REST" %}
+                <div class="chord-block" title="{{ note.timestamp }} | {{ note.frequency }}">
+                    <div class="chord-name">{{ note.note }}</div>
+                    <div class="chord-type">{{ note.frequency }}</div>
+                    <div class="chord-time">{{ note.timestamp }}</div>
+                </div>
+                {% else %}
+                <div class="chord-block rest-block" title="Silence">
+                    <div class="chord-name rest">—</div>
+                    <div class="chord-time">{{ note.timestamp }}</div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- DETAILED NOTE TABLE -->
+    <div class="table-section reveal">
+        <h2 class="section-title"><span class="gradient-text">Detailed Note List</span></h2>
+        <div class="table-container">
+            <table class="notes-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Timestamp</th>
+                        <th>Note</th>
+                        <th>Frequency</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for note in notes %}
+                    <tr class="{% if note.note == 'REST' %}rest-row{% endif %}">
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ note.timestamp }}</td>
+                        <td>
+                            {% if note.note != "REST" %}
+                            <span class="note-badge">{{ note.note }}</span>
+                            {% else %}
+                            <span class="note-badge rest-badge">REST</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ note.frequency }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- BACK BUTTON -->
+    <div class="back-section reveal">
+        <a href="{% url 'upload' %}" class="btn btn-primary">
+            <i class="fas fa-arrow-left"></i> Analyze Another File
+        </a>
+    </div>
+</section>
+
+{% endblock %}
