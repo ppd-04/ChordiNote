@@ -1,0 +1,858 @@
+{% extends 'detector/base.html' %}
+{% load static %}
+
+{% block title %}Sing the Note — ChordSense{% endblock %}
+
+{% block content %}
+
+<section class="sing-game-page">
+
+    {# ===== PRE-GAME SCREEN ===== #}
+    <div class="sing-pregame" id="pregameScreen">
+        <div class="pregame-card reveal">
+            <div class="pregame-icon">
+                <i class="fas fa-microphone-lines fa-4x"></i>
+            </div>
+            <h1>Sing the Note</h1>
+            <p class="pregame-mode">{{ mode_label }}</p>
+            <p class="pregame-desc">
+                Listen to a note, then sing it into your microphone.<br>
+                Real-time pitch detection will show how accurate you are!
+            </p>
+
+            <div class="mic-warning">
+                <i class="fas fa-info-circle"></i>
+                This game requires microphone access. Your audio stays in your browser
+                and is never sent to any server.
+            </div>
+
+            <div class="reference-section">
+                <p class="reference-label">
+                    <i class="fas fa-volume-high"></i>
+                    Test your microphone first to select your input device:
+                </p>
+                
+                <button class="btn btn-secondary" id="testMicBtn" onclick="testMicrophone()">
+                    <i class="fas fa-microphone"></i> Connect Microphone
+                </button>
+                
+                {# NEW: Dropdown selector for Audio input devices #}
+                <div class="device-selector-container" id="deviceSection" style="display: none; margin-top: 1.5rem;">
+                    <label for="audioSource" class="device-label">
+                        <i class="fas fa-sliders"></i> Choose Input Device:
+                    </label>
+                    <select id="audioSource" class="form-select device-dropdown" onchange="changeDevice()"></select>
+                </div>
+
+                <p class="mic-test-result" id="micTestResult"></p>
+            </div>
+
+            <button class="btn btn-primary btn-large" id="startGameBtn" onclick="startGame()" disabled style="opacity: 0.6; cursor: not-allowed;">
+                <i class="fas fa-rocket"></i> Connect Mic to Play
+            </button>
+        </div>
+    </div>
+
+    {# ===== GAME SCREEN ===== #}
+    <div class="sing-game" id="gameScreen" style="display: none;">
+
+        {# Progress #}
+        <div class="quiz-progress">
+            <div class="progress-info">
+                <span>Round <span id="currentRound">1</span> / 10</span>
+                <span class="score-display">
+                    Score: <span id="currentScore">0</span>
+                </span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        {# Main Game Card #}
+        <div class="sing-card">
+
+            {# Phase 1: Listening #}
+            <div class="sing-phase" id="listenPhase">
+                <h2 class="phase-title">Listen to this note</h2>
+                <div class="target-note-display" id="targetNoteDisplay">
+                    <span class="target-note-name" id="targetNoteName">—</span>
+                    <span class="target-note-freq" id="targetNoteFreq">— Hz</span>
+                </div>
+                <button class="play-chord-btn" id="replayBtn" onclick="playTargetNote()">
+                    <div class="play-icon-wrapper">
+                        <i class="fas fa-play fa-2x"></i>
+                    </div>
+                    <span>Replay Note</span>
+                </button>
+                <button class="btn btn-primary" id="startSingBtn" onclick="startSinging()">
+                    <i class="fas fa-microphone"></i> I'm Ready — Start Singing!
+                </button>
+            </div>
+
+            {# Phase 2: Singing #}
+            <div class="sing-phase" id="singPhase" style="display: none;">
+                <h2 class="phase-title">
+                    <span class="recording-dot"></span> Sing now!
+                </h2>
+
+                <div class="sing-target-reminder">
+                    Target: <strong id="targetReminder">—</strong>
+                </div>
+
+                {# Real-time pitch display #}
+                <div class="pitch-display">
+                    <div class="pitch-detected">
+                        <span class="pitch-label">You're singing</span>
+                        <span class="pitch-note" id="detectedNote">—</span>
+                        <span class="pitch-freq" id="detectedFreq">— Hz</span>
+                    </div>
+                    <div class="pitch-vs">VS</div>
+                    <div class="pitch-target">
+                        <span class="pitch-label">Target</span>
+                        <span class="pitch-note" id="targetNoteLive">—</span>
+                        <span class="pitch-freq" id="targetFreqLive">— Hz</span>
+                    </div>
+                </div>
+
+                {# Tuner needle meter #}
+                <div class="tuner-container">
+                    <div class="tuner-labels">
+                        <span>Flat ♭</span>
+                        <span>Perfect</span>
+                        <span>Sharp ♯</span>
+                    </div>
+                    <div class="tuner-track">
+                        <div class="tuner-zones">
+                            <div class="zone zone-bad-left"></div>
+                            <div class="zone zone-ok-left"></div>
+                            <div class="zone zone-good-left"></div>
+                            <div class="zone zone-perfect"></div>
+                            <div class="zone zone-good-right"></div>
+                            <div class="zone zone-ok-right"></div>
+                            <div class="zone zone-bad-right"></div>
+                        </div>
+                        <div class="tuner-needle" id="tunerNeedle"></div>
+                    </div>
+                    <div class="tuner-cents" id="tunerCents">0 cents</div>
+                </div>
+
+                {# Singing timer #}
+                <div class="sing-timer">
+                    <div class="sing-timer-bar">
+                        <div class="sing-timer-fill" id="singTimerFill"></div>
+                    </div>
+                    <span class="sing-timer-text" id="singTimerText">4s</span>
+                </div>
+            </div>
+
+            {# Phase 3: Round Result #}
+            <div class="sing-phase" id="resultPhase" style="display: none;">
+                <div class="round-result-icon" id="roundResultIcon"></div>
+                <h2 class="round-result-title" id="roundResultTitle"></h2>
+                <p class="round-result-detail" id="roundResultDetail"></p>
+
+                <div class="round-grade" id="roundGrade"></div>
+
+                <button class="btn btn-primary" id="nextRoundBtn" onclick="nextRound()">
+                    Next Round <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {# ===== FINAL RESULTS SCREEN ===== #}
+    <div class="quiz-results" id="resultsScreen" style="display: none;">
+        <div class="results-card reveal">
+            <div class="results-emoji" id="resultsEmoji"></div>
+            <h1 class="results-title" id="resultsTitle"></h1>
+            <p class="results-subtitle" id="resultsSubtitle"></p>
+
+            <div class="results-score-circle">
+                <svg viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="54" class="score-bg"></circle>
+                    <circle cx="60" cy="60" r="54" class="score-ring" id="scoreRing"></circle>
+                </svg>
+                <div class="score-center">
+                    <span class="score-big" id="finalScore">0</span>
+                    <span class="score-label">/ 100</span>
+                </div>
+            </div>
+
+            <div class="results-stats" id="resultsStats"></div>
+            <div class="results-review" id="resultsReview"></div>
+
+            <div class="results-actions">
+                <a href="{% url 'sing_the_note' %}?mode={{ mode }}" class="btn btn-primary">
+                    <i class="fas fa-redo"></i> Play Again
+                </a>
+                <a href="{% url 'game_lobby' %}" class="btn btn-secondary">
+                    <i class="fas fa-gamepad"></i> Back to Games
+                </a>
+            </div>
+        </div>
+    </div>
+
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ============================================
+// CONFIGURATION
+// ============================================
+const gameMode = "{{ mode }}";
+const TOTAL_ROUNDS = 10;
+const SING_DURATION = 4;
+
+const NORMAL_NOTES = [
+    { midi: 48, name: 'C3' }, { midi: 50, name: 'D3' }, { midi: 52, name: 'E3' },
+    { midi: 53, name: 'F3' }, { midi: 55, name: 'G3' }, { midi: 57, name: 'A3' },
+    { midi: 59, name: 'B3' },
+    { midi: 60, name: 'C4' }, { midi: 62, name: 'D4' }, { midi: 64, name: 'E4' },
+    { midi: 65, name: 'F4' }, { midi: 67, name: 'G4' }, { midi: 69, name: 'A4' },
+    { midi: 71, name: 'B4' },
+    { midi: 72, name: 'C5' },
+];
+
+const HARD_NOTES = NORMAL_NOTES.concat([
+    { midi: 45, name: 'A2' }, { midi: 46, name: 'Bb2' },
+    { midi: 49, name: 'C#3' }, { midi: 51, name: 'Eb3' },
+    { midi: 54, name: 'F#3' }, { midi: 56, name: 'G#3' },
+    { midi: 58, name: 'Bb3' },
+    { midi: 61, name: 'C#4' }, { midi: 63, name: 'Eb4' },
+    { midi: 66, name: 'F#4' }, { midi: 68, name: 'G#4' },
+    { midi: 70, name: 'Bb4' },
+    { midi: 73, name: 'C#5' }, { midi: 76, name: 'E5' },
+]);
+
+const NOTE_POOL = gameMode === 'hard' ? HARD_NOTES : NORMAL_NOTES;
+
+// ============================================
+// GAME STATE
+// ============================================
+let currentRound = 0;
+let totalScore = 0;
+let roundResults = [];
+let targetNote = null;
+let audioCtx = null;
+let micStream = null;
+let analyser = null;
+let micSource = null;
+let isListening = false;
+let singTimer = null;
+let animFrameId = null;
+let detectedPitches = [];
+let currentDeviceId = null; // Track currently active microphone
+
+// ============================================
+// AUDIO CONTEXT SETUP
+// ============================================
+function getAudioContext() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    return audioCtx;
+}
+
+// ============================================
+// MIDI TO FREQUENCY & FREQ TO NOTE
+// ============================================
+function midiToFreq(midi) {
+    return 440 * Math.pow(2, (midi - 69) / 12);
+}
+
+function freqToNote(freq) {
+    if (freq <= 0) return null;
+    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const midiFloat = 12 * Math.log2(freq / 440) + 69;
+    const midiRound = Math.round(midiFloat);
+    const cents = Math.round((midiFloat - midiRound) * 100);
+
+    if (midiRound < 0 || midiRound > 127) return null;
+
+    return {
+        name: noteNames[midiRound % 12],
+        octave: Math.floor(midiRound / 12) - 1,
+        fullName: noteNames[midiRound % 12] + (Math.floor(midiRound / 12) - 1),
+        midi: midiRound,
+        cents: cents,
+        freq: freq,
+    };
+}
+
+// ============================================
+// GENERATE TONE
+// ============================================
+function playTone(frequency, duration) {
+    const ctx = getAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(frequency, ctx.currentTime);
+
+    const vibrato = ctx.createOscillator();
+    const vibratoGain = ctx.createGain();
+    vibrato.frequency.setValueAtTime(5, ctx.currentTime);
+    vibratoGain.gain.setValueAtTime(2, ctx.currentTime);
+    vibrato.connect(vibratoGain);
+    vibratoGain.connect(osc.frequency);
+    vibrato.start();
+
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.05);
+    gain.gain.setValueAtTime(0.4, ctx.currentTime + duration - 0.1);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+    vibrato.stop(ctx.currentTime + duration);
+}
+
+function playTargetNote() {
+    if (!targetNote) return;
+    playTone(targetNote.freq, 2.5);
+}
+
+// ============================================
+// MICROPHONE SETUP (Updated to support swap)
+// ============================================
+async function setupMicrophone(deviceId = null) {
+    // If we have an existing microphone stream running, turn it off completely first
+    if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+    }
+
+    try {
+        const constraints = {
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+            }
+        };
+
+        // If the user picked a specific microphone, force the system to connect to it
+        if (deviceId) {
+            constraints.audio.deviceId = { exact: deviceId };
+            currentDeviceId = deviceId;
+        }
+
+        micStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const ctx = getAudioContext();
+
+        micSource = ctx.createMediaStreamSource(micStream);
+        analyser = ctx.createAnalyser();
+        analyser.fftSize = 4096;
+        analyser.smoothingTimeConstant = 0.8;
+
+        micSource.connect(analyser);
+
+        // Keep track of which device is currently active
+        const activeTrack = micStream.getAudioTracks()[0];
+        if (activeTrack && activeTrack.getSettings()) {
+            currentDeviceId = activeTrack.getSettings().deviceId;
+        }
+
+        // Search and display connected audio devices list
+        await populateDevicesList();
+        return true;
+    } catch (err) {
+        console.error('Microphone error:', err);
+        return false;
+    }
+}
+
+// ============================================
+// ENUMERATE CONNECTED MICROPHONES (NEW)
+// ============================================
+async function populateDevicesList() {
+    const deviceSection = document.getElementById('deviceSection');
+    const audioSource = document.getElementById('audioSource');
+
+    try {
+        // Enumerate all media devices connected to the PC
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        // Filter out only audio input devices (microphones)
+        const microphones = devices.filter(device => device.kind === 'audioinput');
+
+        audioSource.innerHTML = ''; // Reset select list
+
+        microphones.forEach(device => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            // Fallback if browser labels are empty strings (which happens prior to granting permission)
+            option.text = device.label || `Microphone ${audioSource.length + 1}`;
+            
+            // Highlight the active microphone in the dropdown list
+            if (currentDeviceId && device.deviceId === currentDeviceId) {
+                option.selected = true;
+            }
+            audioSource.appendChild(option);
+        });
+
+        if (microphones.length > 0) {
+            deviceSection.style.display = 'block'; // Make dropdown block visible
+        }
+    } catch (e) {
+        console.error('Error listing devices: ', e);
+    }
+}
+
+// ============================================
+// SWAP MICROPHONE HANDLER (NEW)
+// ============================================
+async function changeDevice() {
+    const audioSource = document.getElementById('audioSource');
+    const selectedDeviceId = audioSource.value;
+    
+    if (selectedDeviceId) {
+        const resultLabel = document.getElementById('micTestResult');
+        resultLabel.innerHTML = '<span style="color: var(--primary-light);"><i class="fas fa-spinner fa-spin"></i> Switching device...</span>';
+        
+        const success = await setupMicrophone(selectedDeviceId);
+        
+        if (success) {
+            resultLabel.innerHTML = '<span style="color: #4ade80;">✓ Swapped device successfully! Sing to test.</span>';
+        } else {
+            resultLabel.innerHTML = '<span style="color: #ef4444;">✗ Failed to connect to chosen microphone.</span>';
+        }
+    }
+}
+
+// ============================================
+// MICROPHONE CONNECT INITIATOR
+// ============================================
+async function testMicrophone() {
+    const btn = document.getElementById('testMicBtn');
+    const result = document.getElementById('micTestResult');
+    const startBtn = document.getElementById('startGameBtn');
+    
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+
+    const success = await setupMicrophone();
+
+    if (success) {
+        result.innerHTML = '<span style="color: #4ade80;">✓ Microphone connected! Select your input device below.</span>';
+        btn.innerHTML = '<i class="fas fa-check"></i> Connected';
+        
+        // Enable start game button
+        startBtn.disabled = false;
+        startBtn.style.opacity = '1';
+        startBtn.style.cursor = 'pointer';
+
+        // Brief real-time testing loop
+        isListening = true;
+        detectPitchLoop();
+        setTimeout(() => {
+            isListening = false;
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+        }, 3000);
+    } else {
+        result.innerHTML = '<span style="color: #ef4444;">✗ Microphone access denied. Please verify permissions.</span>';
+        btn.innerHTML = '<i class="fas fa-microphone"></i> Try Again';
+    }
+}
+
+// ============================================
+// PITCH DETECTION — AUTOCORRELATION
+// ============================================
+function autoCorrelate(buffer, sampleRate) {
+    let rms = 0;
+    for (let i = 0; i < buffer.length; i++) {
+        rms += buffer[i] * buffer[i];
+    }
+    rms = Math.sqrt(rms / buffer.length);
+
+    if (rms < 0.01) return -1;
+
+    let r1 = 0;
+    let r2 = buffer.length - 1;
+    const threshold = 0.2;
+
+    for (let i = 0; i < buffer.length / 2; i++) {
+        if (Math.abs(buffer[i]) < threshold) {
+            r1 = i;
+            break;
+        }
+    }
+    for (let i = 1; i < buffer.length / 2; i++) {
+        if (Math.abs(buffer[buffer.length - i]) < threshold) {
+            r2 = buffer.length - i;
+            break;
+        }
+    }
+
+    const trimmed = buffer.slice(r1, r2);
+    const SIZE = trimmed.length;
+    if (SIZE < 2) return -1;
+
+    const c = new Float32Array(SIZE);
+    for (let lag = 0; lag < SIZE; lag++) {
+        let sum = 0;
+        for (let i = 0; i < SIZE - lag; i++) {
+            sum += trimmed[i] * trimmed[i + lag];
+        }
+        c[lag] = sum;
+    }
+
+    let d = 0;
+    while (d < SIZE - 1 && c[d] > c[d + 1]) {
+        d++;
+    }
+
+    let maxVal = -1;
+    let maxPos = -1;
+    for (let i = d; i < SIZE; i++) {
+        if (c[i] > maxVal) {
+            maxVal = c[i];
+            maxPos = i;
+        }
+    }
+
+    if (maxPos === -1) return -1;
+
+    let T0 = maxPos;
+
+    if (T0 > 0 && T0 < SIZE - 1) {
+        const x1 = c[T0 - 1];
+        const x2 = c[T0];
+        const x3 = c[T0 + 1];
+        const a = (x1 + x3 - 2 * x2) / 2;
+        const b = (x3 - x1) / 2;
+        if (a !== 0) {
+            T0 = T0 - b / (2 * a);
+        }
+    }
+
+    return sampleRate / T0;
+}
+
+// ============================================
+// REAL-TIME PITCH DETECTION LOOP
+// ============================================
+function detectPitchLoop() {
+    if (!isListening || !analyser) return;
+
+    const buffer = new Float32Array(analyser.fftSize);
+    analyser.getFloatTimeDomainData(buffer);
+
+    const freq = autoCorrelate(buffer, audioCtx.sampleRate);
+
+    if (freq > 50 && freq < 1500) {
+        const note = freqToNote(freq);
+
+        if (note) {
+            document.getElementById('detectedNote').textContent = note.fullName;
+            document.getElementById('detectedFreq').textContent = freq.toFixed(1) + ' Hz';
+
+            if (targetNote) {
+                const centsDiff = Math.round((note.midi - targetNote.midi) * 100 + note.cents);
+                updateTuner(centsDiff);
+
+                if (isListening) {
+                    detectedPitches.push({
+                        freq: freq,
+                        midi: note.midi,
+                        cents: centsDiff,
+                    });
+                }
+            }
+        }
+    } else {
+        document.getElementById('detectedNote').textContent = '...';
+        document.getElementById('detectedFreq').textContent = 'Sing louder!';
+        updateTuner(0);
+    }
+
+    animFrameId = requestAnimationFrame(detectPitchLoop);
+}
+
+// ============================================
+// TUNER NEEDLE UPDATE
+// ============================================
+function updateTuner(centsDiff) {
+    const needle = document.getElementById('tunerNeedle');
+    const centsLabel = document.getElementById('tunerCents');
+
+    const clamped = Math.max(-200, Math.min(200, centsDiff));
+    const position = 50 + (clamped / 200) * 50;
+    needle.style.left = position + '%';
+
+    const absCents = Math.abs(centsDiff);
+    if (absCents <= 15) {
+        needle.style.background = '#4ade80';
+        centsLabel.style.color = '#4ade80';
+    } else if (absCents <= 30) {
+        needle.style.background = '#a3e635';
+        centsLabel.style.color = '#a3e635';
+    } else if (absCents <= 50) {
+        needle.style.background = '#facc15';
+        centsLabel.style.color = '#facc15';
+    } else {
+        needle.style.background = '#ef4444';
+        centsLabel.style.color = '#ef4444';
+    }
+
+    const direction = centsDiff > 0 ? '♯ sharp' : centsDiff < 0 ? '♭ flat' : 'perfect';
+    centsLabel.textContent = `${centsDiff > 0 ? '+' : ''}${centsDiff} cents (${direction})`;
+}
+
+// ============================================
+// GAME FLOW HANDLERS
+// ============================================
+function pickRandomNote() {
+    return NOTE_POOL[Math.floor(Math.random() * NOTE_POOL.length)];
+}
+
+async function startGame() {
+    if (!analyser) {
+        const success = await setupMicrophone(currentDeviceId);
+        if (!success) return;
+    }
+
+    document.getElementById('pregameScreen').style.display = 'none';
+    document.getElementById('gameScreen').style.display = 'block';
+
+    currentRound = 0;
+    totalScore = 0;
+    roundResults = [];
+    document.getElementById('currentScore').textContent = '0';
+
+    loadRound();
+}
+
+function loadRound() {
+    targetNote = pickRandomNote();
+    targetNote.freq = midiToFreq(targetNote.midi);
+    detectedPitches = [];
+
+    document.getElementById('currentRound').textContent = currentRound + 1;
+    document.getElementById('progressFill').style.width =
+        `${(currentRound / TOTAL_ROUNDS) * 100}%`;
+
+    document.getElementById('targetNoteName').textContent = targetNote.name;
+    document.getElementById('targetNoteFreq').textContent = targetNote.freq.toFixed(1) + ' Hz';
+    document.getElementById('targetReminder').textContent =
+        `${targetNote.name} (${targetNote.freq.toFixed(1)} Hz)`;
+    document.getElementById('targetNoteLive').textContent = targetNote.name;
+    document.getElementById('targetFreqLive').textContent = targetNote.freq.toFixed(1) + ' Hz';
+
+    document.getElementById('detectedNote').textContent = '—';
+    document.getElementById('detectedFreq').textContent = '— Hz';
+    updateTuner(0);
+
+    showPhase('listenPhase');
+
+    setTimeout(() => playTargetNote(), 400);
+}
+
+function showPhase(phaseId) {
+    ['listenPhase', 'singPhase', 'resultPhase'].forEach(id => {
+        document.getElementById(id).style.display = id === phaseId ? 'block' : 'none';
+    });
+}
+
+function startSinging() {
+    showPhase('singPhase');
+    detectedPitches = [];
+    isListening = true;
+
+    detectPitchLoop();
+
+    let timeLeft = SING_DURATION;
+    document.getElementById('singTimerText').textContent = timeLeft + 's';
+    document.getElementById('singTimerFill').style.width = '100%';
+
+    singTimer = setInterval(() => {
+        timeLeft--;
+        document.getElementById('singTimerText').textContent = timeLeft + 's';
+        document.getElementById('singTimerFill').style.width =
+            `${(timeLeft / SING_DURATION) * 100}%`;
+
+        if (timeLeft <= 0) {
+            clearInterval(singTimer);
+            endSinging();
+        }
+    }, 1000);
+}
+
+function endSinging() {
+    isListening = false;
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+
+    let roundScore = 0;
+    let grade = '';
+    let gradeColor = '';
+
+    if (detectedPitches.length < 3) {
+        grade = 'No Voice Detected';
+        gradeColor = '#ef4444';
+        roundScore = 0;
+    } else {
+        const sortedCents = detectedPitches
+            .map(p => Math.abs(p.cents))
+            .sort((a, b) => a - b);
+        const medianCents = sortedCents[Math.floor(sortedCents.length / 2)];
+
+        if (medianCents <= 15) {
+            roundScore = 10;
+            grade = 'Perfect! 🎯';
+            gradeColor = '#4ade80';
+        } else if (medianCents <= 30) {
+            roundScore = 8;
+            grade = 'Great! 🌟';
+            gradeColor = '#a3e635';
+        } else if (medianCents <= 50) {
+            roundScore = 6;
+            grade = 'Good 👍';
+            gradeColor = '#facc15';
+        } else if (medianCents <= 100) {
+            roundScore = 3;
+            grade = 'Close 😅';
+            gradeColor = '#f97316';
+        } else {
+            roundScore = 1;
+            grade = 'Off Key 🎸';
+            gradeColor = '#ef4444';
+        }
+    }
+
+    totalScore += roundScore;
+    document.getElementById('currentScore').textContent = totalScore;
+
+    roundResults.push({
+        round: currentRound + 1,
+        target: targetNote.name,
+        targetFreq: targetNote.freq.toFixed(1),
+        score: roundScore,
+        grade: grade,
+        pitches: detectedPitches.length,
+    });
+
+    showPhase('resultPhase');
+
+    const icon = document.getElementById('roundResultIcon');
+    const title = document.getElementById('roundResultTitle');
+    const detail = document.getElementById('roundResultDetail');
+    const gradeEl = document.getElementById('roundGrade');
+
+    if (roundScore >= 8) {
+        icon.innerHTML = '<i class="fas fa-star fa-3x" style="color: #facc15;"></i>';
+        title.textContent = 'Amazing!';
+    } else if (roundScore >= 6) {
+        icon.innerHTML = '<i class="fas fa-check-circle fa-3x" style="color: #4ade80;"></i>';
+        title.textContent = 'Nice!';
+    } else if (roundScore >= 3) {
+        icon.innerHTML = '<i class="fas fa-face-meh fa-3x" style="color: #facc15;"></i>';
+        title.textContent = 'Almost!';
+    } else {
+        icon.innerHTML = '<i class="fas fa-face-sad-tear fa-3x" style="color: #ef4444;"></i>';
+        title.textContent = 'Keep Trying!';
+    }
+
+    detail.textContent = `Target was ${targetNote.name} (${targetNote.freq.toFixed(1)} Hz)`;
+    gradeEl.innerHTML = `<span style="color: ${gradeColor}; font-size: 1.5rem; font-weight: 700;">${grade}</span>
+        <br><span style="color: var(--text-secondary);">+${roundScore} points</span>`;
+
+    if (currentRound >= TOTAL_ROUNDS - 1) {
+        document.getElementById('nextRoundBtn').innerHTML =
+            'See Final Results <i class="fas fa-trophy"></i>';
+    } else {
+        document.getElementById('nextRoundBtn').innerHTML =
+            'Next Round <i class="fas fa-arrow-right"></i>';
+    }
+}
+
+function nextRound() {
+    currentRound++;
+    if (currentRound >= TOTAL_ROUNDS) {
+        showFinalResults();
+    } else {
+        loadRound();
+    }
+}
+
+// ============================================
+// FINAL DISPLAY WRAPPER
+// ============================================
+function showFinalResults() {
+    document.getElementById('gameScreen').style.display = 'none';
+    document.getElementById('resultsScreen').style.display = 'block';
+
+    const maxScore = TOTAL_ROUNDS * 10;
+    const percentage = (totalScore / maxScore) * 100;
+
+    let emoji, title, subtitle;
+    if (percentage >= 90) {
+        emoji = '🎤👑✨';
+        title = 'Vocal Master!';
+        subtitle = 'Your pitch accuracy is incredible. You could sing professionally!';
+    } else if (percentage >= 70) {
+        emoji = '🌟🎵🔥';
+        title = 'Great Singer!';
+        subtitle = 'Your ear-to-voice connection is strong. A little more practice and you\'ll be perfect!';
+    } else if (percentage >= 50) {
+        emoji = '😊🎶👍';
+        title = 'Good Effort!';
+        subtitle = 'You\'re on the right track! Try matching the pitch slowly before singing louder.';
+    } else if (percentage >= 30) {
+        emoji = '🎧💪📈';
+        title = 'Keep Practicing!';
+        subtitle = 'Pitch matching takes time. Listen carefully to the target note and try to hum it first.';
+    } else {
+        emoji = '🫂🎵💫';
+        title = 'Just Warming Up!';
+        subtitle = 'Don\'t worry! Try Normal mode and focus on matching one note at a time.';
+    }
+
+    document.getElementById('resultsEmoji').textContent = emoji;
+    document.getElementById('resultsTitle').textContent = title;
+    document.getElementById('resultsSubtitle').textContent = subtitle;
+    document.getElementById('finalScore').textContent = totalScore;
+
+    const ring = document.getElementById('scoreRing');
+    const circumference = 2 * Math.PI * 54;
+    ring.style.strokeDasharray = circumference;
+    ring.style.strokeDashoffset = circumference;
+    setTimeout(() => {
+        ring.style.strokeDashoffset = circumference - (percentage / 100) * circumference;
+    }, 300);
+
+    const perfects = roundResults.filter(r => r.score === 10).length;
+    const goods = roundResults.filter(r => r.score >= 6 && r.score < 10).length;
+    const misses = roundResults.filter(r => r.score < 6).length;
+
+    document.getElementById('resultsStats').innerHTML = `
+        <div class="result-stat correct-stat"><i class="fas fa-star"></i> ${perfects} Perfect</div>
+        <div class="result-stat" style="background:rgba(163,230,53,0.15);color:#a3e635;border:1px solid rgba(163,230,53,0.3);">
+            <i class="fas fa-check"></i> ${goods} Good</div>
+        <div class="result-stat wrong-stat"><i class="fas fa-times"></i> ${misses} Off</div>
+    `;
+
+    let reviewHTML = '<h3>Round Review</h3><div class="review-list">';
+    roundResults.forEach(r => {
+        const icon = r.score >= 8 ? '⭐' : r.score >= 6 ? '✅' : r.score >= 3 ? '⚠️' : '❌';
+        reviewHTML += `
+            <div class="review-item ${r.score >= 6 ? 'review-correct' : 'review-wrong'}">
+                <span class="review-q">R${r.round}</span>
+                <span class="review-icon">${icon}</span>
+                <span class="review-answer">
+                    Target: <strong>${r.target}</strong> — ${r.grade} (+${r.score})
+                </span>
+            </div>
+        `;
+    });
+    reviewHTML += '</div>';
+    document.getElementById('resultsReview').innerHTML = reviewHTML;
+}
+</script>
+{% endblock %}

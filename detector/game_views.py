@@ -70,3 +70,11 @@ def chord_quiz(request):
     }
 
     return render(request, 'detector/chord_quiz.html', context)
+
+
+def sing_the_note(request):
+    mode = request.GET.get('mode', 'normal')
+    return render(request, 'detector/sing_the_note.html', {
+        'mode': mode,
+        'mode_label': 'Normal Mode' if mode == 'normal' else 'Hard Mode',
+    })

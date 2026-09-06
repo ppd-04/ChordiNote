@@ -62,7 +62,7 @@
             </div>
         </div>
 
-        <div class="game-card coming-soon reveal reveal-delay-3">
+        <!-- <div class="game-card coming-soon reveal reveal-delay-3">
             <div class="game-card-content">
                 <div class="game-icon">
                     <i class="fas fa-ranking-star fa-3x"></i>
@@ -71,6 +71,40 @@
                 <p>Can you tell a perfect fifth from a major third? Test your interval recognition!</p>
                 <div class="coming-soon-badge">
                     <i class="fas fa-lock"></i> Coming Soon
+                </div>
+            </div>
+        </div> -->
+
+                <!-- Sing the Note Game -->
+        <div class="game-card reveal reveal-delay-2">
+            <div class="game-card-glow"></div>
+            <div class="game-card-content">
+                <div class="game-icon">
+                    <i class="fas fa-microphone fa-3x"></i>
+                </div>
+                <h2>Sing the Note</h2>
+                <p>Hear a note, then sing it into your microphone! Real-time pitch detection tells you how close you are.</p>
+                <div class="game-meta">
+                    <span><i class="fas fa-clock"></i> 10 Rounds</span>
+                    <span><i class="fas fa-microphone"></i> Microphone</span>
+                </div>
+                <div class="game-modes">
+                    <a href="{% url 'sing_the_note' %}?mode=normal" class="btn btn-primary">
+                        <i class="fas fa-play"></i> Normal
+                    </a>
+                    <a href="{% url 'sing_the_note' %}?mode=hard" class="btn btn-secondary">
+                        <i class="fas fa-fire"></i> Hard
+                    </a>
+                </div>
+                <div class="mode-tooltips">
+                    <div class="tooltip-item">
+                        <span class="tooltip-label">Normal:</span>
+                        Natural notes in a comfortable range (C3–C5)
+                    </div>
+                    <div class="tooltip-item">
+                        <span class="tooltip-label">Hard:</span>
+                        Sharps, flats, and wider range (A2–E5)
+                    </div>
                 </div>
             </div>
         </div>
