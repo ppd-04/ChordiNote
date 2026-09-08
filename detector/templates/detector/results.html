@@ -5,6 +5,10 @@
 
 {% block content %}
 
+{% if viz_data %}
+<script id="viz-data-json" type="application/json">{{ viz_data|safe }}</script>
+{% endif %}
+
 <section class="results-page">
     <h1 class="page-title reveal">
         <i class="fas fa-sparkles"></i> Analysis Complete!
@@ -110,6 +114,91 @@
         </div>
     </div>
 
+        <!-- DSP VISUALIZATIONS SECTION -->
+    {% if viz_data %}
+    <div class="viz-section reveal">
+        <h2 class="section-title"><span class="gradient-text">DSP Laboratory</span></h2>
+        <p class="section-subtitle">Signal processing visualizations generated from your audio</p>
+
+        <!-- 1. WAVEFORM -->
+        <div class="viz-panel">
+            <div class="viz-header">
+                <h3><i class="fas fa-wave-square"></i> Waveform</h3>
+                <span class="viz-badge">Time Domain</span>
+            </div>
+            <p class="viz-description">
+                The raw audio signal — air pressure variations over time.
+                Peaks represent loud moments, flat areas represent silence.
+            </p>
+            <div class="viz-canvas-container">
+                <canvas id="waveformCanvas" class="viz-canvas"></canvas>
+            </div>
+        </div>
+
+        <!-- 2 & 3: FFT + SPECTROGRAM (side by side) -->
+        <div class="viz-row">
+            <div class="viz-panel">
+                <div class="viz-header">
+                    <h3><i class="fas fa-chart-bar"></i> FFT Spectrum</h3>
+                    <span class="viz-badge">Frequency Domain</span>
+                </div>
+                <p class="viz-description">
+                    Frequency decomposition using Fast Fourier Transform.
+                    Peaks show dominant frequencies and their harmonics.
+                </p>
+                <div class="viz-canvas-container">
+                    <canvas id="fftCanvas" class="viz-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="viz-panel">
+                <div class="viz-header">
+                    <h3><i class="fas fa-fire"></i> Spectrogram</h3>
+                    <span class="viz-badge">Time-Frequency</span>
+                </div>
+                <p class="viz-description">
+                    Mel spectrogram showing how frequency content evolves over time.
+                    Brighter colors = more energy at that frequency.
+                </p>
+                <div class="viz-canvas-container">
+                    <img id="spectrogramImg" class="viz-image" alt="Spectrogram">
+                </div>
+            </div>
+        </div>
+
+        <!-- 4 & 5: RMS + PITCH (side by side) -->
+        <div class="viz-row">
+            <div class="viz-panel">
+                <div class="viz-header">
+                    <h3><i class="fas fa-volume-high"></i> RMS Energy</h3>
+                    <span class="viz-badge">Loudness</span>
+                </div>
+                <p class="viz-description">
+                    Root Mean Square energy measures signal power over time.
+                    Correlates with perceived loudness and note boundaries.
+                </p>
+                <div class="viz-canvas-container">
+                    <canvas id="rmsCanvas" class="viz-canvas"></canvas>
+                </div>
+            </div>
+
+            <div class="viz-panel">
+                <div class="viz-header">
+                    <h3><i class="fas fa-chart-line"></i> Pitch Contour</h3>
+                    <span class="viz-badge">Melody Tracking</span>
+                </div>
+                <p class="viz-description">
+                    Fundamental frequency (f0) over time detected by pYIN.
+                    Each dot represents the pitch at that moment.
+                </p>
+                <div class="viz-canvas-container">
+                    <canvas id="pitchCanvas" class="viz-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- BACK BUTTON -->
     <div class="back-section reveal">
         <a href="{% url 'upload' %}" class="btn btn-primary">
@@ -117,5 +206,54 @@
         </a>
     </div>
 </section>
+
+{% if viz_data %}
+<script src="{% static 'js/visualizer.js' %}"></script>
+<script>
+    function initVisualizations() {
+        const dataElement = document.getElementById('viz-data-json');
+        if (!dataElement) return;
+
+        const vizData = JSON.parse(dataElement.textContent);
+        if (!vizData) return;
+
+        // 1. Draw Waveform Canvas
+        if (vizData.waveform && typeof drawWaveform === 'function') {
+            drawWaveform('waveformCanvas', vizData.waveform);
+        }
+
+        // 2. Draw FFT Canvas
+        if (vizData.fft && typeof drawFFT === 'function') {
+            drawFFT('fftCanvas', vizData.fft);
+        }
+
+        // 3. Render Spectrogram Image
+        if (vizData.spectrogram) {
+            const specImg = document.getElementById('spectrogramImg');
+            if (specImg) {
+                specImg.src = vizData.spectrogram;
+            }
+        }
+
+        // 4. Draw RMS Canvas
+        if (vizData.rms && typeof drawRMS === 'function') {
+            drawRMS('rmsCanvas', vizData.rms);
+        }
+
+        // 5. Draw Pitch Contour Canvas
+        if (vizData.pitch_contour && typeof drawPitchContour === 'function') {
+            drawPitchContour('pitchCanvas', vizData.pitch_contour);
+        }
+    }
+
+    // Run when ready (works whether DOM is already loaded or still loading)
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initVisualizations);
+    } else {
+        initVisualizations();
+    }
+</script>
+{% endif %}
+
 
 {% endblock %}

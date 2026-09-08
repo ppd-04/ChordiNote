@@ -7,6 +7,8 @@ from django.conf import settings
 from .dsp_engine import process_audio_file, ANALYSIS_PROFILES
 from .audio_renderer import render_reconstructed_audio
 
+from .visualizer import generate_all_visualizations
+
 def home(request):
     return render(request, 'detector/home.html')
 
@@ -17,7 +19,7 @@ def upload_audio(request):
 
         if not audio_file:
             return render(request, 'detector/upload.html', {
-                'upoloaded': FALSE,
+                'upoloaded': False,
                 'error' : 'Please select correct audio file',
                 'profiles': ANALYSIS_PROFILES,
             })
@@ -48,6 +50,11 @@ def upload_audio(request):
 
             profile_label = ANALYSIS_PROFILES.get(profile_name, {}).get('label', profile_name)
 
+            try:
+                viz_data = generate_all_visualizations(file_path)
+            except Exception as viz_err:
+                viz_data = None
+
             context = {
                 'uploaded': True,
                 'filename': audio_file.name,
@@ -61,8 +68,7 @@ def upload_audio(request):
                 'reconstructed_url': f"/media/uploads/{reconstructed_filename}" if render_success else None,
                 'original_url': f"/media/uploads/{audio_file.name}",
                 'notes_json': json.dumps(detected_notes),
-                # json.dumps converts Python list to JSON string
-                # We'll use this in JavaScript for the timeline visualization
+                'viz_data' : json.dumps(viz_data) if viz_data else None,
             }       
             return render(request, 'detector/results.html', context)  
         except Exception as e:
