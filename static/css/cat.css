@@ -1,0 +1,627 @@
+/* ============================================
+   MISO THE CAT — Enhanced Aesthetic Version
+   Matches: purple/pink/cyan glow theme
+   ============================================ */
+
+.miso-cat-container {
+    position: fixed;
+    bottom: 40px;
+    left: 60px;
+    z-index: 100;
+    cursor: pointer;
+    user-select: none;
+    transition: left 3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    filter: drop-shadow(0 8px 20px rgba(167, 139, 250, 0.35));
+}
+
+/* Soft glowing aura behind cat - matches your bg-glow style */
+.cat-aura {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 140px;
+    height: 140px;
+    background: radial-gradient(circle, 
+        rgba(167, 139, 250, 0.25) 0%, 
+        rgba(244, 114, 182, 0.15) 40%, 
+        transparent 70%);
+    border-radius: 50%;
+    filter: blur(15px);
+    animation: auraPulse 4s ease-in-out infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+@keyframes auraPulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+    50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+}
+
+.miso-cat {
+    position: relative;
+    width: 110px;
+    height: 95px;
+    transform-origin: bottom center;
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.miso-cat-container:hover .miso-cat {
+    transform: scale(1.08);
+}
+
+/* ============================================
+   BODY - Softer, rounder, with shading
+   ============================================ */
+.cat-body {
+    position: absolute;
+    bottom: 0;
+    left: 18px;
+    width: 74px;
+    height: 50px;
+    background: linear-gradient(160deg, 
+        #ddd6fe 0%, 
+        #c4b5fd 45%, 
+        #a78bfa 100%);
+    border-radius: 50% 50% 42% 42%;
+    box-shadow: 
+        inset -8px -4px 15px rgba(124, 58, 237, 0.25),
+        inset 5px 3px 12px rgba(255, 255, 255, 0.4);
+    overflow: hidden;
+}
+
+.body-shading {
+    position: absolute;
+    top: 10px;
+    right: 5px;
+    width: 25px;
+    height: 30px;
+    background: radial-gradient(ellipse, 
+        rgba(124, 58, 237, 0.2) 0%, 
+        transparent 70%);
+    border-radius: 50%;
+}
+
+.cat-belly {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 25px;
+    background: linear-gradient(180deg, 
+        rgba(255, 255, 255, 0.5) 0%, 
+        rgba(255, 255, 255, 0.2) 100%);
+    border-radius: 50% 50% 42% 42%;
+}
+
+/* ============================================
+   HEAD - Bigger for chibi cuteness
+   ============================================ */
+.cat-head {
+    position: absolute;
+    top: 3px;
+    left: 20px;
+    width: 60px;
+    height: 55px;
+    background: linear-gradient(160deg, 
+        #ede9fe 0%, 
+        #ddd6fe 50%, 
+        #c4b5fd 100%);
+    border-radius: 50% 50% 45% 45%;
+    z-index: 2;
+    box-shadow: 
+        inset -6px -3px 12px rgba(124, 58, 237, 0.2),
+        inset 4px 2px 10px rgba(255, 255, 255, 0.5);
+}
+
+.cat-face {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+/* Cute forehead marking (little heart or dot) */
+.head-marking {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    background: linear-gradient(135deg, var(--secondary), var(--secondary-light));
+    border-radius: 50%;
+    opacity: 0.6;
+    box-shadow: 0 0 8px rgba(244, 114, 182, 0.5);
+}
+
+/* ============================================
+   EARS - More triangular, with pink inner
+   ============================================ */
+.cat-ear {
+    position: absolute;
+    top: -8px;
+    width: 22px;
+    height: 26px;
+    background: linear-gradient(160deg, #ddd6fe 0%, #a78bfa 100%);
+    z-index: 1;
+    box-shadow: inset -2px -2px 5px rgba(124, 58, 237, 0.3);
+}
+
+.cat-ear.left {
+    left: 3px;
+    border-radius: 50% 10% 50% 50%;
+    transform: rotate(-15deg);
+}
+
+.cat-ear.right {
+    right: 3px;
+    border-radius: 10% 50% 50% 50%;
+    transform: rotate(15deg);
+}
+
+.inner-ear {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 10px;
+    height: 15px;
+    background: linear-gradient(180deg, #f9a8d4, #f472b6);
+    border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+}
+
+/* ============================================
+   EYES - Big, shiny, anime style
+   ============================================ */
+.cat-eye {
+    position: absolute;
+    top: 22px;
+    width: 12px;
+    height: 15px;
+    background: radial-gradient(ellipse at center, 
+        #4c1d95 0%, 
+        #1a1a2e 60%, 
+        #000 100%);
+    border-radius: 50%;
+    z-index: 3;
+    transition: height 0.15s ease, top 0.15s ease;
+    box-shadow: 0 0 4px rgba(103, 232, 249, 0.3);
+}
+
+.cat-eye.left { left: 12px; }
+.cat-eye.right { right: 12px; }
+
+/* Big shine dot */
+.eye-shine-big {
+    position: absolute;
+    top: 2px;
+    right: 1px;
+    width: 5px;
+    height: 5px;
+    background: white;
+    border-radius: 50%;
+}
+
+/* Small shine dot for extra sparkle */
+.eye-shine-small {
+    position: absolute;
+    bottom: 3px;
+    left: 2px;
+    width: 2px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+}
+
+/* ============================================
+   BLUSH CHEEKS - Signature cute detail
+   ============================================ */
+.cat-blush {
+    position: absolute;
+    top: 32px;
+    width: 10px;
+    height: 6px;
+    background: radial-gradient(ellipse, 
+        rgba(244, 114, 182, 0.6) 0%, 
+        rgba(244, 114, 182, 0.2) 60%, 
+        transparent 100%);
+    border-radius: 50%;
+    z-index: 3;
+    filter: blur(1px);
+}
+
+.cat-blush.left { left: 5px; }
+.cat-blush.right { right: 5px; }
+
+/* ============================================
+   NOSE - Heart-shaped pink
+   ============================================ */
+.cat-nose {
+    position: absolute;
+    top: 35px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 7px;
+    height: 5px;
+    background: linear-gradient(180deg, var(--secondary), var(--primary-dark));
+    border-radius: 50% 50% 50% 50% / 30% 30% 70% 70%;
+    z-index: 3;
+    box-shadow: 0 1px 2px rgba(244, 114, 182, 0.4);
+}
+
+/* ============================================
+   MOUTH - Cute w-shape
+   ============================================ */
+.cat-mouth {
+    position: absolute;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 6px;
+    z-index: 3;
+}
+
+.mouth-left, .mouth-right {
+    position: absolute;
+    top: 0;
+    width: 6px;
+    height: 5px;
+    border: 1.5px solid #4c1d95;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    border-radius: 0 0 50% 50%;
+}
+
+.mouth-left { left: 0; }
+.mouth-right { right: 0; }
+
+/* ============================================
+   WHISKERS - Softer, more delicate
+   ============================================ */
+.cat-whiskers {
+    position: absolute;
+    top: 35px;
+    left: 0;
+    width: 100%;
+    height: 10px;
+    z-index: 3;
+    pointer-events: none;
+}
+
+.whisker {
+    position: absolute;
+    height: 1px;
+    background: linear-gradient(90deg, 
+        rgba(76, 29, 149, 0.5), 
+        rgba(76, 29, 149, 0.1));
+    top: 5px;
+    border-radius: 1px;
+}
+
+.whisker.w1 { left: -8px; width: 18px; transform: rotate(-8deg); }
+.whisker.w2 { left: -8px; width: 18px; transform: rotate(8deg); top: 9px; }
+.whisker.w3 { 
+    right: -8px; width: 18px; transform: rotate(8deg);
+    background: linear-gradient(270deg, rgba(76, 29, 149, 0.5), rgba(76, 29, 149, 0.1));
+}
+.whisker.w4 { 
+    right: -8px; width: 18px; transform: rotate(-8deg); top: 9px;
+    background: linear-gradient(270deg, rgba(76, 29, 149, 0.5), rgba(76, 29, 149, 0.1));
+}
+
+/* ============================================
+   COLLAR - Matches your theme!
+   ============================================ */
+.cat-collar {
+    position: absolute;
+    bottom: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 6px;
+    background: linear-gradient(90deg, 
+        var(--primary-dark), 
+        var(--secondary), 
+        var(--primary-dark));
+    border-radius: 3px;
+    z-index: 3;
+    box-shadow: 0 0 8px rgba(167, 139, 250, 0.5);
+}
+
+.collar-gem {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    background: radial-gradient(circle at 30% 30%, 
+        #a5f3fc 0%, 
+        var(--accent) 60%, 
+        #0891b2 100%);
+    border-radius: 50%;
+    box-shadow: 
+        0 0 10px var(--accent),
+        inset -1px -1px 2px rgba(0, 0, 0, 0.3);
+    animation: gemSparkle 2s ease-in-out infinite;
+}
+
+@keyframes gemSparkle {
+    0%, 100% { box-shadow: 0 0 10px var(--accent), inset -1px -1px 2px rgba(0,0,0,0.3); }
+    50% { box-shadow: 0 0 18px var(--accent), 0 0 25px rgba(103, 232, 249, 0.4), inset -1px -1px 2px rgba(0,0,0,0.3); }
+}
+
+/* ============================================
+   TAIL - Curved and fluffy
+   ============================================ */
+.cat-tail {
+    position: absolute;
+    bottom: 15px;
+    left: -8px;
+    width: 35px;
+    height: 12px;
+    background: linear-gradient(90deg, 
+        #7c3aed 0%, 
+        #a78bfa 50%, 
+        #c4b5fd 100%);
+    border-radius: 50%;
+    transform-origin: right center;
+    animation: tailWag 3s ease-in-out infinite;
+    z-index: 0;
+}
+
+.tail-tip {
+    position: absolute;
+    left: -3px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, #ddd6fe, #c4b5fd);
+    border-radius: 50%;
+}
+
+@keyframes tailWag {
+    0%, 100% { transform: rotate(20deg); }
+    50% { transform: rotate(-15deg); }
+}
+
+/* ============================================
+   PAWS - With toe beans!
+   ============================================ */
+.cat-paw {
+    position: absolute;
+    bottom: -3px;
+    width: 14px;
+    height: 10px;
+    background: linear-gradient(180deg, #c4b5fd, #a78bfa);
+    border-radius: 50% 50% 35% 35%;
+    box-shadow: inset 0 -2px 3px rgba(124, 58, 237, 0.3);
+}
+
+.cat-paw.front-left { left: 28px; }
+.cat-paw.front-right { left: 58px; }
+
+.toe-bean {
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 3px;
+    background: var(--secondary);
+    border-radius: 50%;
+    opacity: 0.7;
+}
+
+/* ============================================
+   SLEEPING STATE
+   ============================================ */
+.miso-cat.sleeping .cat-eye {
+    height: 2px;
+    top: 30px;
+    background: transparent;
+    border-bottom: 2px solid #4c1d95;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.miso-cat.sleeping .eye-shine-big,
+.miso-cat.sleeping .eye-shine-small { display: none; }
+
+.miso-cat.sleeping .cat-body {
+    animation: breathe 3s ease-in-out infinite;
+}
+
+.miso-cat.sleeping .cat-tail {
+    animation: tailSleep 4s ease-in-out infinite;
+}
+
+@keyframes breathe {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(1.05); }
+}
+
+@keyframes tailSleep {
+    0%, 100% { transform: rotate(10deg); }
+    50% { transform: rotate(18deg); }
+}
+
+/* Sleep Z's */
+.sleep-z {
+    position: absolute;
+    top: -10px;
+    right: 10px;
+    font-size: 22px;
+    font-weight: 700;
+    background: var(--gradient-main);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    opacity: 0;
+    animation: floatZ 3s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.sleep-z:nth-child(3) { animation-delay: 1s; font-size: 18px; }
+.sleep-z:nth-child(4) { animation-delay: 2s; font-size: 14px; }
+
+@keyframes floatZ {
+    0% { opacity: 0; transform: translate(0, 0) rotate(-10deg); }
+    30% { opacity: 1; }
+    100% { opacity: 0; transform: translate(20px, -40px) rotate(15deg); }
+}
+
+.miso-cat:not(.sleeping) ~ .sleep-z { display: none; }
+
+/* ============================================
+   WALKING STATE
+   ============================================ */
+.miso-cat.walking .cat-paw.front-left {
+    animation: pawStep1 0.4s ease-in-out infinite;
+}
+.miso-cat.walking .cat-paw.front-right {
+    animation: pawStep2 0.4s ease-in-out infinite;
+}
+.miso-cat.walking .cat-body {
+    animation: bodyBob 0.4s ease-in-out infinite;
+}
+.miso-cat.walking .cat-tail {
+    animation: tailWagFast 0.5s ease-in-out infinite;
+}
+
+@keyframes pawStep1 {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+@keyframes pawStep2 {
+    0%, 100% { transform: translateY(-4px); }
+    50% { transform: translateY(0); }
+}
+@keyframes bodyBob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+}
+@keyframes tailWagFast {
+    0%, 100% { transform: rotate(25deg); }
+    50% { transform: rotate(-15deg); }
+}
+
+.miso-cat-container.facing-left .miso-cat {
+    transform: scaleX(-1);
+}
+.miso-cat-container.facing-left:hover .miso-cat {
+    transform: scaleX(-1) scale(1.08);
+}
+
+/* ============================================
+   HAPPY / MEOWING STATE
+   ============================================ */
+.miso-cat.happy {
+    animation: happyBounce 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes happyBounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    30% { transform: translateY(-20px) scale(1.15); }
+    60% { transform: translateY(-5px) scale(1.05); }
+}
+
+.miso-cat.happy .cat-eye {
+    height: 3px;
+    top: 28px;
+    background: transparent;
+    border: none;
+    border-top: 2.5px solid #4c1d95;
+    border-radius: 50%;
+    box-shadow: none;
+}
+
+.miso-cat.happy .eye-shine-big,
+.miso-cat.happy .eye-shine-small { display: none; }
+
+/* Click ripple effect */
+.miso-cat-container:active .cat-aura {
+    animation: auraBurst 0.6s ease-out;
+}
+
+@keyframes auraBurst {
+    0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+}
+
+/* ============================================
+   SPEECH BUBBLE
+   ============================================ */
+.cat-speech-bubble {
+    position: absolute;
+    bottom: 105px;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 180px;
+    max-width: 260px;
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.95) 0%, 
+        rgba(245, 243, 255, 0.95) 100%);
+    backdrop-filter: blur(10px);
+    color: #1a1a2e;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1.4;
+    box-shadow: 
+        0 8px 30px rgba(167, 139, 250, 0.5),
+        0 0 20px rgba(244, 114, 182, 0.2);
+    border: 1px solid rgba(167, 139, 250, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    text-align: center;
+    z-index: 101;
+}
+
+.cat-speech-bubble.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-5px);
+}
+
+.cat-speech-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 10px solid rgba(245, 243, 255, 0.95);
+}
+
+/* Floating hearts on meow */
+.cat-heart {
+    position: absolute;
+    top: -20px;
+    right: 5px;
+    font-size: 22px;
+    color: var(--secondary);
+    text-shadow: 0 0 10px rgba(244, 114, 182, 0.6);
+    opacity: 0;
+    pointer-events: none;
+    animation: floatHeart 1.2s ease-out;
+}
+
+@keyframes floatHeart {
+    0% { opacity: 0; transform: translateY(0) scale(0.5) rotate(-15deg); }
+    30% { opacity: 1; transform: translateY(-15px) scale(1.3) rotate(0deg); }
+    100% { opacity: 0; transform: translateY(-50px) scale(0.8) rotate(15deg); }
+}
+
+/* Mobile hide */
+@media (max-width: 600px) {
+    .miso-cat-container { display: none; }
+}
