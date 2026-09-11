@@ -100,3 +100,6 @@ def upload_audio(request):
 
 def piano(request):
     return render(request, 'detector/piano.html')
+
+def audio_lab(request):
+    return render(request, 'detector/audio_lab.html')

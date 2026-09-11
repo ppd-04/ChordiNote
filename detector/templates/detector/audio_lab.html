@@ -1,0 +1,199 @@
+{% extends 'detector/base.html' %}
+{% load static %}
+
+{% block title %}Audio Lab — ChordSense{% endblock %}
+
+{% block content %}
+
+<section class="lab-page">
+    <h1 class="page-title reveal">
+        <i class="fas fa-sliders"></i> Audio Lab
+    </h1>
+    <p class="page-subtitle reveal">
+        Upload audio and apply real-time DSP effects — pitch, reverb, EQ, and more
+    </p>
+
+    <!-- UPLOAD SECTION -->
+    <div class="lab-upload reveal">
+        <div class="drop-zone" id="labDropZone">
+            <div class="drop-zone-content">
+                <i class="fas fa-waveform-lines fa-3x"></i>
+                <p class="drop-text">Drop audio file here</p>
+                <label for="labFileInput" class="btn btn-primary">
+                    <i class="fas fa-folder-open"></i> Choose File
+                </label>
+                <input type="file" id="labFileInput" accept=".wav,.mp3,.ogg,.flac,.m4a" class="file-input-hidden">
+            </div>
+            <p class="lab-file-info" id="labFileInfo" style="display:none;"></p>
+        </div>
+    </div>
+
+    <!-- WAVEFORM + TRANSPORT -->
+    <div class="lab-transport reveal">
+        <div class="lab-waveform-container">
+            <canvas id="labWaveform" class="lab-waveform"></canvas>
+            
+            <!-- NEW: Interactive Timeline Scrubber -->
+            <div class="timeline-container">
+                <span class="time-display" id="timeLabel">0:00 / 0:00</span>
+                <input type="range" id="timelineSlider" class="timeline-slider" min="0" max="100" step="0.1" value="0" disabled>
+            </div>
+        </div>
+        <div class="transport-controls">
+            <button class="btn btn-primary" id="playBtn" onclick="togglePlay()" disabled>
+                <i class="fas fa-play"></i> Play
+            </button>
+            <button class="btn btn-secondary" id="stopBtn" onclick="stopAudio()" disabled>
+                <i class="fas fa-stop"></i> Stop
+            </button>
+            <button class="btn btn-secondary" id="loopBtn" onclick="toggleLoop()" disabled>
+                <i class="fas fa-repeat"></i> Loop
+            </button>
+            <button class="btn btn-secondary" id="resetBtn" onclick="resetAllEffects()">
+                <i class="fas fa-rotate-left"></i> Reset All
+            </button>
+            <span class="audio-status" id="audioStatus">Upload audio to begin</span>
+        </div>
+    </div>
+
+    <!-- EFFECTS PANELS -->
+    <div class="lab-effects">
+
+        <!-- PITCH & SPEED -->
+        <div class="effect-panel reveal">
+            <h3><i class="fas fa-music"></i> Pitch & Speed</h3>
+            <div class="effect-row">
+                <label>Pitch Shift</label>
+                <input type="range" id="pitchSlider" class="lab-slider" min="-12" max="12" step="1" value="0" disabled>
+                <span class="effect-value" id="pitchValue">0 st</span>
+            </div>
+            <div class="effect-row">
+                <label>Speed</label>
+                <input type="range" id="speedSlider" class="lab-slider" min="0.25" max="2" step="0.05" value="1" disabled>
+                <span class="effect-value" id="speedValue">1x</span>
+            </div>
+        </div>
+
+        <!-- VOLUME -->
+        <div class="effect-panel reveal">
+            <h3><i class="fas fa-volume-high"></i> Volume</h3>
+            <div class="effect-row">
+                <label>Master Gain</label>
+                <input type="range" id="volumeSlider" class="lab-slider" min="0" max="100" step="1" value="80" disabled>
+                <span class="effect-value" id="volumeValue">80%</span>
+            </div>
+        </div>
+
+        <!-- EQ -->
+        <div class="effect-panel reveal">
+            <h3><i class="fas fa-sliders"></i> Equalizer (EQ)</h3>
+            <div class="effect-row">
+                <label>Bass</label>
+                <input type="range" id="bassSlider" class="lab-slider" min="-12" max="12" step="1" value="0" disabled>
+                <span class="effect-value" id="bassValue">0 dB</span>
+            </div>
+            <div class="effect-row">
+                <label>Mid</label>
+                <input type="range" id="midSlider" class="lab-slider" min="-12" max="12" step="1" value="0" disabled>
+                <span class="effect-value" id="midValue">0 dB</span>
+            </div>
+            <div class="effect-row">
+                <label>Treble</label>
+                <input type="range" id="trebleSlider" class="lab-slider" min="-12" max="12" step="1" value="0" disabled>
+                <span class="effect-value" id="trebleValue">0 dB</span>
+            </div>
+        </div>
+
+        <!-- FILTERS -->
+        <div class="effect-panel reveal">
+            <h3><i class="fas fa-filter"></i> Filters</h3>
+            <div class="effect-row">
+                <label>Low-Pass</label>
+                <input type="range" id="lowPassSlider" class="lab-slider" min="100" max="20000" step="100" value="20000" disabled>
+                <span class="effect-value" id="lowPassValue">OFF</span>
+            </div>
+            <div class="effect-row">
+                <label>High-Pass</label>
+                <input type="range" id="highPassSlider" class="lab-slider" min="20" max="5000" step="10" value="20" disabled>
+                <span class="effect-value" id="highPassValue">OFF</span>
+            </div>
+        </div>
+
+        <!-- REVERB -->
+        <div class="effect-panel reveal">
+            <h3><i class="fas fa-church"></i> Reverb</h3>
+            <div class="effect-row">
+                <label>Mix</label>
+                <input type="range" id="reverbSlider" class="lab-slider" min="0" max="1" step="0.01" value="0" disabled>
+                <span class="effect-value" id="reverbValue">0%</span>
+            </div>
+            <div class="effect-row">
+                <label>Room Size</label>
+                <input type="range" id="reverbDecaySlider" class="lab-slider" min="0.1" max="1" step="0.05" value="0.7" disabled>
+                <span class="effect-value" id="reverbDecayValue">70%</span>
+            </div>
+        </div>
+
+        <!-- DELAY -->
+        <div class="effect-panel reveal">
+            <h3><i class="fas fa-clone"></i> Delay / Echo</h3>
+            <div class="effect-row">
+                <label>Time</label>
+                <input type="range" id="delayTimeSlider" class="lab-slider" min="0.05" max="1" step="0.01" value="0.3" disabled>
+                <span class="effect-value" id="delayTimeValue">0.3s</span>
+            </div>
+            <div class="effect-row">
+                <label>Feedback</label>
+                <input type="range" id="delayFeedbackSlider" class="lab-slider" min="0" max="0.9" step="0.01" value="0.3" disabled>
+                <span class="effect-value" id="delayFeedbackValue">30%</span>
+            </div>
+            <div class="effect-row">
+                <label>Mix</label>
+                <input type="range" id="delayWetSlider" class="lab-slider" min="0" max="1" step="0.01" value="0" disabled>
+                <span class="effect-value" id="delayWetValue">0%</span>
+            </div>
+        </div>
+
+        <!-- DISTORTION -->
+        <div class="effect-panel reveal">
+            <h3><i class="fas fa-bolt"></i> Distortion</h3>
+            <div class="effect-row">
+                <label>Drive</label>
+                <input type="range" id="distortionSlider" class="lab-slider" min="0" max="1" step="0.01" value="0" disabled>
+                <span class="effect-value" id="distortionValue">0%</span>
+            </div>
+        </div>
+
+        <!-- TREMOLO -->
+        <div class="effect-panel reveal">
+            <h3><i class="fas fa-water"></i> Tremolo</h3>
+            <div class="effect-row">
+                <label>Speed</label>
+                <input type="range" id="tremoloSpeedSlider" class="lab-slider" min="0.5" max="20" step="0.5" value="4" disabled>
+                <span class="effect-value" id="tremoloSpeedValue">4 Hz</span>
+            </div>
+            <div class="effect-row">
+                <label>Depth</label>
+                <input type="range" id="tremoloDepthSlider" class="lab-slider" min="0" max="1" step="0.01" value="0" disabled>
+                <span class="effect-value" id="tremoloDepthValue">0%</span>
+            </div>
+        </div>
+
+        <!-- COMPRESSOR -->
+        <div class="effect-panel reveal">
+            <h3><i class="fas fa-compress"></i> Compressor</h3>
+            <div class="effect-row">
+                <label>Ratio</label>
+                <input type="range" id="compressorSlider" class="lab-slider" min="0" max="100" step="1" value="0" disabled>
+                <span class="effect-value" id="compressorValue">OFF</span>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/audio_lab.js' %}"></script>
+{% endblock %}

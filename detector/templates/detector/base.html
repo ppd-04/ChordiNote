@@ -35,12 +35,14 @@
         <p class="processing-text">Analyzing your audio...</p>
     </div>
 
+    <!-- NAVBAR -->
     <nav class="navbar" id="navbar">
         <div class="nav-container">
             <a href="{% url 'home' %}" class="nav-logo">
                 <i class="fas fa-music"></i>
                 <span>ChordSense</span>
             </a>
+            <!-- All links must be inside this nav-links div to align properly -->
             <div class="nav-links">
                 <a href="{% url 'home' %}" class="nav-link">
                     <i class="fas fa-home"></i> Home
@@ -54,10 +56,14 @@
                 <a href="{% url 'piano' %}" class="nav-link">
                     <i class="fas fa-piano"></i> Piano
                 </a>
+                <!-- Move the Audio Lab link right here! -->
+                <a href="{% url 'audio_lab' %}" class="nav-link">
+                    <i class="fas fa-sliders"></i> Audio Lab
+                </a>
             </div>
         </div>
     </nav>
-
+    
     <main class="main-content">
         {% block content %}
         {% endblock %}
