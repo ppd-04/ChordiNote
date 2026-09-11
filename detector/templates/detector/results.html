@@ -58,6 +58,109 @@
         {% endif %}
     </div>
 
+
+        <!-- ML CHORD CLASSIFICATION SECTION -->
+        <!-- ML CHORD CLASSIFICATION SECTION -->
+    {% if chord_analysis %}
+    {{ chord_analysis|json_script:"chord-analysis-data" }}
+
+    <div class="chord-ml-section reveal">
+        <h2 class="section-title"><span class="gradient-text">Chord Detection: DSP vs ML</span></h2>
+        <p class="section-subtitle">
+            Comparing template matching (classical DSP) with KNN classifier (machine learning)
+        </p>
+
+        <div class="ml-stats-row" id="mlStatsRow"></div>
+
+        <div class="table-container">
+            <table class="notes-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Template Match</th>
+                        <th>Confidence</th>
+                        <th>ML (KNN)</th>
+                        <th>Confidence</th>
+                        <th>ML Top 3</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="chordTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        try {
+            var dataEl = document.getElementById('chord-analysis-data');
+            if (!dataEl) {
+                console.error('chord-analysis-data element not found');
+                return;
+            }
+
+            var chordData = JSON.parse(dataEl.textContent);
+            if (!chordData || !chordData.segments) {
+                console.error('Invalid chord data');
+                return;
+            }
+
+            // Stats
+            var statsRow = document.getElementById('mlStatsRow');
+            statsRow.innerHTML =
+                '<div class="stat-card">' +
+                    '<div class="stat-number">' + (chordData.agreement_rate * 100).toFixed(0) + '%</div>' +
+                    '<div class="stat-label">Methods Agree</div>' +
+                '</div>' +
+                '<div class="stat-card">' +
+                    '<div class="stat-number">' + (chordData.ml_avg_confidence * 100).toFixed(0) + '%</div>' +
+                    '<div class="stat-label">ML Avg Confidence</div>' +
+                '</div>' +
+                '<div class="stat-card">' +
+                    '<div class="stat-number">' + (chordData.template_avg_confidence * 100).toFixed(0) + '%</div>' +
+                    '<div class="stat-label">Template Avg Confidence</div>' +
+                '</div>' +
+                '<div class="stat-card">' +
+                    '<div class="stat-number">' + chordData.total_segments + '</div>' +
+                    '<div class="stat-label">Segments Analyzed</div>' +
+                '</div>';
+
+            // Table rows
+            var tbody = document.getElementById('chordTableBody');
+            var html = '';
+
+            for (var i = 0; i < chordData.segments.length; i++) {
+                var seg = chordData.segments[i];
+                var rowClass = seg.agree ? 'review-correct' : 'review-wrong';
+                var icon = seg.agree ? '✅' : '⚠️';
+
+                var top3Parts = [];
+                for (var chord in seg.ml_top3) {
+                    top3Parts.push(chord + ' ' + (seg.ml_top3[chord] * 100).toFixed(0) + '%');
+                }
+                var top3Str = top3Parts.join(', ');
+
+                html += '<tr class="' + rowClass + '">' +
+                    '<td>' + seg.time + '</td>' +
+                    '<td><span class="note-badge">' + seg.template_chord + '</span></td>' +
+                    '<td>' + (seg.template_confidence * 100).toFixed(0) + '%</td>' +
+                    '<td><span class="note-badge">' + seg.ml_chord + '</span></td>' +
+                    '<td>' + (seg.ml_confidence * 100).toFixed(0) + '%</td>' +
+                    '<td style="font-size:0.8rem;color:var(--text-secondary)">' + top3Str + '</td>' +
+                    '<td>' + icon + '</td>' +
+                '</tr>';
+            }
+
+            tbody.innerHTML = html;
+
+        } catch (e) {
+            console.error('Chord ML rendering error:', e);
+        }
+    })();
+    </script>
+    {% endif %}
+
+
     <!-- NOTE TIMELINE VISUALIZATION -->
     <div class="timeline-section reveal">
         <h2 class="section-title"><span class="gradient-text">Note Timeline</span></h2>
@@ -116,6 +219,13 @@
 
         <!-- DSP VISUALIZATIONS SECTION -->
     {% if viz_data %}
+
+
+    ```html
+    {% if chord_analysis %}
+    <script id="chord-analysis-json" type="application/json">{{ chord_analysis|safe }}</script>
+    {% endif %}
+    ```
     <div class="viz-section reveal">
         <h2 class="section-title"><span class="gradient-text">DSP Laboratory</span></h2>
         <p class="section-subtitle">Signal processing visualizations generated from your audio</p>

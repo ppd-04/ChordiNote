@@ -8,6 +8,8 @@ from .dsp_engine import process_audio_file, ANALYSIS_PROFILES
 from .audio_renderer import render_reconstructed_audio
 
 from .visualizer import generate_all_visualizations
+from .ml_chord_classifier import analyze_chords
+
 
 def home(request):
     return render(request, 'detector/home.html')
@@ -51,6 +53,13 @@ def upload_audio(request):
             profile_label = ANALYSIS_PROFILES.get(profile_name, {}).get('label', profile_name)
 
             try:
+                # chord_analysis = analyze_chords(file_path)
+                chord_analysis = analyze_chords(file_path, hop_seconds=3.0, max_duration=60)
+            except Exception as chord_err:
+                print(f"Chord analysis error: {chord_err}")
+                chord_analysis = None
+
+            try:
                 viz_data = generate_all_visualizations(file_path)
             except Exception as viz_err:
                 viz_data = None
@@ -69,6 +78,7 @@ def upload_audio(request):
                 'original_url': f"/media/uploads/{audio_file.name}",
                 'notes_json': json.dumps(detected_notes),
                 'viz_data' : json.dumps(viz_data) if viz_data else None,
+                'chord_analysis' : chord_analysis                
             }       
             return render(request, 'detector/results.html', context)  
         except Exception as e:

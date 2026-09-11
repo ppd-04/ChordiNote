@@ -2576,3 +2576,19 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* ============================================
+   ML CHORD CLASSIFICATION SECTION
+   ============================================ */
+
+.chord-ml-section {
+    margin: 3rem 0;
+}
+
+.ml-stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
