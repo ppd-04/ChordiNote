@@ -1,0 +1,6 @@
+Low Octave (C3-B3):   Z S X D C V G B H N J M
+Mid Octave (C4-B4):   Q 2 W 3 E R 5 T 6 Y 7 U
+High Octave (C5-E5):  I 9 O 0 P
+
+White keys = letter keys (Z X C V B N M Q W E R T Y U I O P)
+Black keys = number/letter keys between them (S D G H J 2 3 5 6 7 9 0)

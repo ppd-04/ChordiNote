@@ -97,3 +97,6 @@ def upload_audio(request):
         'profiles': ANALYSIS_PROFILES,
         })    
 
+
+def piano(request):
+    return render(request, 'detector/piano.html')

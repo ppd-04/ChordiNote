@@ -1,0 +1,54 @@
+{% extends 'detector/base.html' %}
+{% load static %}
+
+{% block title %}Grand Piano — ChordSense{% endblock %}
+
+{% block content %}
+
+<section class="piano-page">
+    <h1 class="page-title reveal">
+        <i class="fas fa-music"></i> Grand Piano
+    </h1>
+    <p class="page-subtitle reveal">
+        64-key Yamaha C5 Grand Piano · Click keys or use your keyboard
+        <span class="key-hint">Z-M (low) · Q-P (mid) · Shift octaves with buttons</span>
+    </p>
+
+    <div class="piano-container reveal">
+        <div id="mainPiano"></div>
+    </div>
+
+    <div class="piano-tips reveal">
+        <div class="tip-card">
+            <i class="fas fa-hand-pointer"></i>
+            <h3>Click or Tap</h3>
+            <p>Click any key to play. Hold for sustain, release to let the string ring out naturally.</p>
+        </div>
+        <div class="tip-card">
+            <i class="fas fa-keyboard"></i>
+            <h3>Computer Keys</h3>
+            <p>Z-M plays lower octave, Q-P plays higher. Use shift buttons to change range.</p>
+        </div>
+        <div class="tip-card">
+            <i class="fas fa-layer-group"></i>
+            <h3>Play Chords</h3>
+            <p>Press multiple keys at once to play chords. Try C-E-G for C Major!</p>
+        </div>
+        <div class="tip-card">
+            <i class="fas fa-waveform-lines"></i>
+            <h3>Real Samples</h3>
+            <p>Every note is a real recording of a Yamaha C5 grand piano string.</p>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/piano.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        buildPiano('mainPiano');
+    });
+</script>
+{% endblock %}

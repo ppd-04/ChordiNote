@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -49,6 +50,9 @@
                 </a>
                 <a href="{% url 'game_lobby' %}" class="nav-link">
                     <i class="fas fa-gamepad"></i> Games
+                </a>
+                <a href="{% url 'piano' %}" class="nav-link">
+                    <i class="fas fa-piano"></i> Piano
                 </a>
             </div>
         </div>
