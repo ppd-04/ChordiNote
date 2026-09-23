@@ -39,6 +39,7 @@
     </div>
 
     <!-- AUDIO PLAYERS -->
+        <!-- AUDIO PLAYERS -->
     <div class="audio-players reveal">
         <div class="player-card">
             <h3><i class="fas fa-file-audio"></i> Original Audio</h3>
@@ -49,11 +50,20 @@
         </div>
         {% if has_reconstruction %}
         <div class="player-card">
-            <h3><i class="fas fa-wand-magic-sparkles"></i> Reconstructed from Detected Notes</h3>
+            <h3><i class="fas fa-wand-magic-sparkles"></i> Full Reconstruction</h3>
             <audio controls class="audio-player">
                 <source src="{{ reconstructed_url }}" type="audio/wav">
             </audio>
-            <p class="player-hint">This is synthesized purely from the detected pitches!</p>
+            <p class="player-hint">All detected notes including chords and bass</p>
+        </div>
+        {% endif %}
+        {% if has_melody %}
+        <div class="player-card melody-card">
+            <h3><i class="fas fa-music"></i> Core Melody</h3>
+            <audio controls class="audio-player">
+                <source src="{{ melody_url }}" type="audio/wav">
+            </audio>
+            <p class="player-hint">Single-note melody line extracted from the detection</p>
         </div>
         {% endif %}
     </div>

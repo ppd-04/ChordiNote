@@ -162,6 +162,9 @@ def upload_audio(request):
                     'profiles': combined_profiles,
                 })
 
+                        # ============================================
+            # RECONSTRUCTION 1: FULL (all notes)
+            # ============================================
             reconstructed_filename = f"reconstructed_{audio_file.name.rsplit('.', 1)[0]}.wav"
             reconstructed_path = os.path.join(upload_dir, reconstructed_filename)
 
@@ -181,6 +184,33 @@ def upload_audio(request):
                     reconstruction_notes.append(note_event)
 
             render_success = render_reconstructed_audio(reconstruction_notes, reconstructed_path)
+
+            # ============================================
+            # RECONSTRUCTION 2: CORE MELODY (single note)
+            # ============================================
+            # Pick only the highest note from each chord.
+            # In piano music, the melody is almost always the highest note.
+            # This gives a clean, single-note melody line.
+            melody_filename = f"melody_{audio_file.name.rsplit('.', 1)[0]}.wav"
+            melody_path = os.path.join(upload_dir, melody_filename)
+
+            melody_notes = []
+            for note_event in detected_notes:
+                if note_event.get('is_chord', False):
+                    # Pick the highest note (melody is on top)
+                    highest_midi = max(note_event.get('midi_notes', []))
+                    note_name = librosa.midi_to_note(highest_midi)
+                    freq = librosa.midi_to_hz(highest_midi)
+                    melody_notes.append({
+                        "timestamp": note_event["timestamp"],
+                        "note": note_name,
+                        "frequency": f"{freq:.1f} Hz",
+                    })
+                else:
+                    # Single note — keep as-is
+                    melody_notes.append(note_event)
+
+            melody_success = render_reconstructed_audio(melody_notes, melody_path)
             
             total_notes = len([n for n in detected_notes if n['note'] != 'REST'])
             total_rests = len([n for n in detected_notes if n['note'] == 'REST'])
@@ -217,6 +247,8 @@ def upload_audio(request):
                 'engine_used': engine_used,
                 'has_reconstruction': render_success,
                 'reconstructed_url': f"/media/uploads/{reconstructed_filename}" if render_success else None,
+                'has_melody': melody_success,
+                'melody_url': f"/media/uploads/{melody_filename}" if melody_success else None,
                 'original_url': f"/media/uploads/{audio_file.name}",
                 'notes_json': json.dumps(detected_notes),
                 'viz_data' : json.dumps(viz_data) if viz_data else None,

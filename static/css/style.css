@@ -3702,3 +3702,20 @@ body {
     background: linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(167, 139, 250, 0.15));
     border: 1px solid rgba(244, 114, 182, 0.4); min-width: 140px;
 }
+
+/* ============================================
+   MELODY RECONSTRUCTION CARD
+   ============================================ */
+
+.melody-card {
+    border: 1px solid rgba(103, 232, 249, 0.3) !important;
+    background: linear-gradient(135deg, rgba(103, 232, 249, 0.05), rgba(167, 139, 250, 0.05)) !important;
+}
+
+.melody-card h3 i {
+    color: var(--accent) !important;
+}
+
+.melody-card .player-hint {
+    color: var(--accent);
+}
