@@ -19,7 +19,7 @@
     </p>
 
     <!-- STATS ROW -->
-    <div class="stats-grid reveal">
+    <div class="stats-grid reveal" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
         <div class="stat-card">
             <div class="stat-number">{{ total_notes }}</div>
             <div class="stat-label">Notes Detected</div>
@@ -32,6 +32,10 @@
             <div class="stat-number">{{ total_rests }}</div>
             <div class="stat-label">Rests / Silences</div>
         </div>
+        <div class="stat-card" style="border-top: 3px solid #f472b6;">
+            <div class="stat-number" style="color: #f472b6;">{{ musical_key|default:"Unknown" }}</div>
+            <div class="stat-label">Musical Key</div>
+        </div>
         <div class="stat-card">
             <div class="stat-number">{{ profile_used }}</div>
             <div class="stat-label">Profile Used</div>
@@ -39,11 +43,15 @@
     </div>
 
     <!-- AUDIO PLAYERS -->
-        <!-- AUDIO PLAYERS -->
+    {% if notes_json %}
+<script id="notes-data-json" type="application/json">{{ notes_json|safe }}</script>
+{% endif %}
+
+    <!-- AUDIO PLAYERS -->
     <div class="audio-players reveal">
         <div class="player-card">
             <h3><i class="fas fa-file-audio"></i> Original Audio</h3>
-            <audio controls class="audio-player">
+            <audio controls class="audio-player" id="originalAudio">
                 <source src="{{ original_url }}" type="audio/mpeg">
                 <source src="{{ original_url }}" type="audio/wav">
             </audio>
@@ -51,31 +59,77 @@
         {% if has_reconstruction %}
         <div class="player-card">
             <h3><i class="fas fa-wand-magic-sparkles"></i> Full Reconstruction</h3>
-            <audio controls class="audio-player">
+            <audio controls class="audio-player" id="reconstructedAudio">
                 <source src="{{ reconstructed_url }}" type="audio/wav">
             </audio>
             <p class="player-hint">All detected notes including chords and bass</p>
+            <button class="btn btn-secondary btn-visual-piano" onclick="toggleVisualPianoPlayback('reconstructedAudio', this)" style="margin-top: 10px; width: 100%;">
+                <i class="fas fa-piano"></i> <i class="fas fa-play"></i> Play on Visual Piano
+            </button>
         </div>
         {% endif %}
         {% if has_melody %}
         <div class="player-card melody-card">
             <h3><i class="fas fa-music"></i> Core Melody</h3>
-            <audio controls class="audio-player">
+            <audio controls class="audio-player" id="melodyAudio">
                 <source src="{{ melody_url }}" type="audio/wav">
             </audio>
             <p class="player-hint">Single-note melody line extracted from the detection</p>
+            <button class="btn btn-secondary btn-visual-piano" onclick="toggleVisualPianoPlayback('melodyAudio', this)" style="margin-top: 10px; width: 100%;">
+                <i class="fas fa-piano"></i> <i class="fas fa-play"></i> Play Melody on Visual Piano
+            </button>
         </div>
         {% endif %}
     </div>
+    <!-- RECONSTRUCTION ERROR ANALYSIS -->
+    {% if reconstruction_metrics %}
+    <div class="metrics-section reveal" style="margin-top: 1.5rem; margin-bottom: 2rem;">
+        <div class="player-card" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius); padding: 1.5rem;">
+            <h3 style="margin-bottom: 1rem; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-chart-line" style="color: var(--primary);"></i>
+                <span>Reconstruction Fidelity & Signal Error Analysis</span>
+            </h3>
+            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 0;">
+                <div class="stat-card" style="border-top: 3px solid #4ade80; text-align: center; padding: 1rem;">
+                    <div class="stat-number" style="font-size: 1.6rem; color: #4ade80;">{{ reconstruction_metrics.match_score }}%</div>
+                    <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Signal Match Score</div>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">Cosine Similarity</p>
+                </div>
+                <div class="stat-card" style="border-top: 3px solid #60a5fa; text-align: center; padding: 1rem;">
+                    <div class="stat-number" style="font-size: 1.6rem; color: #60a5fa;">{{ reconstruction_metrics.mse }}</div>
+                    <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Mean Squared Error (MSE)</div>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">Time-domain deviation</p>
+                </div>
+                <div class="stat-card" style="border-top: 3px solid #c084fc; text-align: center; padding: 1rem;">
+                    <div class="stat-number" style="font-size: 1.6rem; color: #c084fc;">{{ reconstruction_metrics.rmse }}</div>
+                    <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Root MSE (RMSE)</div>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">Residual magnitude</p>
+                </div>
+                <div class="stat-card" style="border-top: 3px solid #fbbf24; text-align: center; padding: 1rem;">
+                    <div class="stat-number" style="font-size: 1.6rem; color: #fbbf24;">{{ reconstruction_metrics.spectral_error }}</div>
+                    <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Log-Spectral Distance</div>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">Frequency Error (LSD)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- INTERACTIVE PIANO SECTION -->
     <div class="piano-section reveal">
-        <h2 class="section-title">
-            <span class="gradient-text">Interactive Piano</span>
-        </h2>
-        <p class="section-subtitle">
-            Click any detected note or chord below to hear it played on the piano
-        </p>
+        <div class="piano-section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+            <div>
+                <h2 class="section-title" style="margin-bottom: 0.25rem;">
+                    <span class="gradient-text">Interactive Visual Piano</span>
+                </h2>
+                <p class="section-subtitle" style="margin-bottom: 0;">
+                    Keys light up live during playback, or click keys to play pitches manually
+                </p>
+            </div>
+            <button class="btn btn-primary btn-visual-piano" onclick="toggleVisualPianoPlayback('reconstructedAudio', this)">
+                <i class="fas fa-play"></i> <i class="fas fa-keyboard"></i> Play on Visual Piano
+            </button>
+        </div>
         <div class="piano-container-results">
             <div id="resultsPiano"></div>
         </div>
@@ -390,101 +444,236 @@
 <!-- Piano Script -->
 <script src="{% static 'js/piano.js' %}"></script>
 <script>
-    console.log('🎹 Results page piano script loaded');
-    
-    // Initialize piano when page loads
-    function initResultsPiano() {
-        console.log('🎹 Attempting to build piano...');
-        const pianoContainer = document.getElementById('resultsPiano');
-        
-        if (!pianoContainer) {
-            console.error('❌ Piano container #resultsPiano not found!');
-            return;
-        }
-        
-        // Build the piano (compact: false to ensure full-size UI renders)
-        buildPiano('resultsPiano', { 
-            compact: false, 
-            showLabels: true 
-        });
-        
-        console.log('✅ Piano built successfully!');
+    console.log('🎹 Results page visual piano script loaded');
+
+    let processedNotesData = [];
+    let currentSyncAudio = null;
+    let animFrameId = null;
+    let isVisualPlaybackActive = false;
+    const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+    function midiToNoteName(midi) {
+        if (typeof midi !== 'number' || isNaN(midi)) return '';
+        const noteIdx = midi % 12;
+        const octave = Math.floor(midi / 12) - 1;
+        return NOTE_NAMES[noteIdx] + octave;
     }
 
-    // Normalizes sharp/flat notes to match standard sample lookup names (e.g., Unicode "♯" to ASCII "#")
     function cleanNoteName(noteName) {
         if (!noteName) return '';
-        return noteName.trim()
-                       .replace(/♯/g, '#')  // Convert Unicode sharp to standard hash
-                       .replace(/♭/g, 'b');  // Convert Unicode flat to standard b
+        return noteName.trim().replace(/♯/g, '#').replace(/♭/g, 'b');
     }
 
-    // Play note or chord when clicked from detection results
-    window.playDetectedNote = function(noteName) {
-        const cleanNote = cleanNoteName(noteName);
-        console.log('🎵 User clicked note trigger. Raw:', noteName, '-> Cleaned:', cleanNote);
-        
-        if (!cleanNote || cleanNote === 'REST') return;
+    // Initialize piano and process notes data when page loads
+    function initResultsPiano() {
+        console.log('🎹 Building results piano...');
+        const pianoContainer = document.getElementById('resultsPiano');
+        if (!pianoContainer) return;
 
-        // Remove active visual animations from any other note badges
-        document.querySelectorAll('.clickable-note.playing').forEach(el => {
-            el.classList.remove('playing');
+        buildPiano('resultsPiano', { compact: false, showLabels: true });
+
+        // Parse detected notes dataset for real-time visual syncing
+        const dataEl = document.getElementById('notes-data-json');
+        if (dataEl) {
+            try {
+                const rawNotes = JSON.parse(dataEl.textContent);
+                processedNotesData = rawNotes.map(item => {
+                    let start = 0, end = 0;
+                    if (item.timestamp) {
+                        const parts = item.timestamp.replace(/s/g, '').split('-').map(p => parseFloat(p.trim()));
+                        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                            start = parts[0];
+                            end = parts[1];
+                        }
+                    }
+
+                    let notes = [];
+                    if (item.midi_notes && Array.isArray(item.midi_notes) && item.midi_notes.length > 0) {
+                        notes = item.midi_notes.map(midiToNoteName);
+                    } else if (item.note && item.note !== 'REST') {
+                        notes = item.note.split(' + ').map(cleanNoteName);
+                    }
+
+                    return {
+                        start: start,
+                        end: end,
+                        notes: notes,
+                        isRest: item.note === 'REST' || notes.length === 0
+                    };
+                });
+                console.log('🎹 Processed', processedNotesData.length, 'notes for visual piano sync');
+            } catch (err) {
+                console.error('Failed to parse notes_json:', err);
+            }
+        }
+
+        // Auto-attach audio event listeners to all audio players on page
+        document.querySelectorAll('audio.audio-player').forEach(audio => {
+            audio.addEventListener('play', function() {
+                // Pause other audio elements
+                document.querySelectorAll('audio.audio-player').forEach(other => {
+                    if (other !== audio && !other.paused) other.pause();
+                });
+                startVisualPianoSync(audio);
+            });
+            audio.addEventListener('pause', function() {
+                if (currentSyncAudio === audio && !isVisualPlaybackActive) {
+                    stopVisualPianoSync();
+                }
+            });
+            audio.addEventListener('ended', function() {
+                if (currentSyncAudio === audio) {
+                    stopVisualPianoSync();
+                }
+            });
+        });
+    }
+
+    // Highlight specific note keys on #resultsPiano with auto-scroll
+    function highlightKeysOnResultsPiano(noteArray) {
+        const keys = document.querySelectorAll('#resultsPiano .piano-key');
+        keys.forEach(k => {
+            k.classList.remove('note-highlight', 'chord-highlight', 'active');
         });
 
-        // Highlight clicked element badge or block if event context exists
+        if (!noteArray || noteArray.length === 0) return;
+
+        let firstKeyEl = null;
+        const cleanTargets = noteArray.map(cleanNoteName);
+
+        keys.forEach(k => {
+            const keyNote = k.getAttribute('data-note');
+            if (cleanTargets.includes(keyNote)) {
+                if (cleanTargets.length > 1) {
+                    k.classList.add('chord-highlight');
+                } else {
+                    k.classList.add('note-highlight');
+                }
+                k.classList.add('active');
+                if (!firstKeyEl) firstKeyEl = k;
+            }
+        });
+
+        // Scroll piano container if key is out of view
+        if (firstKeyEl) {
+            const container = document.querySelector('.piano-container-results');
+            if (container) {
+                const keyLeft = firstKeyEl.offsetLeft;
+                const containerScroll = container.scrollLeft;
+                const containerWidth = container.clientWidth;
+                if (keyLeft < containerScroll || keyLeft > containerScroll + containerWidth - 100) {
+                    container.scrollTo({ left: Math.max(0, keyLeft - 150), behavior: 'smooth' });
+                }
+            }
+        }
+    }
+
+    // Toggle Visual Piano Playback
+    window.toggleVisualPianoPlayback = function(audioId, btnElement) {
+        const audio = document.getElementById(audioId) || document.querySelector('audio.audio-player');
+        if (!audio) return;
+
+        if (isVisualPlaybackActive && currentSyncAudio === audio && !audio.paused) {
+            audio.pause();
+            stopVisualPianoSync();
+        } else {
+            // Scroll to piano section
+            const pianoSection = document.querySelector('.piano-section');
+            if (pianoSection) {
+                pianoSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            audio.currentTime = 0;
+            isVisualPlaybackActive = true;
+            audio.play().then(() => {
+                startVisualPianoSync(audio);
+            }).catch(e => console.error('Audio play error:', e));
+        }
+    };
+
+    function startVisualPianoSync(audio) {
+        currentSyncAudio = audio;
+
+        // Update all Visual Piano Playback buttons to active state
+        document.querySelectorAll('.btn-visual-piano').forEach(btn => {
+            btn.innerHTML = '<i class="fas fa-stop"></i> Stop Visual Piano';
+            btn.classList.add('active');
+        });
+
+        function syncLoop() {
+            if (!currentSyncAudio || currentSyncAudio.paused || currentSyncAudio.ended) {
+                stopVisualPianoSync();
+                return;
+            }
+
+            const currentTime = currentSyncAudio.currentTime;
+            const activeEvents = processedNotesData.filter(n => !n.isRest && currentTime >= n.start && currentTime < n.end);
+
+            const activeNotes = [];
+            activeEvents.forEach(evt => {
+                evt.notes.forEach(note => {
+                    if (!activeNotes.includes(note)) activeNotes.push(note);
+                });
+            });
+
+            highlightKeysOnResultsPiano(activeNotes);
+            animFrameId = requestAnimationFrame(syncLoop);
+        }
+
+        if (animFrameId) cancelAnimationFrame(animFrameId);
+        animFrameId = requestAnimationFrame(syncLoop);
+    }
+
+    function stopVisualPianoSync() {
+        isVisualPlaybackActive = false;
+        if (animFrameId) {
+            cancelAnimationFrame(animFrameId);
+            animFrameId = null;
+        }
+        currentSyncAudio = null;
+        highlightKeysOnResultsPiano([]);
+
+        document.querySelectorAll('.btn-visual-piano').forEach(btn => {
+            btn.classList.remove('active');
+            btn.innerHTML = '<i class="fas fa-piano"></i> <i class="fas fa-play"></i> Play on Visual Piano';
+        });
+    }
+
+    // Play note or chord when clicked from detection results table
+    window.playDetectedNote = function(noteName) {
+        const cleanNote = cleanNoteName(noteName);
+        if (!cleanNote || cleanNote === 'REST') return;
+
+        // Remove active visual animations from note badges
+        document.querySelectorAll('.clickable-note.playing').forEach(el => el.classList.remove('playing'));
+
         if (typeof event !== 'undefined' && event.target) {
             const clickedElement = event.target.closest('.clickable-note');
             if (clickedElement) {
                 clickedElement.classList.add('playing');
-                setTimeout(() => {
-                    clickedElement.classList.remove('playing');
-                }, 1000);
+                setTimeout(() => clickedElement.classList.remove('playing'), 1000);
             }
         }
 
-        // Check if the parameter target is a Chord or a Single Note
-        const chordPattern = /^[A-G][#b]?(m|maj|dim|aug|sus|add|7|9|11|13)/;
-        
-        if (chordPattern.test(cleanNote) && cleanNote.length > 2) {
-            console.log('🎵 Triggering Chord Playback:', cleanNote);
-            playChordOnPiano(cleanNote);
+        // If it's a chord with ' + ', split and highlight all notes simultaneously
+        let targetNotes = [];
+        if (cleanNote.includes(' + ')) {
+            targetNotes = cleanNote.split(' + ').map(cleanNoteName);
         } else {
-            console.log('🎵 Triggering Note Playback:', cleanNote);
-            playPianoNotes(cleanNote, "1n", 0.8);
-            
-            // Highlight the corresponding key on the interactive layout
-            highlightPianoKey(cleanNote);
+            targetNotes = [cleanNote];
         }
+
+        playPianoNotes(targetNotes.length === 1 ? targetNotes[0] : targetNotes, "1n", 0.8);
+        highlightKeysOnResultsPiano(targetNotes);
+
+        // Clear highlight after 1 second
+        setTimeout(() => {
+            if (!currentSyncAudio || currentSyncAudio.paused) {
+                highlightKeysOnResultsPiano([]);
+            }
+        }, 1000);
     };
 
-    // Highlight a single piano key safely without css-query syntax issues with '#'
-    function highlightPianoKey(note) {
-        // Clear old highlights safely
-        document.querySelectorAll('.piano-key.note-highlight').forEach(el => {
-            el.classList.remove('note-highlight');
-        });
-
-        // Bulletproof Element Search: Iterates over data attributes to avoid querySelector selector errors with '#'
-        const keys = document.querySelectorAll('.piano-key');
-        let keyEl = null;
-        for (let i = 0; i < keys.length; i++) {
-            if (keys[i].getAttribute('data-note') === note) {
-                keyEl = keys[i];
-                break;
-            }
-        }
-
-        if (keyEl) {
-            keyEl.classList.add('note-highlight');
-            setTimeout(() => {
-                keyEl.classList.remove('note-highlight');
-            }, 1000);
-        } else {
-            console.warn('⚠️ No physical piano key element found matching pitch:', note);
-        }
-    }
-
-    // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initResultsPiano);
     } else {

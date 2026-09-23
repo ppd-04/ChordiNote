@@ -7,10 +7,12 @@ from django.conf import settings
 
 from .dsp_engine import process_audio_file, ANALYSIS_PROFILES
 from .polyphonic_engine import process_audio_polyphonic, POLYPHONIC_PROFILES, get_profile_display_info
-from .audio_renderer import render_reconstructed_audio
+from .polyphonic_engine_v2 import process_audio_polyphonic_v2, V2_PROFILES, get_v2_profile_display_info
+from .audio_renderer import render_reconstructed_audio, calculate_reconstruction_error
 
 from .visualizer import generate_all_visualizations
 from .ml_chord_classifier import analyze_chords
+from .key_detector import detect_key_from_notes
 
 
 def home(request):
@@ -113,14 +115,24 @@ def upload_audio(request):
             "engine": "pyin",
         }
     
-    # Add Polyphonic CQT profiles
+    # Add Polyphonic CQT v1 profiles
     for key in POLYPHONIC_PROFILES.keys():
         info = get_profile_display_info(key)
         combined_profiles[f"poly_{key}"] = {
-            "label": f"[Polyphonic] {info['label']}",
+            "label": f"[Polyphonic V1] {info['label']}",
             "fmin": info["fmin"],
             "fmax": info["fmax"],
             "engine": "polyphonic",
+        }
+
+    # Add V2 Enhanced profiles (Learned Templates + Sparsity + HMM)
+    for key in V2_PROFILES.keys():
+        info = get_v2_profile_display_info(key)
+        combined_profiles[f"v2_{key}"] = {
+            "label": f"[V2 Enhanced] {info['label']}",
+            "fmin": info["fmin"],
+            "fmax": info["fmax"],
+            "engine": "polyphonic_v2",
         }
 
     if request.method == 'POST':
@@ -143,12 +155,17 @@ def upload_audio(request):
                 destination.write(chunk)
 
         try:
-            #: # Route to the correct engine based on profile prefix
-            if profile_name.startswith('poly_'):
+            # Route to the correct engine based on profile prefix
+            if profile_name.startswith('v2_'):
+                actual_profile = profile_name.replace('v2_', '')
+                detected_notes = process_audio_polyphonic_v2(file_path, actual_profile)
+                profile_label = V2_PROFILES.get(actual_profile, {}).get('label', actual_profile)
+                engine_used = "Polyphonic V2 (CQT + Learned Templates + Sparse NMF + HMM)"
+            elif profile_name.startswith('poly_'):
                 actual_profile = profile_name.replace('poly_', '')
                 detected_notes = process_audio_polyphonic(file_path, actual_profile)
                 profile_label = POLYPHONIC_PROFILES.get(actual_profile, {}).get('label', actual_profile)
-                engine_used = "Polyphonic (CQT DSP)"
+                engine_used = "Polyphonic V1 (CQT DSP)"
             else:
                 actual_profile = profile_name.replace('pyin_', '')
                 detected_notes = process_audio_file(file_path, actual_profile)
@@ -224,6 +241,12 @@ def upload_audio(request):
                     else:
                         unique_notes_set.add(n['note'])
             unique_notes = len(unique_notes_set)
+            
+            try:
+                musical_key = detect_key_from_notes(detected_notes)
+            except Exception as e:
+                print(f"Key detection error: {e}")
+                musical_key = "Unknown"
 
             try:
                 chord_analysis = analyze_chords(file_path, hop_seconds=3.0, max_duration=60)
@@ -234,6 +257,13 @@ def upload_audio(request):
                 viz_data = generate_all_visualizations(file_path)
             except Exception as viz_err:
                 viz_data = None
+
+            reconstruction_metrics = None
+            if render_success:
+                try:
+                    reconstruction_metrics = calculate_reconstruction_error(file_path, reconstructed_path)
+                except Exception as err:
+                    print(f"Metrics computation error: {err}")
 
             context = {
                 'uploaded': True,
@@ -247,12 +277,14 @@ def upload_audio(request):
                 'engine_used': engine_used,
                 'has_reconstruction': render_success,
                 'reconstructed_url': f"/media/uploads/{reconstructed_filename}" if render_success else None,
+                'reconstruction_metrics': reconstruction_metrics,
                 'has_melody': melody_success,
                 'melody_url': f"/media/uploads/{melody_filename}" if melody_success else None,
                 'original_url': f"/media/uploads/{audio_file.name}",
                 'notes_json': json.dumps(detected_notes),
                 'viz_data' : json.dumps(viz_data) if viz_data else None,
-                'chord_analysis' : chord_analysis                
+                'chord_analysis' : chord_analysis,
+                'musical_key': musical_key
             }       
             return render(request, 'detector/results.html', context)  
         

@@ -773,56 +773,57 @@ def _format_events_to_output(events, times):
     return output_sequence
 
 
-# def process_audio_polyphonic(file_path, profile_name="piano_poly"):
-#     """
-#     Main function: detect notes in polyphonic audio using CQT + NMF.
+def process_audio_polyphonic(file_path, profile_name="piano_poly"):
+    """
+    Main function: detect notes in polyphonic audio using CQT + NMF.
 
-#     Pipeline:
-#     1. Load audio and compute CQT spectrogram (V matrix)
-#     2. Build harmonic template matrix (W matrix)
-#     3. Run NMF to get activation matrix (H matrix)
-#     4. Convert activations to note events
-#     """
-#     profile = POLYPHONIC_PROFILES.get(profile_name, POLYPHONIC_PROFILES["piano_poly"])
+    Pipeline:
+    1. Load audio and compute CQT spectrogram (V matrix)
+    2. Build harmonic template matrix (W matrix)
+    3. Run NMF to get activation matrix (H matrix)
+    4. Convert activations to note events
+    """
+    profile = POLYPHONIC_PROFILES.get(profile_name, POLYPHONIC_PROFILES["piano_poly"])
 
-#     # Step 1: Load audio
-#     sample_rate = 22050
-#     y, sr = librosa.load(file_path, sr=sample_rate, mono=True)
+    # Step 1: Load audio
+    sample_rate = 22050
+    y, sr = librosa.load(file_path, sr=sample_rate, mono=True)
 
-#     fmin_hz = librosa.note_to_hz(profile["fmin"])
-#     fmax_hz = librosa.note_to_hz(profile["fmax"])
-#     bins_per_octave = profile["bins_per_octave"]
+    fmin_hz = librosa.note_to_hz(profile["fmin"])
+    fmax_hz = librosa.note_to_hz(profile["fmax"])
+    bins_per_octave = profile["bins_per_octave"]
 
-#     # Calculate number of CQT bins
-#     n_bins = int(np.ceil(bins_per_octave * np.log2(fmax_hz / fmin_hz)))
+    # Calculate number of CQT bins
+    n_bins = int(np.ceil(bins_per_octave * np.log2(fmax_hz / fmin_hz)))
 
-#     # Step 2: Compute CQT spectrogram (this is our V matrix)
-#     # V shape: (n_bins, n_frames)
-#     C = np.abs(librosa.cqt(
-#         y, sr=sr,
-#         hop_length=profile["hop_length"],
-#         fmin=fmin_hz,
-#         n_bins=n_bins,
-#         bins_per_octave=bins_per_octave,
-#         filter_scale=1.0
-#     ))
+    # Step 2: Compute CQT spectrogram (this is our V matrix)
+    # V shape: (n_bins, n_frames)
+    C = np.abs(librosa.cqt(
+        y, sr=sr,
+        hop_length=profile["hop_length"],
+        fmin=fmin_hz,
+        n_bins=n_bins,
+        bins_per_octave=bins_per_octave,
+        filter_scale=1.0
+    ))
 
-#     times = librosa.times_like(C, sr=sr, hop_length=profile["hop_length"])
+    times = librosa.times_like(C, sr=sr, hop_length=profile["hop_length"])
 
-#     # Step 3: Build harmonic template matrix (W matrix)
-#     # W shape: (n_bins, n_notes)
-#     W, note_midi_list = _build_harmonic_template_matrix(
-#         n_bins, fmin_hz, bins_per_octave, profile["n_harmonics"]
-#     )
+    # Step 3: Build harmonic template matrix (W matrix)
+    # W shape: (n_bins, n_notes)
+    W, note_midi_list = _build_harmonic_template_matrix(
+        n_bins, fmin_hz, bins_per_octave, profile["n_harmonics"]
+    )
 
-#     # Step 4: Run NMF decomposition to get activation matrix (H matrix)
-#     # V ≈ W × H, so H shape: (n_notes, n_frames)
-#     H = _nmf_decompose(C, W, n_iterations=profile["nmf_iterations"])
+    # Step 4: Run NMF decomposition to get activation matrix (H matrix)
+    # V ≈ W × H, so H shape: (n_notes, n_frames)
+    H = _nmf_decompose(C, W, n_iterations=profile["nmf_iterations"])
 
-#     # Step 5: Convert activations to note events
-#     output_sequence = _activations_to_note_events(H, note_midi_list, times, profile)
+    # Step 5: Convert activations to note events
+    raw_events = _activations_to_note_events_raw(H, note_midi_list, times, profile)
+    output_sequence = _format_events_to_output(raw_events, times)
 
-#     return output_sequence
+    return output_sequence
 
 
 # changed for iterative overlap smth
@@ -925,202 +926,202 @@ def _format_events_to_output(events, times):
 
 
 
-def process_audio_polyphonic(file_path, profile_name="piano_poly"):
-    """
-    Main function: detect notes in polyphonic audio using CQT + NMF.
+# def process_audio_polyphonic(file_path, profile_name="piano_poly"):
+#     """
+#     Main function: detect notes in polyphonic audio using CQT + NMF.
     
-    Uses a TWO-PASS approach with onset-based note splitting:
-      Pass 1: Run NMF on the original CQT → detect loud/prominent notes
-      Pass 2: Subtract detected notes from CQT → run NMF on residual → detect hidden notes
-      Merge: Combine both passes, filling only silent gaps
+#     Uses a TWO-PASS approach with onset-based note splitting:
+#       Pass 1: Run NMF on the original CQT → detect loud/prominent notes
+#       Pass 2: Subtract detected notes from CQT → run NMF on residual → detect hidden notes
+#       Merge: Combine both passes, filling only silent gaps
     
-    Onset detection is used to split repeated notes (e.g., C-C in Für Elise)
-    that would otherwise be merged into one continuous note.
-    """
-    profile = POLYPHONIC_PROFILES.get(profile_name, POLYPHONIC_PROFILES["piano_poly"])
+#     Onset detection is used to split repeated notes (e.g., C-C in Für Elise)
+#     that would otherwise be merged into one continuous note.
+#     """
+#     profile = POLYPHONIC_PROFILES.get(profile_name, POLYPHONIC_PROFILES["piano_poly"])
 
-    # Step 1: Load audio
-    sample_rate = 22050
-    y, sr = librosa.load(file_path, sr=sample_rate, mono=True)
+#     # Step 1: Load audio
+#     sample_rate = 22050
+#     y, sr = librosa.load(file_path, sr=sample_rate, mono=True)
 
-    fmin_hz = librosa.note_to_hz(profile["fmin"])
-    fmax_hz = librosa.note_to_hz(profile["fmax"])
-    bins_per_octave = profile["bins_per_octave"]
+#     fmin_hz = librosa.note_to_hz(profile["fmin"])
+#     fmax_hz = librosa.note_to_hz(profile["fmax"])
+#     bins_per_octave = profile["bins_per_octave"]
 
-    # Calculate number of CQT bins
-    n_bins = int(np.ceil(bins_per_octave * np.log2(fmax_hz / fmin_hz)))
+#     # Calculate number of CQT bins
+#     n_bins = int(np.ceil(bins_per_octave * np.log2(fmax_hz / fmin_hz)))
 
-    # Step 2: Compute CQT spectrogram (V matrix)
-    C = np.abs(librosa.cqt(
-        y, sr=sr,
-        hop_length=profile["hop_length"],
-        fmin=fmin_hz,
-        n_bins=n_bins,
-        bins_per_octave=bins_per_octave,
-        filter_scale=1.0
-    ))
+#     # Step 2: Compute CQT spectrogram (V matrix)
+#     C = np.abs(librosa.cqt(
+#         y, sr=sr,
+#         hop_length=profile["hop_length"],
+#         fmin=fmin_hz,
+#         n_bins=n_bins,
+#         bins_per_octave=bins_per_octave,
+#         filter_scale=1.0
+#     ))
 
-    times = librosa.times_like(C, sr=sr, hop_length=profile["hop_length"])
+#     times = librosa.times_like(C, sr=sr, hop_length=profile["hop_length"])
 
-    # Step 3: Detect onsets from the original audio
-    # This is critical for splitting repeated notes like C-C
-    # We use multiple onset detection methods and combine them for robustness
-    onset_frames = librosa.onset.onset_detect(
-        y=y, sr=sr,
-        hop_length=profile["hop_length"],
-        backtrack=True,
-        units='frames'
-    )
-    onset_times = librosa.frames_to_time(onset_frames, sr=sr, hop_length=profile["hop_length"])
+#     # Step 3: Detect onsets from the original audio
+#     # This is critical for splitting repeated notes like C-C
+#     # We use multiple onset detection methods and combine them for robustness
+#     onset_frames = librosa.onset.onset_detect(
+#         y=y, sr=sr,
+#         hop_length=profile["hop_length"],
+#         backtrack=True,
+#         units='frames'
+#     )
+#     onset_times = librosa.frames_to_time(onset_frames, sr=sr, hop_length=profile["hop_length"])
     
-    # Also detect onsets using spectral flux (more sensitive to repeated notes)
-    onset_frames_flux = librosa.onset.onset_detect(
-        y=y, sr=sr,
-        hop_length=profile["hop_length"],
-        onset_envelope=librosa.onset.onset_strength(
-            y=y, sr=sr,
-            hop_length=profile["hop_length"],
-            aggregate=np.median
-        ),
-        backtrack=True,
-        units='frames'
-    )
-    onset_times_flux = librosa.frames_to_time(onset_frames_flux, sr=sr, hop_length=profile["hop_length"])
+#     # Also detect onsets using spectral flux (more sensitive to repeated notes)
+#     onset_frames_flux = librosa.onset.onset_detect(
+#         y=y, sr=sr,
+#         hop_length=profile["hop_length"],
+#         onset_envelope=librosa.onset.onset_strength(
+#             y=y, sr=sr,
+#             hop_length=profile["hop_length"],
+#             aggregate=np.median
+#         ),
+#         backtrack=True,
+#         units='frames'
+#     )
+#     onset_times_flux = librosa.frames_to_time(onset_frames_flux, sr=sr, hop_length=profile["hop_length"])
     
-    # Combine both onset detections and remove duplicates within 40ms
-    all_onsets = np.sort(np.concatenate([onset_times, onset_times_flux]))
-    if len(all_onsets) > 0:
-        # Remove onsets that are too close together (< 40ms)
-        keep = [True]
-        for i in range(1, len(all_onsets)):
-            if all_onsets[i] - all_onsets[i-1] >= 0.04:
-                keep.append(True)
-            else:
-                keep.append(False)
-        onset_times = all_onsets[keep]
-    else:
-        onset_times = np.array([])
+#     # Combine both onset detections and remove duplicates within 40ms
+#     all_onsets = np.sort(np.concatenate([onset_times, onset_times_flux]))
+#     if len(all_onsets) > 0:
+#         # Remove onsets that are too close together (< 40ms)
+#         keep = [True]
+#         for i in range(1, len(all_onsets)):
+#             if all_onsets[i] - all_onsets[i-1] >= 0.04:
+#                 keep.append(True)
+#             else:
+#                 keep.append(False)
+#         onset_times = all_onsets[keep]
+#     else:
+#         onset_times = np.array([])
 
-    # Step 4: Build harmonic template matrix (W matrix)
-    W, note_midi_list = _build_harmonic_template_matrix(
-        n_bins, fmin_hz, bins_per_octave, profile["n_harmonics"]
-    )
+#     # Step 4: Build harmonic template matrix (W matrix)
+#     W, note_midi_list = _build_harmonic_template_matrix(
+#         n_bins, fmin_hz, bins_per_octave, profile["n_harmonics"]
+#     )
 
-    # ============================================
-    # PASS 1: Detect prominent notes
-    # ============================================
-    H1 = _nmf_decompose(C, W, n_iterations=profile["nmf_iterations"])
+#     # ============================================
+#     # PASS 1: Detect prominent notes
+#     # ============================================
+#     H1 = _nmf_decompose(C, W, n_iterations=profile["nmf_iterations"])
 
-    max_poly = profile.get("max_polyphony", 4)
-    H1 = _enforce_max_polyphony(H1, max_poly=max_poly)
+#     max_poly = profile.get("max_polyphony", 4)
+#     H1 = _enforce_max_polyphony(H1, max_poly=max_poly)
     
-    # Use a HIGHER threshold for pass 1 — only catch the confident notes
-    pass1_threshold = profile["activation_threshold"] * 1.2
-    pass1_profile = dict(profile)
-    pass1_profile["activation_threshold"] = pass1_threshold
+#     # Use a HIGHER threshold for pass 1 — only catch the confident notes
+#     pass1_threshold = profile["activation_threshold"] * 1.2
+#     pass1_profile = dict(profile)
+#     pass1_profile["activation_threshold"] = pass1_threshold
     
-    events_pass1 = _activations_to_note_events_raw(
-        H1, note_midi_list, times, pass1_profile, onset_times=onset_times
-    )
+#     events_pass1 = _activations_to_note_events_raw(
+#         H1, note_midi_list, times, pass1_profile, onset_times=onset_times
+#     )
 
-    # ============================================
-    # PASS 2: Subtract pass 1 notes, detect hidden notes
-    # ============================================
-    H1_strong = H1.copy()
-    h1_max = np.max(H1) if np.max(H1) > 0 else 1.0
-    H1_strong[H1_strong / h1_max < pass1_threshold] = 0
+#     # ============================================
+#     # PASS 2: Subtract pass 1 notes, detect hidden notes
+#     # ============================================
+#     H1_strong = H1.copy()
+#     h1_max = np.max(H1) if np.max(H1) > 0 else 1.0
+#     H1_strong[H1_strong / h1_max < pass1_threshold] = 0
     
-    # Reconstruct the spectral contribution of detected notes
-    C_reconstructed = W @ H1_strong
+#     # Reconstruct the spectral contribution of detected notes
+#     C_reconstructed = W @ H1_strong
     
-    # Subtract from original to get the residual
-    C_residual = np.maximum(0, C - C_reconstructed)
+#     # Subtract from original to get the residual
+#     C_residual = np.maximum(0, C - C_reconstructed)
     
-    # Check if there's enough energy left in the residual
-    residual_energy = np.sum(C_residual)
-    original_energy = np.sum(C)
+#     # Check if there's enough energy left in the residual
+#     residual_energy = np.sum(C_residual)
+#     original_energy = np.sum(C)
     
-    events_pass2 = []
-    if original_energy > 0 and (residual_energy / original_energy) > 0.05:
-        H2 = _nmf_decompose(C_residual, W, n_iterations=profile["nmf_iterations"])
-        H2 = _enforce_max_polyphony(H2, max_poly=max_poly)
+#     events_pass2 = []
+#     if original_energy > 0 and (residual_energy / original_energy) > 0.05:
+#         H2 = _nmf_decompose(C_residual, W, n_iterations=profile["nmf_iterations"])
+#         H2 = _enforce_max_polyphony(H2, max_poly=max_poly)
 
         
-        pass2_threshold = profile["activation_threshold"] * 0.7
-        pass2_profile = dict(profile)
-        pass2_profile["activation_threshold"] = pass2_threshold
+#         pass2_threshold = profile["activation_threshold"] * 0.7
+#         pass2_profile = dict(profile)
+#         pass2_profile["activation_threshold"] = pass2_threshold
         
-        events_pass2 = _activations_to_note_events_raw(
-            H2, note_midi_list, times, pass2_profile, onset_times=onset_times
-        )
+#         events_pass2 = _activations_to_note_events_raw(
+#             H2, note_midi_list, times, pass2_profile, onset_times=onset_times
+#         )
 
-    # ============================================
-    # MERGE: Combine both passes (pass 2 fills gaps only)
-    # ============================================
-    # merged_events = _merge_two_passes(events_pass1, events_pass2, times)
+#     # ============================================
+#     # MERGE: Combine both passes (pass 2 fills gaps only)
+#     # ============================================
+#     # merged_events = _merge_two_passes(events_pass1, events_pass2, times)
     
-    # return merged_events
+#     # return merged_events
 
-    all_raw_events = list(events_pass1)
+#     all_raw_events = list(events_pass1)
     
-    # Clip pass 2 to gaps only (same logic as before)
-    covered = np.zeros(len(times), dtype=bool)
-    for midi, start, end in events_pass1:
-        s = max(0, start)
-        e = min(len(times), end)
-        covered[s:e] = True
+#     # Clip pass 2 to gaps only (same logic as before)
+#     covered = np.zeros(len(times), dtype=bool)
+#     for midi, start, end in events_pass1:
+#         s = max(0, start)
+#         e = min(len(times), end)
+#         covered[s:e] = True
     
-    for midi2, start2, end2 in events_pass2:
-        is_duplicate = False
-        for midi1, start1, end1 in events_pass1:
-            if midi1 == midi2:
-                overlap_start = max(start1, start2)
-                overlap_end = min(end1, end2)
-                if max(0, overlap_end - overlap_start) / max(1, end2 - start2) > 0.5:
-                    is_duplicate = True
-                    break
-        if not is_duplicate:
-            # Only keep the parts that fall in gaps
-            for f in range(max(0, start2), min(len(times), end2)):
-                if not covered[f]:
-                    all_raw_events.append((midi2, start2, end2))
-                    break
+#     for midi2, start2, end2 in events_pass2:
+#         is_duplicate = False
+#         for midi1, start1, end1 in events_pass1:
+#             if midi1 == midi2:
+#                 overlap_start = max(start1, start2)
+#                 overlap_end = min(end1, end2)
+#                 if max(0, overlap_end - overlap_start) / max(1, end2 - start2) > 0.5:
+#                     is_duplicate = True
+#                     break
+#         if not is_duplicate:
+#             # Only keep the parts that fall in gaps
+#             for f in range(max(0, start2), min(len(times), end2)):
+#                 if not covered[f]:
+#                     all_raw_events.append((midi2, start2, end2))
+#                     break
     
-    # Remove exact duplicates
-    all_raw_events = list(set(all_raw_events))
-    all_raw_events.sort(key=lambda x: (x[1], x[0]))
+#     # Remove exact duplicates
+#     all_raw_events = list(set(all_raw_events))
+#     all_raw_events.sort(key=lambda x: (x[1], x[0]))
     
-    # ============================================
-    # POST-FILTER: Remove excess notes
-    # ============================================
-    # Combine H matrices from both passes for strength evaluation
-        # ============================================
-    # POST-FILTER 1: Remove harmonic ghost notes
-    # ============================================
-    # This is the most important filter. It removes notes like C5, E5
-    # that are actually just harmonics of C3.
-    H_combined = np.maximum(H1, H2) if len(events_pass2) > 0 else H1
+#     # ============================================
+#     # POST-FILTER: Remove excess notes
+#     # ============================================
+#     # Combine H matrices from both passes for strength evaluation
+#         # ============================================
+#     # POST-FILTER 1: Remove harmonic ghost notes
+#     # ============================================
+#     # This is the most important filter. It removes notes like C5, E5
+#     # that are actually just harmonics of C3.
+#     H_combined = np.maximum(H1, H2) if len(events_pass2) > 0 else H1
     
-    filtered_events = _remove_harmonic_artifacts(
-        all_raw_events, H_combined, note_midi_list, times
-    )
+#     filtered_events = _remove_harmonic_artifacts(
+#         all_raw_events, H_combined, note_midi_list, times
+#     )
     
-    # ============================================
-    # POST-FILTER 2: Remove excess polyphony
-    # ============================================
-    # After removing harmonics, if there are still too many notes,
-    # remove the weakest ones.
-    max_poly = profile.get("max_polyphony", 4)
-    filtered_events = _filter_excess_notes(
-        filtered_events, H_combined, note_midi_list, times, max_poly=max_poly
-    )
+#     # ============================================
+#     # POST-FILTER 2: Remove excess polyphony
+#     # ============================================
+#     # After removing harmonics, if there are still too many notes,
+#     # remove the weakest ones.
+#     max_poly = profile.get("max_polyphony", 4)
+#     filtered_events = _filter_excess_notes(
+#         filtered_events, H_combined, note_midi_list, times, max_poly=max_poly
+#     )
     
-    # ============================================
-    # FORMAT: Convert filtered events to output
-    # ============================================
-    merged_events = _format_events_to_output(filtered_events, times)
+#     # ============================================
+#     # FORMAT: Convert filtered events to output
+#     # ============================================
+#     merged_events = _format_events_to_output(filtered_events, times)
     
-    return merged_events
+#     return merged_events
 
 
 def get_profile_display_info(profile_name):
