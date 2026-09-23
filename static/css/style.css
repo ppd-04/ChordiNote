@@ -3174,3 +3174,531 @@ body {
     transform: scale(1.4);
     box-shadow: 0 0 20px rgba(103, 232, 249, 1);
 }
+
+
+/* ============================================
+   LIVE RECORDING STYLES — POOKIE THEME
+   ============================================ */
+
+.upload-tabs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    justify-content: center;
+}
+
+.tab-btn {
+    padding: 0.75rem 2rem;
+    border: 2px solid var(--border-glass);
+    background: var(--bg-glass);
+    color: var(--text-secondary);
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+
+.tab-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-main);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.tab-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--glow-purple);
+}
+
+.tab-btn:hover::after {
+    opacity: 0.05;
+}
+
+.tab-btn.active {
+    background: linear-gradient(135deg, var(--primary-dark), var(--secondary));
+    color: white;
+    border-color: var(--primary);
+    box-shadow: var(--glow-purple);
+}
+
+.tab-btn.active::after {
+    opacity: 0;
+}
+
+.tab-content {
+    animation: fadeInUp 0.3s ease;
+}
+
+.recording-panel {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    backdrop-filter: blur(15px);
+}
+
+.recording-visualizer {
+    background: var(--gradient-card);
+    border: 2px dashed rgba(167, 139, 250, 0.3);
+    border-radius: var(--radius);
+    padding: 3rem 2rem;
+    margin-bottom: 1.5rem;
+    position: relative;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.recording-visualizer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-main);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.recording-visualizer:hover::before {
+    opacity: 0.03;
+}
+
+#recordingWaveform {
+    width: 100%;
+    max-width: 600px;
+    height: 150px;
+    border-radius: var(--radius-sm);
+    background: rgba(15, 10, 26, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    position: relative;
+    z-index: 1;
+}
+
+.recording-status {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    position: relative;
+    z-index: 1;
+}
+
+.recording-pulse {
+    animation: recordingPulse 1.5s ease-in-out infinite;
+    color: #ef4444;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.5));
+}
+
+@keyframes recordingPulse {
+    0%, 100% { 
+        opacity: 1; 
+        transform: scale(1);
+    }
+    50% { 
+        opacity: 0.6; 
+        transform: scale(1.2);
+    }
+}
+
+.recording-controls {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.recording-timer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 2px solid rgba(239, 68, 68, 0.3);
+    border-radius: 50px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ef4444;
+    font-family: 'Courier New', monospace;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+}
+
+.recording-timer i {
+    animation: recordingPulse 1s ease-in-out infinite;
+}
+
+.recording-preview {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.08), rgba(34, 197, 94, 0.05));
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    border-radius: var(--radius);
+    animation: fadeInUp 0.4s ease;
+    backdrop-filter: blur(10px);
+}
+
+.recording-preview h3 {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.recording-preview h3 i {
+    color: #4ade80;
+}
+
+.preview-info {
+    margin-top: 0.75rem;
+    display: flex;
+    gap: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+}
+
+.preview-info span {
+    padding: 0.35rem 0.9rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 50px;
+    backdrop-filter: blur(5px);
+}
+
+/* ============================================
+   INTERACTIVE PIANO ON RESULTS PAGE — POOKIE THEME
+   ============================================ */
+
+.piano-section {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius);
+    padding: 2rem;
+    margin: 2rem 0;
+    backdrop-filter: blur(15px);
+    position: relative;
+    overflow: hidden;
+}
+
+.piano-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-main);
+}
+
+.piano-container-results {
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: var(--gradient-card);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    overflow-x: auto;
+}
+
+/* Clickable notes styling */
+.clickable-note {
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+}
+
+.clickable-note::after {
+    content: '♪';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    font-size: 2rem;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    color: white;
+    text-shadow: 0 0 10px currentColor;
+}
+
+.clickable-note:hover::after {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.3;
+}
+
+.clickable-note:hover {
+    transform: translateY(-3px) scale(1.05);
+    filter: brightness(1.3);
+}
+
+.clickable-note:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* Chord blocks clickable effect */
+.chord-block.clickable-note {
+    border: 1px solid var(--border-glass);
+}
+
+.chord-block.clickable-note:hover {
+    border-color: var(--primary);
+    box-shadow: 0 0 25px rgba(167, 139, 250, 0.4);
+    background: linear-gradient(135deg, rgba(167,139,250,0.15), rgba(244,114,182,0.1));
+}
+
+.chord-block.clickable-note.playing {
+    border-color: #4ade80;
+    box-shadow: 0 0 35px rgba(74, 222, 128, 0.6);
+    background: linear-gradient(135deg, rgba(74,222,128,0.2), rgba(34,197,94,0.15));
+    animation: playingPulse 0.6s ease;
+}
+
+/* Note badge clickable effect */
+.note-badge.clickable-note {
+    position: relative;
+    overflow: hidden;
+}
+
+.note-badge.clickable-note::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--gradient-main);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.note-badge.clickable-note:hover {
+    background: linear-gradient(135deg, var(--primary-dark), var(--secondary));
+    transform: scale(1.15);
+    box-shadow: var(--glow-purple);
+}
+
+.note-badge.clickable-note:hover::before {
+    opacity: 0.2;
+}
+
+.note-badge.clickable-note.playing {
+    background: linear-gradient(135deg, #4ade80, #22c55e);
+    animation: playingPulse 0.6s ease;
+    box-shadow: 0 4px 20px rgba(74, 222, 128, 0.5);
+}
+
+@keyframes playingPulse {
+    0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(74, 222, 128, 0);
+    }
+    50% { 
+        transform: scale(1.08);
+        box-shadow: 0 0 30px rgba(74, 222, 128, 0.6);
+    }
+}
+
+/* Piano key highlight when note is played */
+.piano-key.note-highlight {
+    background: linear-gradient(180deg, #4ade80 0%, #22c55e 50%, #16a34a 90%, #15803d 100%) !important;
+    transform: translateY(2px);
+    box-shadow: 0 4px 25px rgba(74, 222, 128, 0.6),
+                inset 0 -2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.piano-key.white.note-highlight .key-label {
+    color: white;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.piano-key.black.note-highlight {
+    background: linear-gradient(180deg, #4ade80 0%, #22c55e 40%, #16a34a 80%, #15803d 100%) !important;
+}
+
+/* Chord highlight (multiple keys) */
+.piano-key.chord-highlight {
+    background: linear-gradient(180deg, #c4b5fd 0%, #a78bfa 50%, #8b5cf6 90%, #7c3aed 100%) !important;
+    box-shadow: 0 4px 25px rgba(167, 139, 250, 0.6),
+                inset 0 -2px 8px rgba(0, 0, 0, 0.2) !important;
+}
+
+.piano-key.white.chord-highlight .key-label {
+    color: white;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.piano-key.black.chord-highlight {
+    background: linear-gradient(180deg, #a78bfa 0%, #8b5cf6 40%, #7c3aed 80%, #6d28d9 100%) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .piano-container-results {
+        padding: 1rem;
+    }
+    
+    .piano-section {
+        padding: 1.5rem;
+    }
+
+    .clickable-note::after {
+        font-size: 1.5rem;
+    }
+}
+
+/* ============================================
+   PIANO REFERENCE IN UPLOAD PAGE
+   ============================================ */
+
+.piano-reference-section {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 1.5rem;
+    border-radius: var(--radius-sm);
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.piano-reference-section h3 {
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.piano-reference-section h3 i {
+    color: var(--primary);
+    margin-right: 8px;
+}
+
+.reference-hint {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.mini-piano-container {
+    background: linear-gradient(180deg, #1a1520 0%, #0f0a1a 100%);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-sm);
+    padding: 1rem 0.5rem 0.5rem;
+    overflow-x: auto;
+}
+
+/* ============================================
+   RESULTS PAGE PIANO - FULL SIZE & NON-SQUISH
+   ============================================ */
+
+.piano-section {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius);
+    padding: 2.5rem;
+    margin: 3rem 0;
+    backdrop-filter: blur(15px);
+    position: relative;
+    overflow: hidden;
+}
+
+.piano-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-main);
+}
+
+.piano-container-results {
+    margin-top: 1.5rem;
+    padding: 2rem 1rem 1rem;
+    background: linear-gradient(180deg, #1a1520 0%, #0f0a1a 100%);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius);
+    overflow-x: auto; /* Allow horizontal scroll instead of squishing */
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Force container layout */
+#resultsPiano .piano-keyboard-64 {
+    height: 220px !important;
+    display: flex !important;
+    flex-wrap: nowrap !important; /* Prevent keys from wrapping */
+    min-width: max-content !important; /* Force width to match all keys */
+    margin: 0 auto;
+}
+
+/* White Keys layout - Flex-shrink is the critical fix */
+#resultsPiano .piano-key.white {
+    width: 32px !important;
+    height: 215px !important;
+    flex-shrink: 0 !important; /* Prevents CSS Flexbox from squishing keys */
+}
+
+/* Black Keys layout */
+#resultsPiano .piano-key.black {
+    width: 20px !important;
+    height: 135px !important;
+    margin-left: -11px !important;
+    margin-right: -11px !important;
+    flex-shrink: 0 !important; /* Prevents black keys from squishing */
+}
+
+#resultsPiano .piano-key.black.active {
+    height: 133px !important;
+}
+
+/* Scrollbar styling for the horizontal overflow container */
+.piano-container-results::-webkit-scrollbar {
+    height: 10px;
+}
+
+.piano-container-results::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 5px;
+}
+
+.piano-container-results::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-radius: 5px;
+}
+
+.piano-container-results::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
+}
+
+.profile-card { position: relative; padding-top: 2rem !important; }
+.engine-badge {
+    position: absolute; top: 8px; right: 8px; padding: 2px 8px;
+    border-radius: 50px; font-size: 0.65rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+    display: flex; align-items: center; gap: 4px;
+}
+.pyin-profile .engine-badge {
+    background: rgba(103, 232, 249, 0.2); border: 1px solid rgba(103, 232, 249, 0.4); color: var(--accent);
+}
+.poly-profile .engine-badge {
+    background: rgba(244, 114, 182, 0.2); border: 1px solid rgba(244, 114, 182, 0.4); color: var(--secondary);
+}
+.poly-profile { background: linear-gradient(135deg, rgba(244, 114, 182, 0.05), rgba(167, 139, 250, 0.05)) !important; }
+.pyin-profile { background: linear-gradient(135deg, rgba(103, 232, 249, 0.05), rgba(59, 130, 246, 0.05)) !important; }
+.profile-option.selected .poly-profile { border-color: var(--secondary) !important; box-shadow: var(--glow-pink) !important; }
+.profile-option.selected .pyin-profile { border-color: var(--accent) !important; box-shadow: 0 0 30px rgba(103, 232, 249, 0.3) !important; }
+.chord-block.is-chord {
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.15), rgba(167, 139, 250, 0.15));
+    border: 1px solid rgba(244, 114, 182, 0.4); min-width: 140px;
+}

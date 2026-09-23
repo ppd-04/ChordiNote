@@ -239,6 +239,9 @@ function buildPiano(containerId, options = {}) {
 
     const showLabels = options.showLabels !== false;
     const compact = options.compact || false;
+    
+    // Don't apply compact class on results page piano
+    const isResultsPage = containerId === 'resultsPiano';
 
     // Loading indicator
     let html = `
@@ -275,7 +278,7 @@ function buildPiano(containerId, options = {}) {
 
         // Find keyboard shortcut for this note
         let shortcut = '';
-        if (!compact) {
+        if (!isResultsPage && !compact) {
             const noteName = k.note.replace(/\d/, '');
             const oct = parseInt(k.note.slice(-1));
             if (oct === keyboardOctave && KEYBOARD_MAP_LOWER) {
@@ -290,7 +293,9 @@ function buildPiano(containerId, options = {}) {
             }
         }
 
-        html += `<div class="piano-key ${isBlack ? 'black' : 'white'} ${compact ? 'compact' : ''}" 
+        const compactClass = (compact && !isResultsPage) ? 'compact' : '';
+        
+        html += `<div class="piano-key ${isBlack ? 'black' : 'white'} ${compactClass}" 
                       data-note="${k.note}"
                       onmousedown="onPianoKeyDown('${k.note}', this)"
                       onmouseup="onPianoKeyUp('${k.note}', this)"

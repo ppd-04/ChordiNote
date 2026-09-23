@@ -19,56 +19,173 @@
     </div>
     {% endif %}
 
+    <!-- TAB BUTTONS -->
+    <div class="upload-tabs reveal">
+        <button class="tab-btn active" onclick="switchTab('upload')">
+            <i class="fas fa-cloud-arrow-up"></i> Upload File
+        </button>
+        <button class="tab-btn" onclick="switchTab('record')">
+            <i class="fas fa-microphone"></i> Live Record
+        </button>
+    </div>
+
     <div class="upload-container reveal">
-        <form method="POST" enctype="multipart/form-data" class="upload-form" id="uploadForm">
-            {% csrf_token %}
+        
+        <!-- TAB 1: FILE UPLOAD (ORIGINAL) -->
+        <div class="tab-content active" id="uploadTab">
+            <form method="POST" enctype="multipart/form-data" class="upload-form" id="uploadForm">
+                {% csrf_token %}
 
-            <div class="drop-zone" id="dropZone">
-                <div class="drop-zone-content">
-                    <i class="fas fa-cloud-arrow-up fa-4x"></i>
-                    <p class="drop-text">Drag & drop your audio file here</p>
-                    <p class="drop-subtext">or</p>
-                    <label for="audioFile" class="btn btn-primary">
-                        <i class="fas fa-folder-open"></i> Choose File
-                    </label>
-                    <input type="file" name="audio_file" id="audioFile"
-                           accept=".wav,.mp3,.ogg,.flac" class="file-input-hidden">
+                <div class="drop-zone" id="dropZone">
+                    <div class="drop-zone-content">
+                        <i class="fas fa-cloud-arrow-up fa-4x"></i>
+                        <p class="drop-text">Drag & drop your audio file here</p>
+                        <p class="drop-subtext">or</p>
+                        <label for="audioFile" class="btn btn-primary">
+                            <i class="fas fa-folder-open"></i> Choose File
+                        </label>
+                        <input type="file" name="audio_file" id="audioFile"
+                               accept=".wav,.mp3,.ogg,.flac" class="file-input-hidden">
+                    </div>
+                    <div class="file-info" id="fileInfo" style="display: none;">
+                        <i class="fas fa-file-audio fa-2x"></i>
+                        <span id="fileName"></span>
+                        <span id="fileSize"></span>
+                    </div>
                 </div>
-                <div class="file-info" id="fileInfo" style="display: none;">
-                    <i class="fas fa-file-audio fa-2x"></i>
-                    <span id="fileName"></span>
-                    <span id="fileSize"></span>
-                </div>
-            </div>
 
-            <div class="options-panel">
-                <h3><i class="fas fa-sliders"></i> Analysis Profile</h3>
-                <p class="options-hint">Choose the profile that best matches your audio</p>
-                <div class="profile-grid">
-                    {% for key, profile in profiles.items %}
-                    <label class="profile-option {% if forloop.first %}selected{% endif %}">
-                        <input type="radio" name="profile" value="{{ key }}"
-                               {% if forloop.first %}checked{% endif %}>
-                        <div class="profile-card">
-                            <h4>{{ profile.label }}</h4>
-                            <span class="profile-detail">Range: {{ profile.fmin }} – {{ profile.fmax }}</span>
+                <div class="options-panel">
+                    <h3><i class="fas fa-sliders"></i> Analysis Profile</h3>
+                    <p class="options-hint">Choose the profile that best matches your audio</p>
+                    <div class="profile-grid">
+                        {% for key, profile in profiles.items %}
+                        <label class="profile-option {% if forloop.first %}selected{% endif %}">
+                            <input type="radio" name="profile" value="{{ key }}"
+                                   {% if forloop.first %}checked{% endif %}>
+                            <div class="profile-card">
+                                <h4>{{ profile.label }}</h4>
+                                <span class="profile-detail">Range: {{ profile.fmin }} – {{ profile.fmax }}</span>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-large" id="analyzeBtn">
+                    <i class="fas fa-wand-magic-sparkles"></i> Analyze Audio
+                </button>
+            </form>
+        </div>
+
+        <!-- TAB 2: LIVE RECORDING (NEW) -->
+        <div class="tab-content" id="recordTab" style="display: none;">
+            <form method="POST" enctype="multipart/form-data" class="upload-form" id="recordForm">
+                {% csrf_token %}
+
+                <div class="recording-panel">
+                    <div class="recording-visualizer">
+                        <canvas id="recordingWaveform" width="600" height="150"></canvas>
+                        <div class="recording-status" id="recordingStatus">
+                            <i class="fas fa-microphone"></i>
+                            <span>Ready to record</span>
                         </div>
-                    </label>
-                    {% endfor %}
-                </div>
-            </div>
+                    </div>
 
-            <button type="submit" class="btn btn-primary btn-large" id="analyzeBtn">
-                <i class="fas fa-wand-magic-sparkles"></i> Analyze Audio
-            </button>
-        </form>
+                    <div class="recording-controls">
+                        <button type="button" class="btn btn-danger btn-large" id="startRecordBtn">
+                            <i class="fas fa-circle"></i> Start Recording
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-large" id="stopRecordBtn" style="display: none;">
+                            <i class="fas fa-stop"></i> Stop Recording
+                        </button>
+                        <div class="recording-timer" id="recordingTimer" style="display: none;">
+                            <i class="fas fa-clock"></i>
+                            <span id="timerDisplay">00:00</span>
+                        </div>
+                    </div>
+
+                    <div class="recording-preview" id="recordingPreview" style="display: none;">
+                        <h3><i class="fas fa-headphones"></i> Preview Your Recording</h3>
+                        <audio controls id="previewPlayer" class="audio-player"></audio>
+                        <div class="preview-info">
+                            <span id="recordedFileName"></span>
+                            <span id="recordedFileSize"></span>
+                        </div>
+                    </div>
+
+                    <input type="file" name="audio_file" id="recordedAudioFile" style="display: none;">
+                </div>
+
+                <!-- Piano Reference Section -->
+                <div class="piano-reference-section">
+                    <h3><i class="fas fa-music"></i> Piano Reference</h3>
+                    <p class="reference-hint">Use this piano to find your notes before recording</p>
+                    <div class="mini-piano-container">
+                        <div id="uploadPiano"></div>
+                    </div>
+                </div>
+
+                <div class="options-panel">
+                    <h3><i class="fas fa-sliders"></i> Analysis Profile</h3>
+                    <p class="options-hint">Choose the profile that best matches your audio</p>
+                    <div class="profile-grid">
+                        {% for key, profile in profiles.items %}
+                        <label class="profile-option {% if forloop.first %}selected{% endif %}">
+                            <input type="radio" name="profile" value="{{ key }}"
+                                   {% if forloop.first %}checked{% endif %}>
+                            <div class="profile-card">
+                                <h4>{{ profile.label }}</h4>
+                                <span class="profile-detail">Range: {{ profile.fmin }} – {{ profile.fmax }}</span>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-large" id="analyzeRecordedBtn" style="display: none;">
+                    <i class="fas fa-wand-magic-sparkles"></i> Analyze Recording
+                </button>
+            </form>
+        </div>
+
     </div>
 </section>
 
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/piano.js' %}"></script>
 <script>
+    // ============================================
+    // TAB SWITCHING
+    // ============================================
+    function switchTab(tab) {
+        const uploadTab = document.getElementById('uploadTab');
+        const recordTab = document.getElementById('recordTab');
+        const tabBtns = document.querySelectorAll('.tab-btn');
+
+        tabBtns.forEach(btn => btn.classList.remove('active'));
+
+        if (tab === 'upload') {
+            uploadTab.style.display = 'block';
+            recordTab.style.display = 'none';
+            tabBtns[0].classList.add('active');
+        } else {
+            uploadTab.style.display = 'none';
+            recordTab.style.display = 'block';
+            tabBtns[1].classList.add('active');
+            
+            // Initialize piano when switching to record tab
+            if (!window.uploadPianoInitialized) {
+                buildPiano('uploadPiano', { compact: true, showLabels: true });
+                window.uploadPianoInitialized = true;
+            }
+        }
+    }
+
+    // ============================================
+    // FILE UPLOAD TAB (ORIGINAL FUNCTIONALITY)
+    // ============================================
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('audioFile');
     const fileInfo = document.getElementById('fileInfo');
@@ -123,6 +240,193 @@
         if (fileInput.files.length > 0) {
             const overlay = document.getElementById('processingOverlay');
             if (overlay) overlay.classList.add('active');
+        }
+    });
+
+    // ============================================
+    // LIVE RECORDING TAB (NEW FUNCTIONALITY)
+    // ============================================
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordingStream = null;
+    let timerInterval = null;
+    let recordingStartTime = 0;
+    let animationFrameId = null;
+
+    const startRecordBtn = document.getElementById('startRecordBtn');
+    const stopRecordBtn = document.getElementById('stopRecordBtn');
+    const recordingTimer = document.getElementById('recordingTimer');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const recordingStatus = document.getElementById('recordingStatus');
+    const recordingPreview = document.getElementById('recordingPreview');
+    const previewPlayer = document.getElementById('previewPlayer');
+    const recordedFileName = document.getElementById('recordedFileName');
+    const recordedFileSize = document.getElementById('recordedFileSize');
+    const analyzeRecordedBtn = document.getElementById('analyzeRecordedBtn');
+    const recordedAudioFile = document.getElementById('recordedAudioFile');
+    const recordForm = document.getElementById('recordForm');
+    const waveformCanvas = document.getElementById('recordingWaveform');
+    const waveformCtx = waveformCanvas.getContext('2d');
+
+    // Start Recording
+    startRecordBtn.addEventListener('click', async function() {
+        try {
+            // Request microphone access
+            recordingStream = await navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                } 
+            });
+
+            // Create MediaRecorder
+            const options = { mimeType: 'audio/webm' };
+            if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                options.mimeType = 'audio/mp4';
+            }
+            
+            mediaRecorder = new MediaRecorder(recordingStream, options);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    audioChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const audioUrl = URL.createObjectURL(audioBlob);
+                
+                // Show preview
+                previewPlayer.src = audioUrl;
+                recordingPreview.style.display = 'block';
+                analyzeRecordedBtn.style.display = 'block';
+
+                // Display file info
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                const filename = `recording_${timestamp}.wav`;
+                recordedFileName.textContent = filename;
+                recordedFileSize.textContent = `(${(audioBlob.size / 1024 / 1024).toFixed(2)} MB)`;
+
+                // Convert blob to File and attach to hidden input
+                const file = new File([audioBlob], filename, { type: 'audio/wav' });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                recordedAudioFile.files = dataTransfer.files;
+
+                // Stop visualizer
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                }
+            };
+
+            // Start recording
+            mediaRecorder.start();
+            recordingStartTime = Date.now();
+
+            // UI updates
+            startRecordBtn.style.display = 'none';
+            stopRecordBtn.style.display = 'inline-block';
+            recordingTimer.style.display = 'flex';
+            recordingStatus.innerHTML = '<i class="fas fa-circle recording-pulse"></i><span style="color: #ef4444;">Recording...</span>';
+
+            // Start timer
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+
+            // Start waveform visualization
+            visualizeAudio(recordingStream);
+
+        } catch (error) {
+            console.error('Error accessing microphone:', error);
+            alert('Could not access microphone. Please grant permission and try again.');
+        }
+    });
+
+    // Stop Recording
+    stopRecordBtn.addEventListener('click', function() {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+            
+            // Stop all tracks
+            if (recordingStream) {
+                recordingStream.getTracks().forEach(track => track.stop());
+            }
+
+            // UI updates
+            startRecordBtn.style.display = 'inline-block';
+            stopRecordBtn.style.display = 'none';
+            recordingTimer.style.display = 'none';
+            recordingStatus.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i><span>Recording complete!</span>';
+
+            // Stop timer
+            clearInterval(timerInterval);
+        }
+    });
+
+    // Update Timer Display
+    function updateTimer() {
+        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+        const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+        const seconds = (elapsed % 60).toString().padStart(2, '0');
+        timerDisplay.textContent = `${minutes}:${seconds}`;
+    }
+
+    // Waveform Visualization
+    function visualizeAudio(stream) {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 2048;
+        source.connect(analyser);
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        function draw() {
+            animationFrameId = requestAnimationFrame(draw);
+            analyser.getByteTimeDomainData(dataArray);
+
+            waveformCtx.fillStyle = 'rgba(15, 10, 26, 0.3)';
+            waveformCtx.fillRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+
+            waveformCtx.lineWidth = 2;
+            waveformCtx.strokeStyle = '#a78bfa';
+            waveformCtx.beginPath();
+
+            const sliceWidth = waveformCanvas.width / bufferLength;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = v * waveformCanvas.height / 2;
+
+                if (i === 0) {
+                    waveformCtx.moveTo(x, y);
+                } else {
+                    waveformCtx.lineTo(x, y);
+                }
+
+                x += sliceWidth;
+            }
+
+            waveformCtx.lineTo(waveformCanvas.width, waveformCanvas.height / 2);
+            waveformCtx.stroke();
+        }
+
+        draw();
+    }
+
+    // Form submission for recorded audio
+    recordForm.addEventListener('submit', function(e) {
+        if (recordedAudioFile.files.length > 0) {
+            const overlay = document.getElementById('processingOverlay');
+            if (overlay) overlay.classList.add('active');
+        } else {
+            e.preventDefault();
+            alert('Please record audio first!');
         }
     });
 </script>

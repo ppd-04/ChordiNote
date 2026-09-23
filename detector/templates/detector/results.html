@@ -58,9 +58,20 @@
         {% endif %}
     </div>
 
+    <!-- INTERACTIVE PIANO SECTION -->
+    <div class="piano-section reveal">
+        <h2 class="section-title">
+            <span class="gradient-text">Interactive Piano</span>
+        </h2>
+        <p class="section-subtitle">
+            Click any detected note or chord below to hear it played on the piano
+        </p>
+        <div class="piano-container-results">
+            <div id="resultsPiano"></div>
+        </div>
+    </div>
 
-        <!-- ML CHORD CLASSIFICATION SECTION -->
-        <!-- ML CHORD CLASSIFICATION SECTION -->
+    <!-- ML CHORD CLASSIFICATION SECTION -->
     {% if chord_analysis %}
     {{ chord_analysis|json_script:"chord-analysis-data" }}
 
@@ -160,7 +171,6 @@
     </script>
     {% endif %}
 
-
     <!-- NOTE TIMELINE VISUALIZATION -->
     <div class="timeline-section reveal">
         <h2 class="section-title"><span class="gradient-text">Note Timeline</span></h2>
@@ -168,7 +178,9 @@
             <div class="timeline-track" id="timelineTrack">
                 {% for note in notes %}
                 {% if note.note != "REST" %}
-                <div class="chord-block" title="{{ note.timestamp }} | {{ note.frequency }}">
+                <div class="chord-block clickable-note" 
+                     title="{{ note.timestamp }} | {{ note.frequency }}"
+                     onclick="playDetectedNote('{{ note.note }}')">
                     <div class="chord-name">{{ note.note }}</div>
                     <div class="chord-type">{{ note.frequency }}</div>
                     <div class="chord-time">{{ note.timestamp }}</div>
@@ -204,7 +216,10 @@
                         <td>{{ note.timestamp }}</td>
                         <td>
                             {% if note.note != "REST" %}
-                            <span class="note-badge">{{ note.note }}</span>
+                            <span class="note-badge clickable-note" 
+                                  onclick="playDetectedNote('{{ note.note }}')">
+                                {{ note.note }}
+                            </span>
                             {% else %}
                             <span class="note-badge rest-badge">REST</span>
                             {% endif %}
@@ -217,15 +232,8 @@
         </div>
     </div>
 
-        <!-- DSP VISUALIZATIONS SECTION -->
+    <!-- DSP VISUALIZATIONS SECTION -->
     {% if viz_data %}
-
-
-    ```html
-    {% if chord_analysis %}
-    <script id="chord-analysis-json" type="application/json">{{ chord_analysis|safe }}</script>
-    {% endif %}
-    ```
     <div class="viz-section reveal">
         <h2 class="section-title"><span class="gradient-text">DSP Laboratory</span></h2>
         <p class="section-subtitle">Signal processing visualizations generated from your audio</p>
@@ -317,6 +325,10 @@
     </div>
 </section>
 
+{% endblock %}
+
+{% block extra_js %}
+<!-- Visualizations Script -->
 {% if viz_data %}
 <script src="{% static 'js/visualizer.js' %}"></script>
 <script>
@@ -356,7 +368,7 @@
         }
     }
 
-    // Run when ready (works whether DOM is already loaded or still loading)
+    // Run when ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initVisualizations);
     } else {
@@ -365,5 +377,108 @@
 </script>
 {% endif %}
 
+<!-- Piano Script -->
+<script src="{% static 'js/piano.js' %}"></script>
+<script>
+    console.log('🎹 Results page piano script loaded');
+    
+    // Initialize piano when page loads
+    function initResultsPiano() {
+        console.log('🎹 Attempting to build piano...');
+        const pianoContainer = document.getElementById('resultsPiano');
+        
+        if (!pianoContainer) {
+            console.error('❌ Piano container #resultsPiano not found!');
+            return;
+        }
+        
+        // Build the piano (compact: false to ensure full-size UI renders)
+        buildPiano('resultsPiano', { 
+            compact: false, 
+            showLabels: true 
+        });
+        
+        console.log('✅ Piano built successfully!');
+    }
 
+    // Normalizes sharp/flat notes to match standard sample lookup names (e.g., Unicode "♯" to ASCII "#")
+    function cleanNoteName(noteName) {
+        if (!noteName) return '';
+        return noteName.trim()
+                       .replace(/♯/g, '#')  // Convert Unicode sharp to standard hash
+                       .replace(/♭/g, 'b');  // Convert Unicode flat to standard b
+    }
+
+    // Play note or chord when clicked from detection results
+    window.playDetectedNote = function(noteName) {
+        const cleanNote = cleanNoteName(noteName);
+        console.log('🎵 User clicked note trigger. Raw:', noteName, '-> Cleaned:', cleanNote);
+        
+        if (!cleanNote || cleanNote === 'REST') return;
+
+        // Remove active visual animations from any other note badges
+        document.querySelectorAll('.clickable-note.playing').forEach(el => {
+            el.classList.remove('playing');
+        });
+
+        // Highlight clicked element badge or block if event context exists
+        if (typeof event !== 'undefined' && event.target) {
+            const clickedElement = event.target.closest('.clickable-note');
+            if (clickedElement) {
+                clickedElement.classList.add('playing');
+                setTimeout(() => {
+                    clickedElement.classList.remove('playing');
+                }, 1000);
+            }
+        }
+
+        // Check if the parameter target is a Chord or a Single Note
+        const chordPattern = /^[A-G][#b]?(m|maj|dim|aug|sus|add|7|9|11|13)/;
+        
+        if (chordPattern.test(cleanNote) && cleanNote.length > 2) {
+            console.log('🎵 Triggering Chord Playback:', cleanNote);
+            playChordOnPiano(cleanNote);
+        } else {
+            console.log('🎵 Triggering Note Playback:', cleanNote);
+            playPianoNotes(cleanNote, "1n", 0.8);
+            
+            // Highlight the corresponding key on the interactive layout
+            highlightPianoKey(cleanNote);
+        }
+    };
+
+    // Highlight a single piano key safely without css-query syntax issues with '#'
+    function highlightPianoKey(note) {
+        // Clear old highlights safely
+        document.querySelectorAll('.piano-key.note-highlight').forEach(el => {
+            el.classList.remove('note-highlight');
+        });
+
+        // Bulletproof Element Search: Iterates over data attributes to avoid querySelector selector errors with '#'
+        const keys = document.querySelectorAll('.piano-key');
+        let keyEl = null;
+        for (let i = 0; i < keys.length; i++) {
+            if (keys[i].getAttribute('data-note') === note) {
+                keyEl = keys[i];
+                break;
+            }
+        }
+
+        if (keyEl) {
+            keyEl.classList.add('note-highlight');
+            setTimeout(() => {
+                keyEl.classList.remove('note-highlight');
+            }, 1000);
+        } else {
+            console.warn('⚠️ No physical piano key element found matching pitch:', note);
+        }
+    }
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initResultsPiano);
+    } else {
+        initResultsPiano();
+    }
+</script>
 {% endblock %}
