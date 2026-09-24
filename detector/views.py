@@ -1,6 +1,7 @@
 import os
 import json
 import librosa
+import numpy as np
 
 from django.shortcuts import render
 from django.conf import settings
@@ -185,22 +186,7 @@ def upload_audio(request):
             reconstructed_filename = f"reconstructed_{audio_file.name.rsplit('.', 1)[0]}.wav"
             reconstructed_path = os.path.join(upload_dir, reconstructed_filename)
 
-            # Flatten chords for the basic audio renderer
-            reconstruction_notes = []
-            for note_event in detected_notes:
-                if note_event.get('is_chord', False):
-                    for midi_note in note_event.get('midi_notes', []):
-                        note_name = librosa.midi_to_note(midi_note)
-                        freq = librosa.midi_to_hz(midi_note)
-                        reconstruction_notes.append({
-                            "timestamp": note_event["timestamp"],
-                            "note": note_name,
-                            "frequency": f"{freq:.1f} Hz",
-                        })
-                else:
-                    reconstruction_notes.append(note_event)
-
-            render_success = render_reconstructed_audio(reconstruction_notes, reconstructed_path)
+            render_success = render_reconstructed_audio(detected_notes, reconstructed_path)
 
             # ============================================
             # RECONSTRUCTION 2: CORE MELODY (single note)
@@ -214,15 +200,22 @@ def upload_audio(request):
             melody_notes = []
             for note_event in detected_notes:
                 if note_event.get('is_chord', False):
-                    # Pick the highest note (melody is on top)
-                    highest_midi = max(note_event.get('midi_notes', []))
-                    note_name = librosa.midi_to_note(highest_midi)
-                    freq = librosa.midi_to_hz(highest_midi)
-                    melody_notes.append({
-                        "timestamp": note_event["timestamp"],
-                        "note": note_name,
-                        "frequency": f"{freq:.1f} Hz",
-                    })
+                    # Pick the highest note (melody is on top) and its associated velocity
+                    midi_list = note_event.get('midi_notes', [])
+                    vel_list = note_event.get('velocities', [0.7] * len(midi_list))
+                    if midi_list:
+                        highest_idx = int(np.argmax(midi_list))
+                        highest_midi = midi_list[highest_idx]
+                        highest_vel = vel_list[highest_idx] if highest_idx < len(vel_list) else 0.7
+                        note_name = librosa.midi_to_note(highest_midi)
+                        freq = librosa.midi_to_hz(highest_midi)
+                        melody_notes.append({
+                            "timestamp": note_event["timestamp"],
+                            "note": note_name,
+                            "frequency": f"{freq:.1f} Hz",
+                            "midi_notes": [highest_midi],
+                            "velocities": [highest_vel],
+                        })
                 else:
                     # Single note — keep as-is
                     melody_notes.append(note_event)

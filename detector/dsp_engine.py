@@ -152,14 +152,14 @@ def process_audio_file(file_path, profile_name="clean_melody"):
             if len(neighbors) < 2:
                 continue
             neighbor_median = float(np.median(neighbors))
-            if abs(midi[index] - neighbor_median) >= 11:#Mmajhemajhe kon octave er note eta bujhe na tai ashepasher note dekhe ektu verify kora
+            if abs(midi[index] - neighbor_median) >= 11:  # Octave error correction
                 octave_candidate = midi[index] + (12 if midi[index] < neighbor_median else -12)
                 if abs(octave_candidate - neighbor_median) < abs(midi[index] - neighbor_median):
                     midi[index] = octave_candidate
 
-            corrected_frequencies = f0.copy()
-            corrected = ~np.isnan(midi)
-            corrected_frequencies[corrected] = librosa.midi_to_hz(midi[corrected])
+        corrected_frequencies = f0.copy()
+        corrected = ~np.isnan(midi)
+        corrected_frequencies[corrected] = librosa.midi_to_hz(midi[corrected])
 
         core_mask = (times >= core_start) & (times < core_end)
         chunk_onsets = np.zeros(len(f0), dtype=bool)

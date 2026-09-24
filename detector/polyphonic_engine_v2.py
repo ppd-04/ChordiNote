@@ -527,16 +527,18 @@ def _enforce_polyphony(events, H_norm, note_midi_list, times, max_poly=6):
 
 
 # ===========================================================================
-# STEP 11 - FORMAT OUTPUT (identical to v1 format for full compatibility)
+# STEP 11 - FORMAT OUTPUT (includes velocity for expressive rendering)
 # ===========================================================================
 
-def _format_output(events, times):
-    """Format raw events to output dicts identical to v1 polyphonic_engine."""
+def _format_output(events, times, H_norm=None, note_midi_list=None):
+    """Format raw events to output dicts including dynamic note velocities."""
     if not events:
         return []
 
     frame_duration = times[1] - times[0] if len(times) > 1 else 0.02
     events.sort(key=lambda x: (x[1], x[0]))
+
+    midi_to_row = {midi: row for row, midi in enumerate(note_midi_list)} if note_midi_list is not None else {}
 
     used = set()
     note_groups = []
@@ -560,12 +562,31 @@ def _format_output(events, times):
     last_end = 0.0
 
     for group in note_groups:
-        midi_notes = sorted(set(g[0] for g in group))
+        # Group items: (midi, start, end)
+        group_midis = [g[0] for g in group]
         start_t = times[min(min(g[1] for g in group), len(times) - 1)]
         end_t = times[min(max(g[2] for g in group), len(times) - 1)] + frame_duration
 
         if start_t - last_end > 0.15:
             out.append({"timestamp": f"{last_end:.2f}s - {start_t:.2f}s", "note": "REST", "frequency": "-"})
+
+        # Calculate per-note velocities from onset peak/mean in H_norm
+        velocities = []
+        midi_notes = []
+        for g in sorted(group, key=lambda x: x[0]):
+            m, s, e = g
+            if m not in midi_notes:
+                midi_notes.append(m)
+                if H_norm is not None and m in midi_to_row:
+                    row = midi_to_row[m]
+                    # Look at the first 3 frames (onset attack transient)
+                    attack_end = min(e, s + 3)
+                    vel_val = float(np.max(H_norm[row, s:attack_end])) if attack_end > s else float(H_norm[row, s])
+                    # Map into 0.25 - 1.0 range for natural acoustic rendering
+                    vel_clamped = float(np.clip(vel_val * 1.5, 0.25, 1.0))
+                    velocities.append(round(vel_clamped, 2))
+                else:
+                    velocities.append(0.7)
 
         names = [librosa.midi_to_note(m) for m in midi_notes]
         freqs = [librosa.midi_to_hz(m) for m in midi_notes]
@@ -577,6 +598,7 @@ def _format_output(events, times):
                 "frequency": " + ".join(f"{f:.1f} Hz" for f in freqs),
                 "is_chord": True,
                 "midi_notes": midi_notes,
+                "velocities": velocities,
             })
         else:
             out.append({
@@ -585,6 +607,7 @@ def _format_output(events, times):
                 "frequency": f"{freqs[0]:.1f} Hz",
                 "is_chord": False,
                 "midi_notes": midi_notes,
+                "velocities": velocities,
             })
 
         last_end = end_t
@@ -648,7 +671,7 @@ def process_audio_polyphonic_v2(file_path, profile_name="piano_v2"):
         clean_events, H_norm, note_midi_list, times, max_poly=profile["max_polyphony"]
     )
 
-    return _format_output(final_events, times)
+    return _format_output(final_events, times, H_norm=H_norm, note_midi_list=note_midi_list)
 
 
 def get_v2_profile_display_info(profile_name):

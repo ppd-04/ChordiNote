@@ -19,12 +19,16 @@ def _parse_event(event):
     if end <= start:
         return None
     if event["note"] == "REST":
-        return start, end, []
+        return start, end, [], []
+
+    # Extract velocities if available, default to 0.7
+    event_velocities = event.get("velocities", [])
 
     # Robust parsing: use midi_notes directly if available (handles chords properly)
     if "midi_notes" in event and event["midi_notes"]:
         pitches = [float(librosa.midi_to_hz(m)) for m in event["midi_notes"]]
-        return start, end, pitches
+        velocities = event_velocities if len(event_velocities) == len(pitches) else [0.7] * len(pitches)
+        return start, end, pitches, velocities
 
     # Fallback parsing for V1 compatibility
     freq_strs = _FREQUENCY_PATTERN.findall(event.get("frequency", ""))
@@ -33,32 +37,52 @@ def _parse_event(event):
     else:
         note_names = event["note"].split(" + ")
         pitches = [float(librosa.note_to_hz(n.strip())) for n in note_names if n.strip() != "REST"]
-        
-    return start, end, pitches
+
+    velocities = event_velocities if len(event_velocities) == len(pitches) else [0.7] * len(pitches)
+    return start, end, pitches, velocities
 
 
-def _synth_note(frequencies, duration, sample_rate):
+def _synth_note(frequencies, velocities, duration, sample_rate):
     if not isinstance(frequencies, list):
         frequencies = [frequencies]
+    if not isinstance(velocities, list) or len(velocities) != len(frequencies):
+        velocities = [0.7] * len(frequencies)
         
     sample_count = max(1, round(duration * sample_rate))
     time = np.arange(sample_count) / sample_rate
     
-    # Mix all frequencies (chords)
+    # Mix all frequencies (chords) with individual velocity weighting & register-adaptive timbre
     signal = np.zeros(sample_count)
-    for freq in frequencies:
+    for freq, vel in zip(frequencies, velocities):
         phase = 2 * np.pi * freq * time
-        # Realistic piano/string harmonic series (no vibrato)
-        note_sig = (
-            np.sin(phase)
-            + 0.50 * np.sin(2 * phase)
-            + 0.25 * np.sin(3 * phase)
-            + 0.12 * np.sin(4 * phase)
-            + 0.06 * np.sin(5 * phase)
-        )
-        signal += note_sig
         
-    # Normalize chord volume to prevent clipping
+        # Register-dependent harmonic rolloff
+        if freq < 250:  # Bass notes: richer overtone spectrum
+            harmonics = (
+                np.sin(phase)
+                + 0.65 * np.sin(2 * phase)
+                + 0.40 * np.sin(3 * phase)
+                + 0.25 * np.sin(4 * phase)
+                + 0.15 * np.sin(5 * phase)
+                + 0.08 * np.sin(6 * phase)
+            )
+        elif freq < 600:  # Mid-range notes
+            harmonics = (
+                np.sin(phase)
+                + 0.45 * np.sin(2 * phase)
+                + 0.20 * np.sin(3 * phase)
+                + 0.08 * np.sin(4 * phase)
+            )
+        else:  # High / Treble notes: cleaner fundamental
+            harmonics = (
+                np.sin(phase)
+                + 0.25 * np.sin(2 * phase)
+                + 0.05 * np.sin(3 * phase)
+            )
+            
+        signal += vel * harmonics
+        
+    # Normalize chord volume
     if len(frequencies) > 0:
         signal /= np.sqrt(len(frequencies))
 
@@ -71,12 +95,11 @@ def _synth_note(frequencies, duration, sample_rate):
         envelope[:attack] = np.linspace(0, 1, attack, endpoint=False)
         
     # Exponential decay throughout the note (sustain pedal effect)
-    decay_rate = 1.5  # Controls how fast it naturally fades
+    decay_rate = 1.5
     if sample_count > attack:
         envelope[attack:] = np.exp(-decay_rate * time[:sample_count - attack])
     
     if release > 0:
-        # Final fade out when note ends
         release_env = np.linspace(1, 0, release, endpoint=False)
         envelope[-release:] *= release_env
         
@@ -94,30 +117,29 @@ def render_reconstructed_audio(
     if not events:
         return False
 
-    # Short detector dropouts are usually not intentional rests. Extend the
-    # preceding note across them, but preserve longer musical pauses.
+    # Short detector dropouts bridging
     for index in range(1, len(events) - 1):
         previous = events[index - 1]
         current = events[index]
         following = events[index + 1]
         if (
-            current[2] is None
+            len(current[2]) == 0
             and current[1] - current[0] <= bridge_gap_seconds
-            and previous[2] is not None
-            and following[2] is not None
+            and len(previous[2]) > 0
+            and len(following[2]) > 0
         ):
-            events[index - 1] = (previous[0], current[1], previous[2])
-            events[index] = (current[0], current[1], following[2])
+            events[index - 1] = (previous[0], current[1], previous[2], previous[3])
+            events[index] = (current[0], current[1], following[2], following[3])
 
-    duration = max(end for _, end, _ in events)
+    duration = max(end for _, end, _, _ in events)
     audio = np.zeros(max(1, round(duration * sample_rate)), dtype=np.float32)
-    for start, end, frequencies in events:
+    for start, end, frequencies, velocities in events:
         if not frequencies:
             continue
         start_sample = max(0, round(start * sample_rate))
         end_sample = min(len(audio), round(end * sample_rate))
         if end_sample > start_sample:
-            note = _synth_note(frequencies, (end_sample - start_sample) / sample_rate, sample_rate)
+            note = _synth_note(frequencies, velocities, (end_sample - start_sample) / sample_rate, sample_rate)
             audio[start_sample:end_sample] += note[:end_sample - start_sample]
 
     peak = np.max(np.abs(audio))
