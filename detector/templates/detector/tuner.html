@@ -1,0 +1,114 @@
+{% extends 'detector/base.html' %}
+{% load static %}
+
+{% block title %}Guitar Tuner — ChordSense{% endblock %}
+
+{% block content %}
+
+<section class="tuner-page">
+    <h1 class="page-title reveal">
+        <i class="fas fa-guitar"></i> Live Guitar Tuner
+    </h1>
+    <p class="page-subtitle reveal">
+        Play a string and watch the needle. Green = in tune!
+    </p>
+
+    <!-- TUNER MAIN DISPLAY -->
+    <div class="tuner-main reveal">
+        <div class="tuner-display">
+            <div class="tuner-note-name" id="tunerNoteName">—</div>
+            <div class="tuner-frequency" id="tunerFrequency">0.0 Hz</div>
+            <div class="tuner-cents" id="tunerCents">0 cents</div>
+        </div>
+
+        <!-- TUNER GAUGE -->
+        <div class="tuner-gauge-container">
+            <div class="tuner-gauge-labels">
+                <span>♭ Flat</span>
+                <span>In Tune</span>
+                <span>Sharp ♯</span>
+            </div>
+            <div class="tuner-gauge-track">
+                <div class="gauge-zone gauge-zone-flat-bad"></div>
+                <div class="gauge-zone gauge-zone-flat-ok"></div>
+                <div class="gauge-zone gauge-zone-flat-good"></div>
+                <div class="gauge-zone gauge-zone-perfect"></div>
+                <div class="gauge-zone gauge-zone-sharp-good"></div>
+                <div class="gauge-zone gauge-zone-sharp-ok"></div>
+                <div class="gauge-zone gauge-zone-sharp-bad"></div>
+                <div class="tuner-needle" id="tunerNeedle"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GUITAR STRINGS DISPLAY -->
+    <div class="tuner-strings reveal">
+        <h3><i class="fas fa-guitar"></i> Standard Tuning</h3>
+        <div class="strings-row">
+            <div class="string-btn" data-note="E2" data-freq="82.41">
+                <span class="string-number">6</span>
+                <span class="string-note">E</span>
+                <span class="string-octave">2</span>
+            </div>
+            <div class="string-btn" data-note="A2" data-freq="110.00">
+                <span class="string-number">5</span>
+                <span class="string-note">A</span>
+                <span class="string-octave">2</span>
+            </div>
+            <div class="string-btn" data-note="D3" data-freq="146.83">
+                <span class="string-number">4</span>
+                <span class="string-note">D</span>
+                <span class="string-octave">3</span>
+            </div>
+            <div class="string-btn" data-note="G3" data-freq="196.00">
+                <span class="string-number">3</span>
+                <span class="string-note">G</span>
+                <span class="string-octave">3</span>
+            </div>
+            <div class="string-btn" data-note="B3" data-freq="246.94">
+                <span class="string-number">2</span>
+                <span class="string-note">B</span>
+                <span class="string-octave">3</span>
+            </div>
+            <div class="string-btn" data-note="E4" data-freq="329.63">
+                <span class="string-number">1</span>
+                <span class="string-note">E</span>
+                <span class="string-octave">4</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="tuner-controls reveal">
+        <button class="btn btn-primary btn-large" id="tunerStartBtn">
+            <i class="fas fa-microphone"></i> Start Tuner
+        </button>
+        <button class="btn btn-secondary btn-large" id="tunerStopBtn" style="display: none;">
+            <i class="fas fa-stop"></i> Stop Tuner
+        </button>
+    </div>
+
+    <div class="tuner-tips reveal">
+        <div class="tip-card">
+            <i class="fas fa-microphone"></i>
+            <h3>Allow Microphone</h3>
+            <p>Click "Start Tuner" and allow microphone access when prompted.</p>
+        </div>
+        <div class="tip-card">
+            <i class="fas fa-volume-high"></i>
+            <h3>Play One String</h3>
+            <p>Pluck one string at a time and let it ring. Don't mute it too quickly.</p>
+        </div>
+        <div class="tip-card">
+            <i class="fas fa-check-circle"></i>
+            <h3>Watch the Needle</h3>
+            <p>Green zone = in tune. Adjust the tuning peg until the needle stays centered.</p>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/tuner.js' %}"></script>
+{% endblock %}

@@ -325,3 +325,6 @@ def piano(request):
 
 def audio_lab(request):
     return render(request, 'detector/audio_lab.html')
+
+def tuner(request):
+    return render(request, 'detector/tuner.html')

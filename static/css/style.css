@@ -3719,3 +3719,267 @@ body {
 .melody-card .player-hint {
     color: var(--accent);
 }
+
+/* ============================================
+   GUITAR TUNER STYLES
+   ============================================ */
+
+.tuner-page {
+    padding: 3rem 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Main Tuner Display */
+.tuner-main {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius);
+    padding: 3rem 2rem;
+    backdrop-filter: blur(20px);
+    text-align: center;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.tuner-main::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-main);
+}
+
+.tuner-display {
+    margin-bottom: 2.5rem;
+}
+
+.tuner-note-name {
+    font-size: 6rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    background: var(--gradient-main);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transition: all 0.2s ease;
+}
+
+.tuner-note-name.in-tune {
+    background: linear-gradient(135deg, #4ade80, #22c55e);
+    -webkit-background-clip: text;
+    background-clip: text;
+    text-shadow: none;
+    filter: drop-shadow(0 0 20px rgba(74, 222, 128, 0.5));
+}
+
+.tuner-note-name.close {
+    background: linear-gradient(135deg, #facc15, #f59e0b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px rgba(250, 204, 21, 0.5));
+}
+
+.tuner-note-name.off-tune {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    -webkit-background-clip: text;
+    background-clip: text;
+    filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.5));
+}
+
+.tuner-frequency {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+    margin-bottom: 0.5rem;
+}
+
+.tuner-cents {
+    font-size: 1.1rem;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.tuner-cents.in-tune { color: #4ade80; }
+.tuner-cents.close { color: #facc15; }
+.tuner-cents.off-tune { color: #ef4444; }
+
+/* Tuner Gauge */
+.tuner-gauge-container {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.tuner-gauge-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.tuner-gauge-track {
+    position: relative;
+    height: 40px;
+    border-radius: 20px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-glass);
+    display: flex;
+}
+
+.gauge-zone {
+    flex: 1;
+    opacity: 0.25;
+    transition: opacity 0.2s ease;
+}
+
+.gauge-zone-flat-bad { background: #ef4444; }
+.gauge-zone-flat-ok { background: #f97316; }
+.gauge-zone-flat-good { background: #facc15; }
+.gauge-zone-perfect {
+    background: #4ade80;
+    opacity: 0.5;
+    flex: 0.5;
+}
+.gauge-zone-sharp-good { background: #facc15; }
+.gauge-zone-sharp-ok { background: #f97316; }
+.gauge-zone-sharp-bad { background: #ef4444; }
+
+.tuner-needle {
+    position: absolute;
+    top: -2px;
+    left: 50%;
+    width: 4px;
+    height: 44px;
+    background: #4ade80;
+    border-radius: 2px;
+    transform: translateX(-50%);
+    transition: left 0.1s ease-out, background 0.2s ease;
+    box-shadow: 0 0 12px currentColor;
+    z-index: 2;
+}
+
+/* Guitar Strings */
+.tuner-strings {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius);
+    padding: 2rem;
+    backdrop-filter: blur(15px);
+    margin-bottom: 2rem;
+}
+
+.tuner-strings h3 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+}
+
+.tuner-strings h3 i {
+    background: var(--gradient-main);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-right: 8px;
+}
+
+.strings-row {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.string-btn {
+    width: 80px;
+    height: 100px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 2px solid var(--border-glass);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: var(--transition);
+    cursor: default;
+}
+
+.string-btn .string-number {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.string-btn .string-note {
+    font-size: 2rem;
+    font-weight: 800;
+    background: var(--gradient-main);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+}
+
+.string-btn .string-octave {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.string-btn.active-string {
+    border-color: var(--primary);
+    background: rgba(167, 139, 250, 0.1);
+    box-shadow: var(--glow-purple);
+    transform: scale(1.08);
+}
+
+.string-btn.in-tune-string {
+    border-color: #4ade80 !important;
+    background: rgba(74, 222, 128, 0.15) !important;
+    box-shadow: 0 0 30px rgba(74, 222, 128, 0.4) !important;
+}
+
+.string-btn.in-tune-string .string-note {
+    background: linear-gradient(135deg, #4ade80, #22c55e);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+/* Tuner Controls */
+.tuner-controls {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+/* Tuner Tips */
+.tuner-tips {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .tuner-note-name {
+        font-size: 4rem;
+    }
+
+    .string-btn {
+        width: 60px;
+        height: 80px;
+    }
+
+    .string-btn .string-note {
+        font-size: 1.5rem;
+    }
+
+    .tuner-main {
+        padding: 2rem 1rem;
+    }
+}
