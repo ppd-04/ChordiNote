@@ -9,6 +9,7 @@ from django.conf import settings
 from .dsp_engine import process_audio_file, ANALYSIS_PROFILES
 from .polyphonic_engine import process_audio_polyphonic, POLYPHONIC_PROFILES, get_profile_display_info
 from .polyphonic_engine_v2 import process_audio_polyphonic_v2, V2_PROFILES, get_v2_profile_display_info
+from .polyphonic_engine_v4 import process_audio_polyphonic_v4
 from .audio_renderer import render_reconstructed_audio, calculate_reconstruction_error
 
 from .visualizer import generate_all_visualizations
@@ -136,6 +137,16 @@ def upload_audio(request):
             "engine": "polyphonic_v2",
         }
 
+    # Add V4 Hybrid profiles
+    for key in V2_PROFILES.keys():
+        info = get_v2_profile_display_info(key)
+        combined_profiles[f"v4_{key}"] = {
+            "label": f"[V4 Hybrid] {info['label']} (Pitch-Aware Filter)",
+            "fmin": info["fmin"],
+            "fmax": info["fmax"],
+            "engine": "polyphonic_v4",
+        }
+
     if request.method == 'POST':
         audio_file = request.FILES.get('audio_file')
         profile_name = request.POST.get('profile', 'pyin_clean_melody')
@@ -157,7 +168,12 @@ def upload_audio(request):
 
         try:
             # Route to the correct engine based on profile prefix
-            if profile_name.startswith('v2_'):
+            if profile_name.startswith('v4_'):
+                actual_profile = profile_name.replace('v4_', '')
+                detected_notes = process_audio_polyphonic_v4(file_path, actual_profile)
+                profile_label = V2_PROFILES.get(actual_profile, {}).get('label', actual_profile)
+                engine_used = "Polyphonic V4 (Pitch-Aware Hybrid Filter)"
+            elif profile_name.startswith('v2_'):
                 actual_profile = profile_name.replace('v2_', '')
                 detected_notes = process_audio_polyphonic_v2(file_path, actual_profile)
                 profile_label = V2_PROFILES.get(actual_profile, {}).get('label', actual_profile)
