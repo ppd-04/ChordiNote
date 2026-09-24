@@ -1,22 +1,3 @@
-/**
- * ChordSense Live Guitar Tuner
- * 
- * Uses autocorrelation to detect pitch from the microphone in real-time.
- * This is the same DSP technique used by pYIN and most professional tuners.
- * 
- * How autocorrelation works:
- * 1. Capture a buffer of audio samples from the microphone
- * 2. Slide the waveform against itself at different offsets (lags)
- * 3. Find the lag where the waveform best matches itself
- * 4. That lag = the period of the wave → frequency = sampleRate / lag
- * 
- * No deep learning. Pure math.
- */
-
-// ============================================
-// TUNER STATE
-// ============================================
-
 let tunerAudioContext = null;
 let tunerStream = null;
 let tunerAnalyser = null;
@@ -53,20 +34,17 @@ const GUITAR_STRINGS = {
 function detectPitch(buffer, sampleRate) {
     const SIZE = buffer.length;
 
-    // Step 1: Check if there's enough signal (not silence)
+
     let rms = 0;
     for (let i = 0; i < SIZE; i++) {
         rms += buffer[i] * buffer[i];
     }
     rms = Math.sqrt(rms / SIZE);
 
-    // If the signal is too quiet, there's no note to detect
+
     if (rms < 0.01) return -1;
 
-    // Step 2: Compute autocorrelation
-    // Autocorrelation measures how similar the signal is to a
-    // delayed version of itself. When the delay equals the wave's
-    // period, the similarity peaks.
+
     const correlations = new Float32Array(SIZE);
 
     for (let lag = 0; lag < SIZE; lag++) {
@@ -77,22 +55,16 @@ function detectPitch(buffer, sampleRate) {
         correlations[lag] = sum;
     }
 
-    // Step 3: Find the first dip after the initial peak
-    // The autocorrelation starts high (lag 0 = perfect match with itself),
-    // then drops. We need to find where it drops below a threshold
-    // and then rises again (that rise = the fundamental period).
     let d = 0;
     while (d < SIZE && correlations[d] > correlations[d + 1]) {
         d++;
     }
 
-    // Step 4: Find the highest peak after the dip
-    // This peak corresponds to the fundamental period
+
     let maxVal = -1;
     let maxPos = -1;
 
-    // Search range: 50 Hz to 1000 Hz
-    // Guitar range: E2 (82 Hz) to about E5 (660 Hz) with harmonics
+
     const minLag = Math.floor(sampleRate / 1000);
     const maxLag = Math.floor(sampleRate / 50);
 
@@ -103,12 +75,10 @@ function detectPitch(buffer, sampleRate) {
         }
     }
 
-    // Step 5: Check if the peak is strong enough
-    // The peak must be at least 10% of the zero-lag correlation
+
     if (maxVal < correlations[0] * 0.1) return -1;
 
-    // Step 6: Refine the peak position using parabolic interpolation
-    // This gives sub-sample accuracy for better tuning precision
+
     let refinedLag = maxPos;
 
     if (maxPos > 0 && maxPos < SIZE - 1) {
@@ -137,13 +107,10 @@ function detectPitch(buffer, sampleRate) {
 function frequencyToNote(frequency) {
     if (frequency <= 0) return null;
 
-    // MIDI note number formula:
-    // midi = 69 + 12 * log2(freq / 440)
+
     const midiFloat = 69 + 12 * Math.log2(frequency / 440.0);
     const midiRound = Math.round(midiFloat);
 
-    // Cents deviation: how far off from the nearest note
-    // 100 cents = 1 semitone
     const cents = Math.round((midiFloat - midiRound) * 100);
 
     const noteName = NOTE_NAMES[((midiRound % 12) + 12) % 12];
@@ -177,18 +144,11 @@ function findClosestString(frequency) {
         }
     }
 
-    // Only return if within 1 semitone (100 cents) of a guitar string
+
     if (minDiff < 100) return closest;
     return null;
 }
 
-// ============================================
-// TUNER UI UPDATE
-// ============================================
-
-/**
- * Update all the tuner display elements with the detected pitch.
- */
 function updateTunerDisplay(frequency) {
     const noteEl = document.getElementById('tunerNoteName');
     const freqEl = document.getElementById('tunerFrequency');
@@ -254,9 +214,7 @@ function updateTunerDisplay(frequency) {
     highlightString(closestString);
 }
 
-/**
- * Highlight the matching guitar string button.
- */
+
 function highlightString(stringName) {
     document.querySelectorAll('.string-btn').forEach(btn => {
         btn.classList.remove('active-string');
@@ -277,14 +235,7 @@ function highlightString(stringName) {
     }
 }
 
-// ============================================
-// TUNER MAIN LOOP
-// ============================================
 
-/**
- * Main tuner loop — runs ~30 times per second.
- * Captures audio, detects pitch, updates display.
- */
 function tunerLoop() {
     if (!isTunerRunning) return;
 
@@ -297,13 +248,10 @@ function tunerLoop() {
     tunerAnimFrameId = requestAnimationFrame(tunerLoop);
 }
 
-// ============================================
-// START / STOP
-// ============================================
 
 async function startTuner() {
     try {
-        // Request microphone access
+
         tunerStream = await navigator.mediaDevices.getUserMedia({
             audio: {
                 echoCancellation: false,   // Important! Don't process the audio
@@ -316,8 +264,7 @@ async function startTuner() {
         tunerAudioContext = new (window.AudioContext || window.webkitAudioContext)();
         const source = tunerAudioContext.createMediaStreamSource(tunerStream);
 
-        // fftSize = 4096 gives good frequency resolution for guitar
-        // At 44100 Hz sample rate: resolution ≈ 10.8 Hz per bin
+
         tunerAnalyser = tunerAudioContext.createAnalyser();
         tunerAnalyser.fftSize = 4096;
         tunerAnalyser.smoothingTimeConstant = 0;  // No smoothing for fast response
@@ -354,19 +301,16 @@ function stopTuner() {
         tunerAudioContext.close();
     }
 
-    // Update UI
+
     document.getElementById('tunerStartBtn').style.display = 'inline-flex';
     document.getElementById('tunerStopBtn').style.display = 'none';
 
-    // Reset display
+
     updateTunerDisplay(-1);
 }
 
-// ============================================
-// EVENT LISTENERS
-// ============================================
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const startBtn = document.getElementById('tunerStartBtn');
     const stopBtn = document.getElementById('tunerStopBtn');
 
