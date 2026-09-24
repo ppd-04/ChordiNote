@@ -14,6 +14,7 @@ from .audio_renderer import render_reconstructed_audio, calculate_reconstruction
 from .visualizer import generate_all_visualizations
 from .ml_chord_classifier import analyze_chords
 from .key_detector import detect_key_from_notes
+from .sheet_generator import generate_piano_abc
 
 
 def home(request):
@@ -258,6 +259,12 @@ def upload_audio(request):
                 except Exception as err:
                     print(f"Metrics computation error: {err}")
 
+            try:
+                sheet_data = generate_piano_abc(detected_notes, file_path=file_path, musical_key=musical_key)
+            except Exception as sheet_err:
+                print(f"Sheet music generation error: {sheet_err}")
+                sheet_data = None
+
             context = {
                 'uploaded': True,
                 'filename': audio_file.name,
@@ -277,7 +284,9 @@ def upload_audio(request):
                 'notes_json': json.dumps(detected_notes),
                 'viz_data' : json.dumps(viz_data) if viz_data else None,
                 'chord_analysis' : chord_analysis,
-                'musical_key': musical_key
+                'musical_key': musical_key,
+                'sheet_data': sheet_data,
+                'sheet_abc': sheet_data['abc_string'] if sheet_data else None
             }       
             return render(request, 'detector/results.html', context)  
         

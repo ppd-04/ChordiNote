@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 import numpy as np
 
 # Krumhansl-Schmuckler key profiles

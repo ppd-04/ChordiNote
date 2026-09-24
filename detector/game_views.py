@@ -1,6 +1,7 @@
 import json
 import random
 
+# pyrefly: ignore [missing-import]
 from django.shortcuts import render
 
 from .chord_generator import (
