@@ -4,29 +4,39 @@ import soundfile as sf
 from pathlib import Path
 
 
-def remove_vocals_center_cancellation(input_path, output_path):
+def remove_vocals_center_cancellation(input_path, output_path, vocal_path):
     # stereor jonno
     try:
         y, sr = librosa.load(input_path, sr=None, mono=False)
 
         if y.ndim == 1:
-
-            return _fallback_mono_vocal_removal(y, sr, output_path)
-
+            return _fallback_mono_vocal_removal(y, sr, output_path, vocal_path)
 
         left = y[0]
         right = y[1]
 
-
+        # Instrumental is the difference between left and right channels
         instrumental = left - right
 
+        # Vocals (center panned) can be extracted using the sum of left and right channels
+        vocal = (left + right) / 2.0
 
+        # Normalize instrumental
         peak = np.max(np.abs(instrumental))
         if peak > 0:
             instrumental = instrumental / peak * 0.95
 
+        # Normalize vocal
+        peak_vocal = np.max(np.abs(vocal))
+        if peak_vocal > 0:
+            vocal = vocal / peak_vocal * 0.95
+
+        # Save instrumental
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         sf.write(output_path, instrumental, sr, subtype='PCM_16')
+
+        # Save extracted vocal
+        sf.write(vocal_path, vocal, sr, subtype='PCM_16')
         return True
 
     except Exception as e:
@@ -34,42 +44,54 @@ def remove_vocals_center_cancellation(input_path, output_path):
         return False
 
 
-def _fallback_mono_vocal_removal(y, sr, output_path):
+def _fallback_mono_vocal_removal(y, sr, output_path, vocal_path):
     n_fft = 2048
     hop_length = 512
 
     S = librosa.stft(y, n_fft=n_fft, hop_length=hop_length)
     S_mag, S_phase = librosa.magphase(S)
 
-
     freqs = librosa.fft_frequencies(sr=sr, n_fft=n_fft)
 
     vocal_mask = np.ones_like(S_mag)
+    vocal_only_mask = np.ones_like(S_mag)
 
     for i, f in enumerate(freqs):
         if 250 <= f <= 3500:
-
             vocal_mask[i, :] *= 0.5
+            vocal_only_mask[i, :] *= 1.0
         elif 150 <= f < 250 or 3500 < f <= 5000:
-
             vocal_mask[i, :] *= 0.75
+            vocal_only_mask[i, :] *= 0.5
+        else:
+            # Heavily suppress outside vocal frequencies for vocal-only track
+            vocal_only_mask[i, :] *= 0.05
 
+    # Reconstruct Instrumental
     S_filtered = S_mag * vocal_mask * np.exp(1j * np.angle(S))
-
-
     y_filtered = librosa.istft(S_filtered, hop_length=hop_length, length=len(y))
 
+    # Reconstruct Vocal
+    S_vocal_filtered = S_mag * vocal_only_mask * np.exp(1j * np.angle(S))
+    y_vocal = librosa.istft(S_vocal_filtered, hop_length=hop_length, length=len(y))
 
+    # Normalize instrumental
     peak = np.max(np.abs(y_filtered))
     if peak > 0:
         y_filtered = y_filtered / peak * 0.95
 
+    # Normalize vocal
+    peak_vocal = np.max(np.abs(y_vocal))
+    if peak_vocal > 0:
+        y_vocal = y_vocal / peak_vocal * 0.95
+
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     sf.write(output_path, y_filtered, sr, subtype='PCM_16')
+    sf.write(vocal_path, y_vocal, sr, subtype='PCM_16')
     return True
 
 
-def remove_vocals_nmf(input_path, output_path, n_components=12, n_iterations=50):
+def remove_vocals_nmf(input_path, output_path, vocal_path, n_components=12, n_iterations=50):
     try:
         y, sr = librosa.load(input_path, sr=22050, mono=True)
 
@@ -91,18 +113,14 @@ def remove_vocals_nmf(input_path, output_path, n_components=12, n_iterations=50)
 
         eps = 1e-10
 
-
         for iteration in range(n_iterations):
-
             numerator_H = W.T @ S_mag
             denominator_H = W.T @ W @ H + eps
             H *= (numerator_H / denominator_H)
 
-   
             numerator_W = S_mag @ H.T
             denominator_W = W @ H @ H.T + eps
             W *= (numerator_W / denominator_W)
-
 
         vocal_components = []
         instrumental_components = []
@@ -110,10 +128,7 @@ def remove_vocals_nmf(input_path, output_path, n_components=12, n_iterations=50)
         for k in range(n_components):
             template = W[:, k]
 
-
             template_norm = template / (np.max(template) + eps)
-
-
 
             low_mask = freqs < 200
             vocal_mask_freq = (freqs >= 200) & (freqs <= 3000)
@@ -132,9 +147,7 @@ def remove_vocals_nmf(input_path, output_path, n_components=12, n_iterations=50)
             else:
                 instrumental_components.append(k)
 
-
         if len(instrumental_components) == 0:
-
             ratios = []
             for k in range(n_components):
                 template = W[:, k] / (np.max(W[:, k]) + eps)
@@ -145,6 +158,7 @@ def remove_vocals_nmf(input_path, output_path, n_components=12, n_iterations=50)
             instrumental_components = [r[0] for r in ratios[:n_components // 2]]
             vocal_components = [r[0] for r in ratios[n_components // 2:]]
 
+        # 1. Instrumental Reconstruction
         H_instrumental = H.copy()
         for k in vocal_components:
             # ekbare remove korlamna
@@ -152,10 +166,7 @@ def remove_vocals_nmf(input_path, output_path, n_components=12, n_iterations=50)
 
         # istft
         S_instrumental_mag = W @ H_instrumental
-
-
         S_instrumental = S_instrumental_mag * np.exp(1j * S_phase)
-
 
         y_instrumental = librosa.istft(
             S_instrumental,
@@ -163,14 +174,37 @@ def remove_vocals_nmf(input_path, output_path, n_components=12, n_iterations=50)
             length=len(y)
         )
 
-        # Normalize
+        # 2. Vocal Reconstruction
+        H_vocal = H.copy()
+        for k in instrumental_components:
+            # Suppress instruments to extract clean vocals
+            H_vocal[k, :] *= 0.1
+
+        S_vocal_mag = W @ H_vocal
+        S_vocal = S_vocal_mag * np.exp(1j * S_phase)
+
+        y_vocal = librosa.istft(
+            S_vocal,
+            hop_length=hop_length,
+            length=len(y)
+        )
+
+        # Normalize Instrumental
         peak = np.max(np.abs(y_instrumental))
         if peak > 0:
             y_instrumental = y_instrumental / peak * 0.95
 
-        # Save
+        # Normalize Vocal
+        peak_vocal = np.max(np.abs(y_vocal))
+        if peak_vocal > 0:
+            y_vocal = y_vocal / peak_vocal * 0.95
+
+        # Save Instrumental
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         sf.write(output_path, y_instrumental, sr, subtype='PCM_16')
+
+        # Save Vocal Track
+        sf.write(vocal_path, y_vocal, sr, subtype='PCM_16')
         return True
 
     except Exception as e:

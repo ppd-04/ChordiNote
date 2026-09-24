@@ -48,50 +48,61 @@
 {% endif %}
 
     <!-- AUDIO PLAYERS -->
+        <!-- AUDIO PLAYERS -->
     <div class="audio-players reveal">
+        <!-- 1. Original Audio Player -->
         <div class="player-card">
             <h3><i class="fas fa-file-audio"></i> Original Audio</h3>
-            <audio controls class="audio-player" id="originalAudio">
+            <audio controls class="audio-player">
                 <source src="{{ original_url }}" type="audio/mpeg">
                 <source src="{{ original_url }}" type="audio/wav">
             </audio>
         </div>
-        
-            {% if has_karaoke %}
+
+        <!-- 2. Instrumental Track Player (Vocals Removed) -->
+        {% if has_karaoke %}
         <div class="player-card karaoke-card">
             <h3><i class="fas fa-microphone-slash"></i> Instrumental (Vocals Removed)</h3>
             <audio controls class="audio-player">
                 <source src="{{ instrumental_url }}" type="audio/wav">
             </audio>
             <p class="player-hint">
-                Generated using {{ karaoke_method_used }} method.
-                Detection was performed on this instrumental version.
+                Vocals suppressed using {{ karaoke_method_used }} method.
+                All pitch detections were performed on this track.
+            </p>
+        </div>
+
+        <!-- 3. Isolated Vocal Track Player (Voice Only) -->
+        <div class="player-card vocal-extract-card">
+            <h3><i class="fas fa-microphone"></i> Extracted Vocals (Voice Only)</h3>
+            <audio controls class="audio-player">
+                <source src="{{ vocal_url }}" type="audio/wav">
+            </audio>
+            <p class="player-hint">
+                Isolated vocal frequencies extracted using {{ karaoke_method_used }} method.
             </p>
         </div>
         {% endif %}
 
+        <!-- 4. Full Reconstruction Synthesized Player -->
         {% if has_reconstruction %}
         <div class="player-card">
             <h3><i class="fas fa-wand-magic-sparkles"></i> Full Reconstruction</h3>
-            <audio controls class="audio-player" id="reconstructedAudio">
+            <audio controls class="audio-player">
                 <source src="{{ reconstructed_url }}" type="audio/wav">
             </audio>
             <p class="player-hint">All detected notes including chords and bass</p>
-            <button class="btn btn-secondary btn-visual-piano" onclick="toggleVisualPianoPlayback('reconstructedAudio', this)" style="margin-top: 10px; width: 100%;">
-                <i class="fas fa-piano"></i> <i class="fas fa-play"></i> Play on Visual Piano
-            </button>
         </div>
         {% endif %}
+
+        <!-- 5. Core Melody Synthesized Player -->
         {% if has_melody %}
         <div class="player-card melody-card">
             <h3><i class="fas fa-music"></i> Core Melody</h3>
-            <audio controls class="audio-player" id="melodyAudio">
+            <audio controls class="audio-player">
                 <source src="{{ melody_url }}" type="audio/wav">
             </audio>
             <p class="player-hint">Single-note melody line extracted from the detection</p>
-            <button class="btn btn-secondary btn-visual-piano" onclick="toggleVisualPianoPlayback('melodyAudio', this)" style="margin-top: 10px; width: 100%;">
-                <i class="fas fa-piano"></i> <i class="fas fa-play"></i> Play Melody on Visual Piano
-            </button>
         </div>
         {% endif %}
     </div>

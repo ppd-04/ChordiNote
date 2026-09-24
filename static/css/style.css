@@ -4631,3 +4631,22 @@ body {
 .karaoke-card .player-hint {
     color: var(--secondary-light);
 }
+
+
+/* ============================================
+   VOCAL EXTRACTION CARD STYLING — POOKIE THEME
+   ============================================ */
+
+.vocal-extract-card {
+    border: 1px solid rgba(167, 139, 250, 0.3) !important; /* Elegant lavender border */
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.08), rgba(244, 114, 182, 0.05)) !important; /* Soft purple/pink glow transition */
+}
+
+.vocal-extract-card h3 i {
+    color: var(--primary) !important; /* Purple icon color */
+    filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.5));
+}
+
+.vocal-extract-card .player-hint {
+    color: var(--primary-light) !important; /* Lavender tinted subtext */
+}
