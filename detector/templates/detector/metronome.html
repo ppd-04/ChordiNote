@@ -1,0 +1,143 @@
+{% extends 'detector/base.html' %}
+{% load static %}
+
+{% block title %}Metronome — ChordSense{% endblock %}
+
+{% block content %}
+
+<section class="metronome-page">
+    <h1 class="page-title reveal">
+        <i class="fas fa-clock"></i> Metronome
+    </h1>
+    <p class="page-subtitle reveal">
+        Keep perfect time. Practice like a pro.
+    </p>
+
+    <!-- MAIN METRONOME DISPLAY -->
+    <div class="metronome-main reveal">
+        <!-- BPM Display -->
+        <div class="bpm-display">
+            <div class="bpm-number" id="bpmNumber">120</div>
+            <div class="bpm-label">BPM</div>
+            <div class="bpm-tempo-name" id="tempoName">Moderato</div>
+        </div>
+
+        <!-- Beat Indicator (Pendulum) -->
+        <div class="pendulum-container">
+            <div class="pendulum" id="pendulum">
+                <div class="pendulum-arm"></div>
+                <div class="pendulum-weight"></div>
+            </div>
+        </div>
+
+        <!-- Beat Lights -->
+        <div class="beat-lights" id="beatLights">
+            <!-- Filled dynamically via JS -->
+        </div>
+
+        <!-- Play/Stop Button -->
+        <button class="metronome-play-btn" id="metronomePlayBtn">
+            <i class="fas fa-play" id="playIcon"></i>
+        </button>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="metronome-controls reveal">
+        <!-- BPM Slider -->
+        <div class="control-group">
+            <label class="control-label">
+                <i class="fas fa-tachometer-alt"></i> Tempo (BPM)
+            </label>
+            <div class="bpm-control-row">
+                <button class="bpm-btn" id="bpmMinus10">-10</button>
+                <button class="bpm-btn" id="bpmMinus1">-1</button>
+                <input type="range" id="bpmSlider" class="bpm-slider" 
+                       min="30" max="240" value="120" step="1">
+                <button class="bpm-btn" id="bpmPlus1">+1</button>
+                <button class="bpm-btn" id="bpmPlus10">+10</button>
+            </div>
+            <div class="bpm-presets">
+                <button class="preset-btn" data-bpm="60">60 Largo</button>
+                <button class="preset-btn" data-bpm="80">80 Andante</button>
+                <button class="preset-btn" data-bpm="100">100 Moderato</button>
+                <button class="preset-btn" data-bpm="120">120 Allegro</button>
+                <button class="preset-btn" data-bpm="160">160 Presto</button>
+            </div>
+        </div>
+
+        <!-- Time Signature -->
+        <div class="control-group">
+            <label class="control-label">
+                <i class="fas fa-music"></i> Time Signature
+            </label>
+            <div class="time-signature-grid">
+                <button class="ts-btn active" data-beats="2" data-note="4">2/4</button>
+                <button class="ts-btn" data-beats="3" data-note="4">3/4</button>
+                <button class="ts-btn active" data-beats="4" data-note="4">4/4</button>
+                <button class="ts-btn" data-beats="5" data-note="4">5/4</button>
+                <button class="ts-btn" data-beats="6" data-note="8">6/8</button>
+                <button class="ts-btn" data-beats="7" data-note="8">7/8</button>
+                <button class="ts-btn" data-beats="9" data-note="8">9/8</button>
+                <button class="ts-btn" data-beats="12" data-note="8">12/8</button>
+            </div>
+        </div>
+
+        <!-- Sound Selection -->
+        <div class="control-group">
+            <label class="control-label">
+                <i class="fas fa-volume-high"></i> Click Sound
+            </label>
+            <div class="sound-selector">
+                <button class="sound-btn active" data-sound="click">Click</button>
+                <button class="sound-btn" data-sound="wood">Wood</button>
+                <button class="sound-btn" data-sound="beep">Beep</button>
+                <button class="sound-btn" data-sound="cowbell">Cowbell</button>
+            </div>
+        </div>
+
+        <!-- Volume -->
+        <div class="control-group">
+            <label class="control-label">
+                <i class="fas fa-volume-up"></i> Volume: <span id="volumeValue">80%</span>
+            </label>
+            <input type="range" id="volumeSlider" class="volume-slider"
+                   min="0" max="100" value="80" step="1">
+        </div>
+
+        <!-- Tap Tempo -->
+        <div class="control-group">
+            <label class="control-label">
+                <i class="fas fa-hand-pointer"></i> Tap Tempo
+            </label>
+            <button class="tap-tempo-btn" id="tapTempoBtn">
+                <i class="fas fa-hand-point-up"></i> TAP
+                <span class="tap-hint">Tap in rhythm to set BPM</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- INFO CARDS -->
+    <div class="metronome-info reveal">
+        <div class="info-card">
+            <i class="fas fa-info-circle"></i>
+            <h3>Accented Beats</h3>
+            <p>The first beat of each measure sounds slightly higher and louder to help you feel the pulse.</p>
+        </div>
+        <div class="info-card">
+            <i class="fas fa-lightbulb"></i>
+            <h3>Practice Tips</h3>
+            <p>Start slow, focus on accuracy, then gradually increase tempo. Perfect timing beats fast timing!</p>
+        </div>
+        <div class="info-card">
+            <i class="fas fa-keyboard"></i>
+            <h3>Keyboard Shortcuts</h3>
+            <p>Press <strong>SPACE</strong> to start/stop. Press <strong>T</strong> to tap tempo.</p>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/metronome.js' %}"></script>
+{% endblock %}

@@ -328,3 +328,6 @@ def audio_lab(request):
 
 def tuner(request):
     return render(request, 'detector/tuner.html')
+
+def metronome(request):
+    return render(request, 'detector/metronome.html')
