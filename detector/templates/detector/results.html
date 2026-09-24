@@ -56,6 +56,20 @@
                 <source src="{{ original_url }}" type="audio/wav">
             </audio>
         </div>
+        
+            {% if has_karaoke %}
+        <div class="player-card karaoke-card">
+            <h3><i class="fas fa-microphone-slash"></i> Instrumental (Vocals Removed)</h3>
+            <audio controls class="audio-player">
+                <source src="{{ instrumental_url }}" type="audio/wav">
+            </audio>
+            <p class="player-hint">
+                Generated using {{ karaoke_method_used }} method.
+                Detection was performed on this instrumental version.
+            </p>
+        </div>
+        {% endif %}
+
         {% if has_reconstruction %}
         <div class="player-card">
             <h3><i class="fas fa-wand-magic-sparkles"></i> Full Reconstruction</h3>

@@ -70,6 +70,30 @@
                         {% endfor %}
                     </div>
                 </div>
+                
+                                <!-- KARAOKE VOCAL REMOVAL -->
+                <div class="karaoke-panel">
+                    <label class="karaoke-checkbox">
+                        <input type="checkbox" name="remove_vocals" id="removeVocals">
+                        <span class="karaoke-toggle"></span>
+                        <i class="fas fa-microphone-slash"></i>
+                        Remove vocals before detection (Karaoke mode)
+                    </label>
+                    <div class="karaoke-options" id="karaokeOptions" style="display: none;">
+                        <label class="karaoke-method-label">
+                            <i class="fas fa-sliders"></i> Removal Method:
+                        </label>
+                        <select name="karaoke_method" class="karaoke-select">
+                            <option value="center">Center Cancellation (Fast, works on stereo)</option>
+                            <option value="nmf">NMF Separation (Slower, works on mono too)</option>
+                        </select>
+                        <p class="karaoke-hint">
+                            <i class="fas fa-info-circle"></i>
+                            Center cancellation is best for stereo recordings.
+                            NMF is better for mono but takes longer.
+                        </p>
+                    </div>
+                </div>
 
                 <button type="submit" class="btn btn-primary btn-large" id="analyzeBtn">
                     <i class="fas fa-wand-magic-sparkles"></i> Analyze Audio
@@ -141,6 +165,30 @@
                         {% endfor %}
                     </div>
                 </div>
+                
+                                <!-- KARAOKE VOCAL REMOVAL -->
+                <div class="karaoke-panel">
+                    <label class="karaoke-checkbox">
+                        <input type="checkbox" name="remove_vocals" id="removeVocals">
+                        <span class="karaoke-toggle"></span>
+                        <i class="fas fa-microphone-slash"></i>
+                        Remove vocals before detection (Karaoke mode)
+                    </label>
+                    <div class="karaoke-options" id="karaokeOptions" style="display: none;">
+                        <label class="karaoke-method-label">
+                            <i class="fas fa-sliders"></i> Removal Method:
+                        </label>
+                        <select name="karaoke_method" class="karaoke-select">
+                            <option value="center">Center Cancellation (Fast, works on stereo)</option>
+                            <option value="nmf">NMF Separation (Slower, works on mono too)</option>
+                        </select>
+                        <p class="karaoke-hint">
+                            <i class="fas fa-info-circle"></i>
+                            Center cancellation is best for stereo recordings.
+                            NMF is better for mono but takes longer.
+                        </p>
+                    </div>
+                </div>
 
                 <button type="submit" class="btn btn-primary btn-large" id="analyzeRecordedBtn" style="display: none;">
                     <i class="fas fa-wand-magic-sparkles"></i> Analyze Recording
@@ -154,7 +202,18 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/piano.js' %}"></script>
+<script src="{% static 'js/piano.js' %}">
+        // Karaoke checkbox toggle
+    document.querySelectorAll('#removeVocals').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const options = document.getElementById('karaokeOptions');
+            if (options) {
+                options.style.display = this.checked ? 'block' : 'none';
+            }
+        });
+    });
+
+</script>
 <script>
     // ============================================
     // TAB SWITCHING
