@@ -135,7 +135,239 @@
         </div>
     </div>
 
+    <!-- PIANO SHEET MUSIC DOWNLOAD SECTION -->
+    <div class="sheet-music-section reveal" style="margin-top: 2rem; margin-bottom: 2rem;">
+        <div class="player-card" style="background: rgba(18, 18, 24, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: var(--radius); padding: 1.8rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+            <div>
+                <h2 class="section-title" style="margin-bottom: 0.4rem; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-file-pdf" style="color: var(--primary, #6366f1);"></i>
+                    <span class="gradient-text">Piano Sheet Music (PDF)</span>
+                </h2>
+                <p class="section-subtitle" style="margin-bottom: 0; color: var(--text-secondary, #94a3b8);">
+                    Standard notation with Treble & Bass clefs + explicit note/chord annotations | Key: <strong style="color:#f472b6;">{{ sheet_data.key|default:musical_key|default:"C" }}</strong> | BPM: <strong>{{ sheet_data.bpm|default:120 }}</strong>
+                </p>
+            </div>
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                <button class="btn btn-primary" id="btnDownloadSheetPdf" onclick="downloadSheetPDF()" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 8px; background: linear-gradient(135deg, #6366f1, #a855f7); color: white; border: none; cursor: pointer; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);">
+                    <i class="fas fa-file-pdf"></i> Download Sheet Music (PDF)
+                </button>
+                <button class="btn btn-secondary" onclick="printSheetMusic()" style="display: inline-flex; align-items: center; gap: 8px; padding: 0.75rem 1.5rem; border-radius: 8px; background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.15); cursor: pointer; font-size: 0.95rem;">
+                    <i class="fas fa-print"></i> Print Sheet
+                </button>
+            </div>
+        </div>
+
+        <!-- OFF-SCREEN PDF GENERATION CONTAINER (Hidden from results page preview) -->
+        <div style="position: absolute; left: -9999px; top: 0; width: 800px; opacity: 0; pointer-events: none; z-index: -9999;">
+            <div id="paper-sheet" style="background: #ffffff; padding: 30px; border-radius: 12px; color: #1e293b; font-family: sans-serif;">
+                <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px;">
+                    <h2 style="color: #0f172a; margin: 0 0 4px 0; font-size: 1.6rem; font-weight: 700;">Piano Sheet Music</h2>
+                    <p style="color: #64748b; margin: 0; font-size: 0.9rem;">
+                        Key: <strong>{{ sheet_data.key|default:musical_key|default:"C" }}</strong> | BPM: <strong>{{ sheet_data.bpm|default:120 }}</strong> | File: {{ filename|default:"Detected Audio" }}
+                    </p>
+                </div>
+                
+                <!-- ABC JS STAVE RENDER CONTAINER -->
+                <div id="paper-graphic-score" style="overflow-x: auto; min-height: 180px;"></div>
+
+                <!-- PIANO LEAD SHEET & NOTES GRID -->
+                <div style="margin-top: 25px;">
+                    <h3 style="color: #1e293b; font-size: 1.1rem; margin-bottom: 10px; border-left: 4px solid #6366f1; padding-left: 10px;">
+                        Piano Notes & Chords Sequence
+                    </h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem; text-align: left;">
+                        <thead>
+                            <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1; color: #475569;">
+                                <th style="padding: 8px 12px;">#</th>
+                                <th style="padding: 8px 12px;">Time</th>
+                                <th style="padding: 8px 12px;">Note / Chord</th>
+                                <th style="padding: 8px 12px;">Frequency</th>
+                                <th style="padding: 8px 12px;">Clef</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sheetNotesTableBody">
+                            {% if sheet_data and sheet_data.note_summary %}
+                                {% for item in sheet_data.note_summary %}
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 8px 12px; color: #64748b;">{{ item.num }}</td>
+                                    <td style="padding: 8px 12px; font-weight: 500;">{{ item.time }}</td>
+                                    <td style="padding: 8px 12px;"><strong style="color: #4f46e5; background: #e0e7ff; padding: 2px 8px; border-radius: 4px;">{{ item.note }}</strong></td>
+                                    <td style="padding: 8px 12px; color: #475569;">{{ item.frequency }}</td>
+                                    <td style="padding: 8px 12px; color: #64748b;">{{ item.clef }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                {% for note in notes %}
+                                {% if note.note != "REST" %}
+                                <tr style="border-bottom: 1px solid #e2e8f0;">
+                                    <td style="padding: 8px 12px; color: #64748b;">{{ forloop.counter }}</td>
+                                    <td style="padding: 8px 12px; font-weight: 500;">{{ note.timestamp }}</td>
+                                    <td style="padding: 8px 12px;"><strong style="color: #4f46e5; background: #e0e7ff; padding: 2px 8px; border-radius: 4px;">{{ note.note }}</strong></td>
+                                    <td style="padding: 8px 12px; color: #475569;">{{ note.frequency }}</td>
+                                    <td style="padding: 8px 12px; color: #64748b;">Piano Staff</td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script CDN for ABCJS and html2pdf -->
+    <script src="https://cdn.jsdelivr.net/npm/abcjs@6.4.4/dist/abcjs-basic-min.js"></script>
+    <script src="https://cdnjs.cloudflare.net/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <script id="sheet-abc-data" type="text/plain">{{ sheet_abc|safe }}</script>
+    <script>
+    (function() {
+        function noteNameToAbc(noteStr) {
+            if (!noteStr || noteStr === 'REST') return 'z';
+            var match = noteStr.match(/^([A-G][#b]?)(-?\d+)$/i);
+            if (!match) return 'C';
+            var pitch = match[1].toUpperCase();
+            var octave = parseInt(match[2], 10);
+            
+            var abcPitch = pitch.replace('#', '^');
+            if (pitch.indexOf('B') !== -1 && pitch.length > 1) {
+                abcPitch = '_' + pitch.charAt(0);
+            }
+            
+            if (octave === 4) return abcPitch;
+            if (octave > 4) {
+                var ticks = "'".repeat(octave - 5);
+                return abcPitch.toLowerCase() + ticks;
+            } else {
+                var commas = ",".repeat(4 - octave);
+                return abcPitch + commas;
+            }
+        }
+
+        function buildAbcFromDetectedNotesJS() {
+            var notesEl = document.getElementById('notes-data-json');
+            if (!notesEl) return null;
+            try {
+                var notes = JSON.parse(notesEl.textContent);
+                if (!Array.isArray(notes) || notes.length === 0) return null;
+                
+                var trebleTokens = [];
+                var bassTokens = [];
+                
+                notes.forEach(function(item) {
+                    var noteVal = item.note || 'REST';
+                    if (noteVal === 'REST') {
+                        trebleTokens.push('z2');
+                        bassTokens.push('z2');
+                        return;
+                    }
+                    var parts = noteVal.split(' + ');
+                    var tNotes = [];
+                    var bNotes = [];
+                    
+                    parts.forEach(function(p) {
+                        var abc = noteNameToAbc(p.trim());
+                        var octMatch = p.match(/\d+/);
+                        var oct = octMatch ? parseInt(octMatch[0], 10) : 4;
+                        if (oct >= 4) tNotes.push(abc);
+                        else bNotes.push(abc);
+                    });
+                    
+                    var ann = '"' + noteVal + '"';
+                    if (tNotes.length > 0) {
+                        trebleTokens.push(ann + (tNotes.length === 1 ? tNotes[0] + '2' : '[' + tNotes.join('') + ']2'));
+                    } else {
+                        trebleTokens.push('z2');
+                    }
+                    
+                    if (bNotes.length > 0) {
+                        bassTokens.push(ann + (bNotes.length === 1 ? bNotes[0] + '2' : '[' + bNotes.join('') + ']2'));
+                    } else {
+                        bassTokens.push('z2');
+                    }
+                });
+                
+                var keyStr = '{{ musical_key|default:"C" }}'.replace(' Major','').replace(' Minor','m');
+                var header = "X:1\nT:Piano Sheet Music & Notes\nM:4/4\nL:1/8\nQ:1/4=120\nK:" + (keyStr || 'C') + "\n";
+                var v1 = 'V:1 clef=treble name="Treble (Right Hand)"\n' + trebleTokens.join(' ') + ' |';
+                var v2 = 'V:2 clef=bass name="Bass (Left Hand)"\n' + bassTokens.join(' ') + ' |';
+                
+                return header + '\n' + v1 + '\n\n' + v2 + '\n';
+            } catch(e) {
+                console.error("Client side ABC generation error:", e);
+                return null;
+            }
+        }
+
+        function renderSheet() {
+            var abcDataEl = document.getElementById('sheet-abc-data');
+            var abcNotation = abcDataEl ? abcDataEl.textContent.trim() : '';
+            
+            if (!abcNotation) {
+                abcNotation = buildAbcFromDetectedNotesJS();
+            }
+            
+            if (abcNotation && typeof ABCJS !== 'undefined') {
+                ABCJS.renderAbc("paper-graphic-score", abcNotation, {
+                    responsive: "resize",
+                    scale: 1.15,
+                    add_classes: true,
+                    paddingtop: 15,
+                    paddingbottom: 15,
+                    paddingleft: 15,
+                    paddingright: 15
+                });
+            }
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', renderSheet);
+        } else {
+            renderSheet();
+        }
+    })();
+
+    function downloadSheetPDF() {
+        var element = document.getElementById('paper-sheet');
+        if (!element) return;
+        
+        var opt = {
+          margin:       0.3,
+          filename:     '{{ filename|default:"piano_sheet" }}_piano_sheet.pdf',
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        if (typeof html2pdf !== 'undefined') {
+            html2pdf().set(opt).from(element).save();
+        } else {
+            printSheetMusic();
+        }
+    }
+
+    function printSheetMusic() {
+        var element = document.getElementById('paper-sheet');
+        if (!element) return;
+        var printWindow = window.open('', '_blank');
+        printWindow.document.write('<html><head><title>Piano Sheet Music & Notes - PitchDetect</title>');
+        printWindow.document.write('<style>body { font-family: sans-serif; text-align: center; padding: 20px; } #paper-sheet { background: white; color: black; }</style>');
+        printWindow.document.write('</head><body>');
+        printWindow.document.write(element.innerHTML);
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(function() {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+    }
+    </script>
+
+
+
     <!-- ML CHORD CLASSIFICATION SECTION -->
+
     {% if chord_analysis %}
     {{ chord_analysis|json_script:"chord-analysis-data" }}
 
