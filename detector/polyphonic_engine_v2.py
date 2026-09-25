@@ -39,22 +39,66 @@ import librosa
 # ===========================================================================
 
 V2_PROFILES = {
-    "piano_v2": {
-        "label": "Piano V2 - Learned Templates (Best for Piano Covers)",
+    # --- Piano sub-profiles (Soft / Balanced / Fast) ---
+    "piano_v2_soft": {
+        "label": "Piano — Soft / Emotional (Hymn to the Sea, Clair de Lune)",
         "fmin": "A1",
         "fmax": "C8",
-        "hop_length": 512,
+        "hop_length": 256,
+        "bins_per_octave": 36,
+        "nmf_iterations": 100,
+        "l1_lambda": 0.02,             # lower sparsity — retain more low-energy note activations
+        "inharmonicity_B": 2e-4,
+        "adaptive_threshold_pct": 65,  # lower percentile — less aggressive global threshold
+        "global_threshold_floor": 0.02, # very low floor — catches soft pianissimo notes
+        "attack_ratio": 0.07,           # was 0.15 — much more sensitive to weak attacks
+        "release_ratio": 0.02,          # allow notes to sustain even as they decay
+        "min_note_duration": 0.08,
+        "min_rest_duration": 0.10,
+        "max_polyphony": 6,
+        "hmm_transition_stay": 0.93,
+        "onset_merge_ms": 45,
+        # Semitone veto: only fire if quieter note is < 45% of louder — preserves maj7 voicings
+        "use_semitone_veto": True,
+        "semitone_veto_ratio": 0.45,
+        # Key filter: keep long chromatic notes (passing tones/borrowed chords >= 120ms)
+        # only strip very short ghost notes that are clearly artifacts
+        "use_key_filter": True,
+        "chromatic_min_dur": 0.12,
+    },
+    "piano_v2": {
+        "label": "Piano — Balanced (General Piano / Mixed Tempo)",
+        "fmin": "A1",
+        "fmax": "C8",
+        "hop_length": 256,
         "bins_per_octave": 36,
         "nmf_iterations": 100,
         "l1_lambda": 0.03,
         "inharmonicity_B": 2e-4,
         "adaptive_threshold_pct": 75,
         "global_threshold_floor": 0.05,
-        "min_note_duration": 0.06,
+        "min_note_duration": 0.05,
         "min_rest_duration": 0.08,
         "max_polyphony": 6,
-        "hmm_transition_stay": 0.90,
-        "onset_merge_ms": 40,
+        "hmm_transition_stay": 0.85,
+        "onset_merge_ms": 20,
+    },
+    "piano_v2_fast": {
+        "label": "Piano — Fast / Arpeggiated (Icarus, Pirates of the Caribbean)",
+        "fmin": "A1",
+        "fmax": "C8",
+        "hop_length": 256,
+        "bins_per_octave": 36,
+        "nmf_iterations": 100,
+        "l1_lambda": 0.035,
+        "inharmonicity_B": 2e-4,
+        "adaptive_threshold_pct": 78,
+        "global_threshold_floor": 0.06,
+        "min_note_duration": 0.04,         # shorter min — let fast 16th notes survive
+        "min_rest_duration": 0.06,
+        "max_polyphony": 6,
+        "hmm_transition_stay": 0.80,       # low inertia — switch notes quickly
+        "onset_merge_ms": 12,              # very tight — treat every onset separately
     },
     "flute_v2": {
         "label": "Flute/Wind V2 - Learned Templates (Best for Flute/Woodwind Covers)",

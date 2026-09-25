@@ -27,10 +27,14 @@ from .key_detector import detect_key_from_notes
 # STAGE 1 - Pitch-Aware Adaptive Thresholding
 # ===========================================================================
 
-def _apply_pitch_aware_threshold(H, note_midi_list, percentile=75, floor=0.05):
+def _apply_pitch_aware_threshold(H, note_midi_list, percentile=75, floor=0.05,
+                                  attack_ratio=0.15, release_ratio=0.05):
     """
     Apply a frequency-dependent threshold curve.
     High pitch notes require less energy to be perceived.
+
+    attack_ratio: fraction of per-note peak required to activate (lower = more sensitive)
+    release_ratio: fraction of per-note peak required to sustain once active
     """
     n_notes, n_frames = H.shape
     h_max = np.max(H)
@@ -41,7 +45,6 @@ def _apply_pitch_aware_threshold(H, note_midi_list, percentile=75, floor=0.05):
     active_mask = np.zeros((n_notes, n_frames), dtype=bool)
 
     # Pitch-dependent curve: threshold lowers as MIDI pitch increases
-    # e.g., C2 (36) -> 1.0x floor, C6 (84) -> 0.4x floor
     def get_pitch_multiplier(midi):
         if midi < 48:
             return 1.2
@@ -60,8 +63,8 @@ def _apply_pitch_aware_threshold(H, note_midi_list, percentile=75, floor=0.05):
         col_max = np.max(col)
         
         if col_max > 0:
-            attack_thresh = max(floor * pitch_mult, col_max * 0.15)
-            release_thresh = max(floor * 0.5 * pitch_mult, col_max * 0.05)
+            attack_thresh = max(floor * pitch_mult, col_max * attack_ratio)
+            release_thresh = max(floor * 0.5 * pitch_mult, col_max * release_ratio)
             
             was_active = False
             for f in range(n_frames):
@@ -173,6 +176,124 @@ def _hybrid_ghost_filter(events, H_norm, note_midi_list, times, onset_times, B=2
 
 
 # ===========================================================================
+# STAGE 4 - Semitone Adjacency Veto
+# ===========================================================================
+
+def _semitone_adjacency_veto(events, H_norm, note_midi_list, times, energy_ratio=0.55):
+    """
+    When two simultaneously active notes are exactly 1 semitone apart,
+    the weaker one is likely a tracking artifact — BUT only if it is
+    significantly weaker (energy < energy_ratio * louder note).
+
+    This preserves intentional major-7th voicings (e.g. C4 + B3) where
+    both notes have comparable energy, while still catching ghosts.
+    """
+    if not events:
+        return events
+
+    n_frames = len(times)
+    midi_to_row = {midi: row for row, midi in enumerate(note_midi_list)}
+
+    def mean_energy(midi, s, e):
+        row = midi_to_row.get(midi)
+        if row is not None:
+            s, e = max(0, s), min(n_frames, e)
+            if e > s:
+                return float(np.mean(H_norm[row, s:e]))
+        return 0.0
+
+    def overlaps(ev1, ev2):
+        return min(ev1[2], ev2[2]) - max(ev1[1], ev2[1]) > 0
+
+    remove = set()
+    for i, ev_i in enumerate(events):
+        if i in remove:
+            continue
+        for j in range(i + 1, len(events)):
+            if j in remove:
+                continue
+            ev_j = events[j]
+            if abs(ev_i[0] - ev_j[0]) == 1 and overlaps(ev_i, ev_j):
+                e_i = mean_energy(ev_i[0], ev_i[1], ev_i[2])
+                e_j = mean_energy(ev_j[0], ev_j[1], ev_j[2])
+                louder, quieter_idx = (e_i, j) if e_i > e_j else (e_j, i)
+                quieter = e_j if quieter_idx == j else e_i
+                # Only veto if the quieter note is clearly a ghost (< energy_ratio of louder)
+                if louder > 0 and quieter / louder < energy_ratio:
+                    remove.add(quieter_idx)
+
+    return [ev for idx, ev in enumerate(events) if idx not in remove]
+
+
+# ===========================================================================
+# STAGE 5 - Key-Scale Filter
+# ===========================================================================
+
+# Diatonic scale intervals (semitones from tonic) for major and minor
+_MAJOR_INTERVALS = {0, 2, 4, 5, 7, 9, 11}
+_MINOR_INTERVALS = {0, 2, 3, 5, 7, 8, 10}
+
+def _key_scale_filter(events, formatted_events, chromatic_min_dur=0.0):
+    """
+    Detect the key from the already-formatted output, then remove out-of-scale
+    events — but ONLY if they are shorter than chromatic_min_dur seconds.
+
+    chromatic_min_dur=0.0  -> remove ALL out-of-key notes (strict, default for fast/balanced)
+    chromatic_min_dur=0.12 -> only remove short out-of-key notes; longer ones are
+                              likely intentional passing tones or borrowed chords
+    """
+    if not events or not formatted_events:
+        return events
+
+    key_str = detect_key_from_notes(formatted_events)  # e.g. "D Minor"
+    if not key_str or key_str == "Unknown":
+        return events  # no reliable key — don't filter
+
+    parts = key_str.split()
+    if len(parts) < 2:
+        return events
+
+    root_name = parts[0]          # e.g. "D"
+    mode = parts[1].lower()       # "major" or "minor"
+
+    PITCH_CLASSES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+    if root_name not in PITCH_CLASSES:
+        return events
+
+    tonic = PITCH_CLASSES.index(root_name)
+    intervals = _MAJOR_INTERVALS if mode == "major" else _MINOR_INTERVALS
+    allowed = {(tonic + interval) % 12 for interval in intervals}
+
+    def duration_frames(ev):
+        """Approximate duration from frame indices (not converted to seconds here)."""
+        return ev[2] - ev[1]  # frame count; compare against chromatic_min_dur below
+
+    filtered = []
+    for ev in events:
+        if ev[0] % 12 in allowed:
+            filtered.append(ev)  # in-key: always keep
+        elif chromatic_min_dur > 0:
+            # Out-of-key: keep only if it's long enough to be intentional
+            # ev[1] and ev[2] are frame indices; convert using frame_dur
+            filtered.append(ev)  # will refine with time below
+        # else: strict mode — discard all out-of-key notes
+
+    # If chromatic_min_dur > 0, do the actual duration check using formatted_events timestamps
+    if chromatic_min_dur > 0:
+        # Build a set of short out-of-key midi frame tuples to drop
+        remove_set = set()
+        frame_dur_approx = 256 / 22050  # hop/sr — matches all piano profiles
+        for ev in events:
+            if ev[0] % 12 not in allowed:
+                duration_sec = (ev[2] - ev[1]) * frame_dur_approx
+                if duration_sec < chromatic_min_dur:
+                    remove_set.add(id(ev))
+        filtered = [ev for ev in events if ev[0] % 12 in allowed or id(ev) not in remove_set]
+
+    return filtered if filtered else events
+
+
+# ===========================================================================
 # MAIN ENTRY POINT
 # ===========================================================================
 
@@ -208,9 +329,13 @@ def process_audio_polyphonic_v4(file_path, profile_name="piano_v2"):
 
     H = _nmf_sparse(C, W, n_iterations=profile["nmf_iterations"], l1_lambda=profile["l1_lambda"])
 
-    # V4: Pitch-Aware Thresholding
+    # V4: Pitch-Aware Thresholding (attack/release ratios are profile-tunable)
     active_mask, H_norm = _apply_pitch_aware_threshold(
-        H, note_midi_list, percentile=profile["adaptive_threshold_pct"], floor=profile["global_threshold_floor"]
+        H, note_midi_list,
+        percentile=profile["adaptive_threshold_pct"],
+        floor=profile["global_threshold_floor"],
+        attack_ratio=profile.get("attack_ratio", 0.15),
+        release_ratio=profile.get("release_ratio", 0.05),
     )
 
     smoothed_mask = _hmm_smooth(active_mask, stay_prob=profile["hmm_transition_stay"])
@@ -225,8 +350,23 @@ def process_audio_polyphonic_v4(file_path, profile_name="piano_v2"):
         raw_events, H_norm, note_midi_list, times, onset_times, B=profile["inharmonicity_B"]
     )
 
+    # V4+: Semitone adjacency veto (skip for profiles that opt out)
+    if profile.get("use_semitone_veto", True):
+        clean_events = _semitone_adjacency_veto(
+            clean_events, H_norm, note_midi_list, times,
+            energy_ratio=profile.get("semitone_veto_ratio", 0.55),
+        )
+
     final_events = _enforce_polyphony(
         clean_events, H_norm, note_midi_list, times, max_poly=profile["max_polyphony"]
     )
+
+    # V4+: Key-scale filter (skip for profiles that opt out)
+    if profile.get("use_key_filter", True):
+        provisional_out = _format_output(final_events, times, H_norm=H_norm, note_midi_list=note_midi_list)
+        final_events = _key_scale_filter(
+            final_events, provisional_out,
+            chromatic_min_dur=profile.get("chromatic_min_dur", 0.0),
+        )
 
     return _format_output(final_events, times, H_norm=H_norm, note_midi_list=note_midi_list)

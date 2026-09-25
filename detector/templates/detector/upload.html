@@ -91,6 +91,45 @@
         margin-top: auto;
     }
 
+    /* Piano V4 Tempo Switcher */
+    .tempo-switcher {
+        display: flex;
+        gap: 0;
+        margin-top: 0.85rem;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid rgba(167, 139, 250, 0.3);
+        background: rgba(0,0,0,0.2);
+    }
+    .tempo-btn {
+        flex: 1;
+        padding: 0.4rem 0;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        border: none;
+        background: transparent;
+        color: #9ca3af;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+        border-right: 1px solid rgba(167, 139, 250, 0.2);
+    }
+    .tempo-btn:last-child { border-right: none; }
+    .tempo-btn:hover { background: rgba(167,139,250,0.12); color: #e9d5ff; }
+    .tempo-btn.active {
+        background: linear-gradient(135deg, #7c3aed, #a855f7);
+        color: #fff;
+        box-shadow: inset 0 0 8px rgba(0,0,0,0.3);
+    }
+    .tempo-label {
+        font-size: 0.72rem;
+        color: #6b7280;
+        margin-top: 0.35rem;
+        text-align: center;
+        min-height: 0.9rem;
+        transition: color 0.2s;
+    }
+
     /* Microphone Device Selection Bar & Modal */
     .mic-selection-bar {
         display: flex;
@@ -304,10 +343,18 @@
                             <div class="profile-grid">
                                 {% for key, profile in polyphonic_profiles.items %}
                                 <label class="profile-option">
-                                    <input type="radio" name="profile" value="{{ key }}">
+                                    <input type="radio" name="profile" value="{{ key }}" class="profile-radio">
                                     <div class="profile-card">
                                         <h4>{{ profile.label }}</h4>
                                         <span class="profile-detail">Range: {{ profile.fmin }} – {{ profile.fmax }}</span>
+                                        {% if profile.is_piano_v4 %}
+                                        <div class="tempo-switcher" onclick="event.preventDefault(); event.stopPropagation();">
+                                            <button type="button" class="tempo-btn" data-profile="v4_piano_v2_soft" data-target="{{ key }}">🎹 Soft</button>
+                                            <button type="button" class="tempo-btn active" data-profile="v4_piano_v2" data-target="{{ key }}">⚖ Balanced</button>
+                                            <button type="button" class="tempo-btn" data-profile="v4_piano_v2_fast" data-target="{{ key }}">⚡ Fast</button>
+                                        </div>
+                                        <span class="tempo-label" id="tempo-label-{{ key }}">General piano, mixed tempo</span>
+                                        {% endif %}
                                     </div>
                                 </label>
                                 {% endfor %}
@@ -437,10 +484,18 @@
                             <div class="profile-grid">
                                 {% for key, profile in polyphonic_profiles.items %}
                                 <label class="profile-option">
-                                    <input type="radio" name="profile" value="{{ key }}">
+                                    <input type="radio" name="profile" value="{{ key }}" class="profile-radio">
                                     <div class="profile-card">
                                         <h4>{{ profile.label }}</h4>
                                         <span class="profile-detail">Range: {{ profile.fmin }} – {{ profile.fmax }}</span>
+                                        {% if profile.is_piano_v4 %}
+                                        <div class="tempo-switcher" onclick="event.preventDefault(); event.stopPropagation();">
+                                            <button type="button" class="tempo-btn" data-profile="v4_piano_v2_soft" data-target="{{ key }}">🎹 Soft</button>
+                                            <button type="button" class="tempo-btn active" data-profile="v4_piano_v2" data-target="{{ key }}">⚖ Balanced</button>
+                                            <button type="button" class="tempo-btn" data-profile="v4_piano_v2_fast" data-target="{{ key }}">⚡ Fast</button>
+                                        </div>
+                                        <span class="tempo-label" id="tempo-label-rec-{{ key }}">General piano, mixed tempo</span>
+                                        {% endif %}
                                     </div>
                                 </label>
                                 {% endfor %}
@@ -603,6 +658,33 @@
                 opt.classList.remove('selected');
             });
             this.closest('.profile-option').classList.add('selected');
+        });
+    });
+
+    // Piano V4 Tempo Switcher logic
+    const TEMPO_LABELS = {
+        'v4_piano_v2_soft':  'Soft dynamics, long held notes (Hymn to the Sea, Clair de Lune)',
+        'v4_piano_v2':       'General piano, mixed tempo',
+        'v4_piano_v2_fast':  'Fast arpeggios & runs (Icarus, Pirates of the Caribbean)',
+    };
+    document.querySelectorAll('.tempo-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const targetKey = this.dataset.target;         // e.g. 'v4_piano_v2'
+            const chosenProfile = this.dataset.profile;   // e.g. 'v4_piano_v2_soft'
+
+            // Update the radio value to the chosen sub-profile
+            document.querySelectorAll(`input.profile-radio[value^='${targetKey}'], input.profile-radio[value='${targetKey}']`).forEach(r => {
+                r.value = chosenProfile;
+            });
+
+            // Highlight active button within this switcher
+            this.closest('.tempo-switcher').querySelectorAll('.tempo-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+
+            // Update the descriptive label
+            const labelEl = document.getElementById('tempo-label-' + targetKey)
+                         || document.getElementById('tempo-label-rec-' + targetKey);
+            if (labelEl) labelEl.textContent = TEMPO_LABELS[chosenProfile] || '';
         });
     });
 

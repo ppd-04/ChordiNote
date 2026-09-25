@@ -69,7 +69,12 @@ def upload_audio(request):
         }
 
     # Add V4 Hybrid profiles
+    # Piano sub-profiles (soft/balanced/fast) are deliberately excluded here —
+    # they are presented as a single "Piano V4" card with a segmented switcher in the template.
+    PIANO_SUBPROFILES = {"piano_v2_soft", "piano_v2", "piano_v2_fast"}
     for key in V2_PROFILES.keys():
+        if key in PIANO_SUBPROFILES:
+            continue  # handled by the segmented piano card in the template
         info = get_v2_profile_display_info(key)
         combined_profiles[f"v4_{key}"] = {
             "label": f"[V4 Hybrid] {info['label']} (Pitch-Aware Filter)",
@@ -77,6 +82,15 @@ def upload_audio(request):
             "fmax": info["fmax"],
             "engine": "polyphonic_v4",
         }
+
+    # Single V4 Piano entry (the tempo switcher in the template picks the sub-profile)
+    combined_profiles["v4_piano_v2"] = {
+        "label": "[V4 Hybrid] Piano (Pitch-Aware Filter)",
+        "fmin": "A1",
+        "fmax": "C8",
+        "engine": "polyphonic_v4",
+        "is_piano_v4": True,   # flag read by template to render segmented switcher
+    }
 
     # Separate profiles into Monophonic and Polyphonic groups
     monophonic_profiles = {}
