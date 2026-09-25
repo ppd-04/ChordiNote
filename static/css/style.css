@@ -731,9 +731,18 @@ body {
 }
 
 .page-title {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Keeps the title centered on the page */
+    gap: 12px;               /* Space between the catGuitar icon and text */
     font-size: 2.5rem;
     margin-bottom: 0.5rem;
+}
+
+.title-icon {
+    width: 90px;             /* Explicitly limits the icon width */
+    height: 90px;            /* Explicitly limits the icon height */
+    object-fit: contain;     /* Ensures the image proportions stay correct */
 }
 
 .page-title i {
