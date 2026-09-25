@@ -4,6 +4,8 @@ import librosa
 import numpy as np
 
 from django.shortcuts import render
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
 from .dsp_engine import process_audio_file, ANALYSIS_PROFILES
@@ -19,6 +21,7 @@ from .key_detector import detect_key_from_notes
 from .note_chord_detector import detect_chords_from_notes
 from .sheet_generator import generate_piano_abc
 from .karaoke import remove_vocals_center_cancellation, remove_vocals_nmf
+from .autotuner import autotune_audio
 
 def home(request):
     return render(request, 'detector/home.html')
@@ -323,6 +326,42 @@ def piano(request):
 
 def audio_lab(request):
     return render(request, 'detector/audio_lab.html')
+
+@csrf_exempt
+def api_autotune(request):
+    if request.method == 'POST' and request.FILES.get('audio'):
+        audio_file = request.FILES['audio']
+        pull = float(request.POST.get('pull', 1.0))
+        
+        upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Save original file
+        file_path = os.path.join(upload_dir, audio_file.name)
+        with open(file_path, 'wb+') as destination:
+            for chunk in audio_file.chunks():
+                destination.write(chunk)
+                
+        # Generate output path
+        timestamp = os.path.basename(file_path).rsplit('.', 1)[0]
+        output_filename = f"autotuned_{timestamp}.wav"
+        output_path = os.path.join(upload_dir, output_filename)
+        
+        # Run autotuner
+        success = autotune_audio(file_path, output_path, scale_notes=None, pull=pull)
+        
+        if success:
+            return JsonResponse({
+                'success': True,
+                'autotuned_url': f'/media/uploads/{output_filename}'
+            })
+        else:
+            return JsonResponse({
+                'success': False,
+                'error': 'Failed to process autotune.'
+            }, status=500)
+            
+    return JsonResponse({'error': 'Invalid request'}, status=400)
 
 def tuner(request):
     return render(request, 'detector/tuner.html')

@@ -13,6 +13,7 @@ urlpatterns = [
     path('games/sing-the-note', game_views.sing_the_note, name='sing_the_note'),
     path('piano/', views.piano, name='piano'),
     path('audio-lab/', views.audio_lab, name='audio_lab'),
+    path('api/autotune/', views.api_autotune, name='api_autotune'),
     path('tuner/', views.tuner, name='tuner'),
     path('metronome/', views.metronome, name='metronome'),
     path('guitar/', views.guitar, name='guitar'),

@@ -15,16 +15,69 @@
 
     <!-- UPLOAD SECTION -->
     <div class="lab-upload reveal">
-        <div class="drop-zone" id="labDropZone">
-            <div class="drop-zone-content">
-                <i class="fas fa-waveform-lines fa-3x"></i>
-                <p class="drop-text">Drop audio file here</p>
-                <label for="labFileInput" class="btn btn-primary">
-                    <i class="fas fa-folder-open"></i> Choose File
-                </label>
-                <input type="file" id="labFileInput" accept=".wav,.mp3,.ogg,.flac,.m4a" class="file-input-hidden">
+
+        <!-- Tab buttons -->
+        <div class="upload-tabs" style="display:flex; gap: 0.5rem; margin-bottom: 1rem;">
+            <button class="tab-btn active" id="labTabUpload" onclick="labSwitchTab('upload')"
+                style="flex:1; padding: 0.7rem 1rem; border-radius: 8px; border: 1px solid rgba(167,139,250,0.3); background: rgba(167,139,250,0.12); color: #a78bfa; cursor: pointer; font-size: 0.9rem; transition: all 0.2s;">
+                <i class="fas fa-folder-open"></i> Choose File
+            </button>
+            <button class="tab-btn" id="labTabRecord" onclick="labSwitchTab('record')"
+                style="flex:1; padding: 0.7rem 1rem; border-radius: 8px; border: 1px solid rgba(167,139,250,0.15); background: transparent; color: #6b7280; cursor: pointer; font-size: 0.9rem; transition: all 0.2s;">
+                <i class="fas fa-microphone"></i> Live Record
+            </button>
+        </div>
+
+        <!-- Tab 1: File upload -->
+        <div id="labUploadTab">
+            <div class="drop-zone" id="labDropZone">
+                <div class="drop-zone-content">
+                    <i class="fas fa-waveform-lines fa-3x"></i>
+                    <p class="drop-text">Drop audio file here</p>
+                    <label for="labFileInput" class="btn btn-primary">
+                        <i class="fas fa-folder-open"></i> Choose File
+                    </label>
+                    <input type="file" id="labFileInput" accept=".wav,.mp3,.ogg,.flac,.m4a" class="file-input-hidden">
+                </div>
+                <p class="lab-file-info" id="labFileInfo" style="display:none;"></p>
             </div>
-            <p class="lab-file-info" id="labFileInfo" style="display:none;"></p>
+        </div>
+
+        <!-- Tab 2: Live Record -->
+        <div id="labRecordTab" style="display:none;">
+            <div class="drop-zone" style="padding: 1.5rem; flex-direction: column; gap: 1rem;">
+
+                <!-- Waveform visualizer -->
+                <canvas id="labRecordWaveform" width="600" height="100"
+                    style="width:100%; border-radius:8px; background: rgba(15,10,26,0.6);"></canvas>
+
+                <div id="labRecordStatus" style="color:#9ca3af; font-size:0.9rem; display:flex; align-items:center; gap:0.5rem;">
+                    <i class="fas fa-microphone"></i> <span>Ready to record</span>
+                </div>
+
+                <!-- Controls -->
+                <div style="display:flex; gap: 0.75rem; align-items: center; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-danger" id="labStartRecordBtn" onclick="labStartRecording()">
+                        <i class="fas fa-circle"></i> Start Recording
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="labStopRecordBtn" onclick="labStopRecording()" style="display:none;">
+                        <i class="fas fa-stop"></i> Stop Recording
+                    </button>
+                    <span id="labRecordTimer" style="display:none; color:#a78bfa; font-variant-numeric: tabular-nums;">
+                        <i class="fas fa-clock"></i> <span id="labTimerDisplay">00:00</span>
+                    </span>
+                </div>
+
+                <!-- Preview -->
+                <div id="labRecordPreview" style="display:none; width:100%;">
+                    <p style="color:#a78bfa; font-size:0.85rem; margin-bottom:0.5rem;"><i class="fas fa-headphones"></i> Preview & load into Lab:</p>
+                    <audio id="labPreviewPlayer" controls style="width:100%; border-radius:6px;"></audio>
+                    <button class="btn btn-primary" onclick="labLoadRecordingIntoPlayer()" style="margin-top:0.6rem; width:100%;">
+                        <i class="fas fa-check"></i> Use This Recording
+                    </button>
+                </div>
+
+            </div>
         </div>
     </div>
 
@@ -98,6 +151,34 @@
                 <label>Master Gain</label>
                 <input type="range" id="volumeSlider" class="lab-slider" min="0" max="100" step="1" value="80" disabled>
                 <span class="effect-value" id="volumeValue">80%</span>
+            </div>
+        </div>
+
+        <!-- AUTOTUNE (BACKEND) -->
+        <div class="effect-panel reveal" id="autotunePanel">
+            <h3><i class="fas fa-microphone"></i> Autotune (Backend)</h3>
+            <p style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 1rem;">
+                Locks vocals to nearest musical notes. Processing takes a few seconds on the server.
+            </p>
+            <div class="effect-row">
+                <label>Smoothness (Pull)</label>
+                <input type="range" id="autotunePullSlider" class="lab-slider" min="0" max="1" step="0.1" value="1.0" disabled>
+                <span class="effect-value" id="autotunePullValue">100% (Hard)</span>
+            </div>
+            <div class="effect-row" style="margin-top: 1rem; text-align: center;">
+                <button class="btn btn-primary" id="btnAutotune" onclick="applyBackendAutotune()" style="width: 100%;" disabled>
+                    <i class="fas fa-magic"></i> Apply Autotune
+                </button>
+            </div>
+            <div id="autotuneLoading" style="display:none; text-align:center; margin-top:0.5rem; color:var(--primary-light);">
+                <i class="fas fa-spinner fa-spin"></i> Processing...
+            </div>
+            <div id="autotuneResult" style="display:none; margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; color: var(--primary-light);">Autotuned Result:</label>
+                <audio id="autotunedAudioPlayer" controls style="width: 100%; border-radius: 4px; outline: none;"></audio>
+                <a id="autotunedDownloadLink" href="#" download="autotuned.wav" class="btn btn-secondary" style="margin-top: 0.5rem; width: 100%; text-align: center; display: inline-block;">
+                    <i class="fas fa-download"></i> Download Result
+                </a>
             </div>
         </div>
 
@@ -214,4 +295,269 @@
 
 {% block extra_js %}
 <script src="{% static 'js/audio_lab.js' %}"></script>
+<script>
+    // ============================================
+    // LAB RECORDING
+    // ============================================
+    let labMediaRecorder = null;
+    let labAudioChunks = [];
+    let labRecordingStream = null;
+    let labTimerInterval = null;
+    let labRecordingStartTime = 0;
+    let labRecordedBlob = null;
+    let labRecordAnimId = null;
+
+    function labSwitchTab(tab) {
+        const uploadTab = document.getElementById('labUploadTab');
+        const recordTab = document.getElementById('labRecordTab');
+        const btnUpload = document.getElementById('labTabUpload');
+        const btnRecord = document.getElementById('labTabRecord');
+
+        const activeStyle  = 'flex:1; padding: 0.7rem 1rem; border-radius: 8px; border: 1px solid rgba(167,139,250,0.3); background: rgba(167,139,250,0.12); color: #a78bfa; cursor: pointer; font-size: 0.9rem; transition: all 0.2s;';
+        const inactiveStyle = 'flex:1; padding: 0.7rem 1rem; border-radius: 8px; border: 1px solid rgba(167,139,250,0.15); background: transparent; color: #6b7280; cursor: pointer; font-size: 0.9rem; transition: all 0.2s;';
+
+        if (tab === 'upload') {
+            uploadTab.style.display = 'block';
+            recordTab.style.display = 'none';
+            btnUpload.style.cssText = activeStyle;
+            btnRecord.style.cssText = inactiveStyle;
+        } else {
+            uploadTab.style.display = 'none';
+            recordTab.style.display = 'block';
+            btnUpload.style.cssText = inactiveStyle;
+            btnRecord.style.cssText = activeStyle;
+        }
+    }
+
+    async function labStartRecording() {
+        try {
+            labRecordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            // Waveform visualizer
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const src = ctx.createMediaStreamSource(labRecordingStream);
+            const analyser = ctx.createAnalyser();
+            analyser.fftSize = 1024;
+            src.connect(analyser);
+            const canvas = document.getElementById('labRecordWaveform');
+            const cctx = canvas.getContext('2d');
+            const data = new Uint8Array(analyser.frequencyBinCount);
+
+            function drawWave() {
+                labRecordAnimId = requestAnimationFrame(drawWave);
+                analyser.getByteTimeDomainData(data);
+                cctx.fillStyle = 'rgba(15,10,26,0.5)';
+                cctx.fillRect(0, 0, canvas.width, canvas.height);
+                cctx.strokeStyle = '#a78bfa';
+                cctx.lineWidth = 2;
+                cctx.beginPath();
+                const slice = canvas.width / data.length;
+                let x = 0;
+                for (let i = 0; i < data.length; i++) {
+                    const y = (data[i] / 128.0) * canvas.height / 2;
+                    i === 0 ? cctx.moveTo(x, y) : cctx.lineTo(x, y);
+                    x += slice;
+                }
+                cctx.lineTo(canvas.width, canvas.height / 2);
+                cctx.stroke();
+            }
+            drawWave();
+
+            // MediaRecorder
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+            labMediaRecorder = new MediaRecorder(labRecordingStream, { mimeType });
+            labAudioChunks = [];
+            labMediaRecorder.ondataavailable = e => { if (e.data.size > 0) labAudioChunks.push(e.data); };
+            labMediaRecorder.onstop = async () => {
+                const rawBlob = new Blob(labAudioChunks, { type: mimeType });
+                let finalBlob = rawBlob;
+                try {
+                    const arrBuf = await rawBlob.arrayBuffer();
+                    const audioCtx2 = new (window.AudioContext || window.webkitAudioContext)();
+                    const audioBuf = await audioCtx2.decodeAudioData(arrBuf);
+                    finalBlob = labEncodeWav(audioBuf);
+                } catch(e) { console.warn('WAV encode failed, using raw blob:', e); }
+
+                labRecordedBlob = finalBlob;
+                const url = URL.createObjectURL(finalBlob);
+                document.getElementById('labPreviewPlayer').src = url;
+                document.getElementById('labRecordPreview').style.display = 'block';
+            };
+            labMediaRecorder.start();
+            labRecordingStartTime = Date.now();
+
+            // UI
+            document.getElementById('labStartRecordBtn').style.display = 'none';
+            document.getElementById('labStopRecordBtn').style.display = 'inline-block';
+            document.getElementById('labRecordTimer').style.display = 'inline-flex';
+            const status = document.getElementById('labRecordStatus');
+            status.innerHTML = '<i class="fas fa-circle" style="color:#ef4444;animation:pulse 1s infinite;"></i> <span style="color:#ef4444;">Recording...</span>';
+
+            labTimerInterval = setInterval(() => {
+                const sec = Math.floor((Date.now() - labRecordingStartTime) / 1000);
+                document.getElementById('labTimerDisplay').textContent =
+                    String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
+            }, 1000);
+
+        } catch(err) {
+            alert('Microphone access denied or unavailable.');
+            console.error(err);
+        }
+    }
+
+    function labStopRecording() {
+        if (labMediaRecorder && labMediaRecorder.state !== 'inactive') labMediaRecorder.stop();
+        if (labRecordingStream) labRecordingStream.getTracks().forEach(t => t.stop());
+        if (labRecordAnimId) cancelAnimationFrame(labRecordAnimId);
+        clearInterval(labTimerInterval);
+
+        document.getElementById('labStartRecordBtn').style.display = 'inline-block';
+        document.getElementById('labStopRecordBtn').style.display = 'none';
+        document.getElementById('labRecordTimer').style.display = 'none';
+        document.getElementById('labRecordStatus').innerHTML = '<i class="fas fa-check-circle" style="color:#10b981;"></i> <span>Recording complete — preview below</span>';
+    }
+
+    function labLoadRecordingIntoPlayer() {
+        if (!labRecordedBlob) return;
+        const ts = new Date().toISOString().slice(0,19).replace(/:/g,'-');
+        const file = new File([labRecordedBlob], `lab_recording_${ts}.wav`, { type: 'audio/wav' });
+        if (typeof handleFileUpload === 'function') {
+            handleFileUpload(file);
+            // also set labFileInput so autotune can find it
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            document.getElementById('labFileInput').files = dt.files;
+            // enable autotune button
+            const btn = document.getElementById('btnAutotune');
+            const sl  = document.getElementById('autotunePullSlider');
+            if (btn) btn.disabled = false;
+            if (sl)  sl.disabled  = false;
+            // switch back to upload tab for cleanliness
+            labSwitchTab('upload');
+            const fi = document.getElementById('labFileInfo');
+            if (fi) { fi.textContent = `Loaded: ${file.name}`; fi.style.display = 'block'; }
+        }
+    }
+
+    function labEncodeWav(buffer) {
+        const numCh = buffer.numberOfChannels, sr = buffer.sampleRate;
+        const length = buffer.length * numCh * 2 + 44;
+        const out = new DataView(new ArrayBuffer(length));
+        let pos = 0;
+        const u16 = v => { out.setUint16(pos, v, true); pos += 2; };
+        const u32 = v => { out.setUint32(pos, v, true); pos += 4; };
+        u32(0x46464952); u32(length - 8); u32(0x45564157);
+        u32(0x20746d66); u32(16); u16(1); u16(numCh);
+        u32(sr); u32(sr * 2 * numCh); u16(numCh * 2); u16(16);
+        u32(0x61746164); u32(length - pos - 4);
+        const ch = [];
+        for (let i = 0; i < numCh; i++) ch.push(buffer.getChannelData(i));
+        for (let i = 0; i < buffer.length; i++) {
+            for (let c = 0; c < numCh; c++) {
+                let s = Math.max(-1, Math.min(1, ch[c][i]));
+                s = (s < 0 ? s * 32768 : s * 32767) | 0;
+                out.setInt16(pos, s, true); pos += 2;
+            }
+        }
+        return new Blob([out], { type: 'audio/wav' });
+    }
+</script>
+<script>
+    // Bind slider value
+    const pullSlider = document.getElementById('autotunePullSlider');
+    const pullValue = document.getElementById('autotunePullValue');
+    const btnAutotune = document.getElementById('btnAutotune');
+    
+    if(pullSlider) {
+        pullSlider.addEventListener('input', (e) => {
+            pullValue.textContent = Math.round(e.target.value * 100) + '%';
+        });
+    }
+
+    // Enable button when file is loaded
+    const labFileInput = document.getElementById('labFileInput');
+    if (labFileInput) {
+        labFileInput.addEventListener('change', () => {
+            if (labFileInput.files.length > 0) {
+                if(btnAutotune) btnAutotune.disabled = false;
+                if(pullSlider) pullSlider.disabled = false;
+            }
+        });
+    }
+
+    async function applyBackendAutotune() {
+        // Find the currently loaded file from labFileInput or use recorded blob
+        const fileInput = document.getElementById('labFileInput');
+        let file = null;
+        
+        // Check if there is an uploaded file
+        if (fileInput && fileInput.files.length > 0) {
+            file = fileInput.files[0];
+        } 
+        // Fallback: check if recordedBlobUrl exists (meaning user just recorded audio)
+        else if (window.recordedBlobUrl) {
+            try {
+                const res = await fetch(window.recordedBlobUrl);
+                const blob = await res.blob();
+                file = new File([blob], 'recording.wav', { type: blob.type });
+            } catch (e) {
+                console.error("Error converting recorded blob:", e);
+            }
+        }
+
+        if (!file) {
+            alert('Please load or record an audio file first!');
+            return;
+        }
+
+        const pull = document.getElementById('autotunePullSlider').value;
+        const btn = document.getElementById('btnAutotune');
+        const loader = document.getElementById('autotuneLoading');
+
+        btn.disabled = true;
+        loader.style.display = 'block';
+
+        const formData = new FormData();
+        formData.append('audio', file);
+        formData.append('pull', pull);
+
+        try {
+            const response = await fetch('/api/autotune/', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                // Fetch the autotuned file
+                const audioRes = await fetch(data.autotuned_url);
+                const blob = await audioRes.blob();
+                const objectUrl = URL.createObjectURL(blob);
+                
+                // Show result player instead of overriding main lab player
+                const resultDiv = document.getElementById('autotuneResult');
+                const player = document.getElementById('autotunedAudioPlayer');
+                const dlLink = document.getElementById('autotunedDownloadLink');
+                
+                if (resultDiv && player && dlLink) {
+                    player.src = objectUrl;
+                    dlLink.href = objectUrl;
+                    resultDiv.style.display = 'block';
+                }
+                
+                // Show success message
+                const statusEl = document.getElementById('audioStatus');
+                if(statusEl) statusEl.innerHTML = '<i class="fas fa-check-circle" style="color: #10b981;"></i> Autotune Applied Successfully!';
+            } else {
+                alert('Autotune failed: ' + data.error);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('An error occurred during autotuning.');
+        } finally {
+            btn.disabled = false;
+            loader.style.display = 'none';
+        }
+    }
+</script>
 {% endblock %}
