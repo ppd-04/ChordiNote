@@ -5,6 +5,22 @@
 
 {% block content %}
 
+<!-- Custom Styling for Timeline and Active Blocks -->
+<style>
+    .active-timeline-block {
+        border-color: #c084fc !important;
+        background: rgba(167, 139, 250, 0.25) !important;
+        box-shadow: 0 0 15px rgba(167, 139, 250, 0.45) !important;
+        transform: scale(1.05);
+        transition: all 0.2s ease;
+    }
+    .chord-timeline {
+        overflow-x: auto;
+        padding: 1rem 0;
+        scroll-behavior: smooth;
+    }
+</style>
+
 {% if viz_data %}
 <script id="viz-data-json" type="application/json">{{ viz_data|safe }}</script>
 {% endif %}
@@ -50,25 +66,19 @@
 <script id="chords-data-json" type="application/json">{{ chords_json|safe }}</script>
 {% endif %}
 
-    <!-- AUDIO PLAYERS -->
         <!-- AUDIO PLAYERS -->
     <div class="audio-players reveal">
         <!-- 1. Original Audio Player -->
         <div class="player-card">
             <h3><i class="fas fa-file-audio"></i> Original Audio</h3>
-            <audio controls class="audio-player">
-                <source src="{{ original_url }}" type="audio/mpeg">
-                <source src="{{ original_url }}" type="audio/wav">
-            </audio>
+            <audio controls preload="auto" class="audio-player" src="{% if filename %}{% url 'stream_audio' filename %}{% else %}{{ original_url }}{% endif %}"></audio>
         </div>
 
         <!-- 2. Instrumental Track Player (Vocals Removed) -->
         {% if has_karaoke %}
         <div class="player-card karaoke-card">
             <h3><i class="fas fa-microphone-slash"></i> Instrumental (Vocals Removed)</h3>
-            <audio controls class="audio-player">
-                <source src="{{ instrumental_url }}" type="audio/wav">
-            </audio>
+            <audio controls preload="auto" class="audio-player" src="{{ instrumental_url }}"></audio>
             <p class="player-hint">
                 Vocals suppressed using {{ karaoke_method_used }} method.
                 All pitch detections were performed on this track.
@@ -78,9 +88,7 @@
         <!-- 3. Isolated Vocal Track Player (Voice Only) -->
         <div class="player-card vocal-extract-card">
             <h3><i class="fas fa-microphone"></i> Extracted Vocals (Voice Only)</h3>
-            <audio controls class="audio-player">
-                <source src="{{ vocal_url }}" type="audio/wav">
-            </audio>
+            <audio controls preload="auto" class="audio-player" src="{{ vocal_url }}"></audio>
             <p class="player-hint">
                 Isolated vocal frequencies extracted using {{ karaoke_method_used }} method.
             </p>
@@ -91,9 +99,7 @@
         {% if has_reconstruction %}
         <div class="player-card">
             <h3><i class="fas fa-wand-magic-sparkles"></i> Full Reconstruction</h3>
-            <audio id="reconstructedAudio" controls class="audio-player">
-                <source src="{{ reconstructed_url }}" type="audio/wav">
-            </audio>
+            <audio id="reconstructedAudio" controls preload="auto" class="audio-player" src="{{ reconstructed_url }}"></audio>
             <p class="player-hint">All detected notes including chords and bass</p>
         </div>
         {% endif %}
@@ -102,9 +108,7 @@
         {% if has_melody %}
         <div class="player-card melody-card">
             <h3><i class="fas fa-music"></i> Core Melody</h3>
-            <audio controls class="audio-player">
-                <source src="{{ melody_url }}" type="audio/wav">
-            </audio>
+            <audio controls preload="auto" class="audio-player" src="{{ melody_url }}"></audio>
             <p class="player-hint">Single-note melody line extracted from the detection</p>
         </div>
         {% endif %}
@@ -311,7 +315,7 @@
 
     <!-- Script CDN for ABCJS and html2pdf -->
     <script src="https://cdn.jsdelivr.net/npm/abcjs@6.4.4/dist/abcjs-basic-min.js"></script>
-    <script src="https://cdnjs.cloudflare.net/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <script id="sheet-abc-data" type="text/plain">{{ sheet_abc|safe }}</script>
     <script>
@@ -457,129 +461,24 @@
     }
     </script>
 
-
-
-    <!-- ML CHORD CLASSIFICATION SECTION -->
-
-    {% if chord_analysis %}
-    {{ chord_analysis|json_script:"chord-analysis-data" }}
-
-    <div class="chord-ml-section reveal">
-        <h2 class="section-title"><span class="gradient-text">Chord Detection: DSP vs ML</span></h2>
-        <p class="section-subtitle">
-            Comparing template matching (classical DSP) with KNN classifier (machine learning)
-        </p>
-
-        <div class="ml-stats-row" id="mlStatsRow"></div>
-
-        <div class="table-container">
-            <table class="notes-table">
-                <thead>
-                    <tr>
-                        <th>Time</th>
-                        <th>Template Match</th>
-                        <th>Confidence</th>
-                        <th>ML (KNN)</th>
-                        <th>Confidence</th>
-                        <th>ML Top 3</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="chordTableBody"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <script>
-    (function() {
-        try {
-            var dataEl = document.getElementById('chord-analysis-data');
-            if (!dataEl) {
-                console.error('chord-analysis-data element not found');
-                return;
-            }
-
-            var chordData = JSON.parse(dataEl.textContent);
-            if (!chordData || !chordData.segments) {
-                console.error('Invalid chord data');
-                return;
-            }
-
-            // Stats
-            var statsRow = document.getElementById('mlStatsRow');
-            statsRow.innerHTML =
-                '<div class="stat-card">' +
-                    '<div class="stat-number">' + (chordData.agreement_rate * 100).toFixed(0) + '%</div>' +
-                    '<div class="stat-label">Methods Agree</div>' +
-                '</div>' +
-                '<div class="stat-card">' +
-                    '<div class="stat-number">' + (chordData.ml_avg_confidence * 100).toFixed(0) + '%</div>' +
-                    '<div class="stat-label">ML Avg Confidence</div>' +
-                '</div>' +
-                '<div class="stat-card">' +
-                    '<div class="stat-number">' + (chordData.template_avg_confidence * 100).toFixed(0) + '%</div>' +
-                    '<div class="stat-label">Template Avg Confidence</div>' +
-                '</div>' +
-                '<div class="stat-card">' +
-                    '<div class="stat-number">' + chordData.total_segments + '</div>' +
-                    '<div class="stat-label">Segments Analyzed</div>' +
-                '</div>';
-
-            // Table rows
-            var tbody = document.getElementById('chordTableBody');
-            var html = '';
-
-            for (var i = 0; i < chordData.segments.length; i++) {
-                var seg = chordData.segments[i];
-                var rowClass = seg.agree ? 'review-correct' : 'review-wrong';
-                var icon = seg.agree ? '✅' : '⚠️';
-
-                var top3Parts = [];
-                for (var chord in seg.ml_top3) {
-                    top3Parts.push(chord + ' ' + (seg.ml_top3[chord] * 100).toFixed(0) + '%');
-                }
-                var top3Str = top3Parts.join(', ');
-
-                html += '<tr class="' + rowClass + '">' +
-                    '<td>' + seg.time + '</td>' +
-                    '<td><span class="note-badge">' + seg.template_chord + '</span></td>' +
-                    '<td>' + (seg.template_confidence * 100).toFixed(0) + '%</td>' +
-                    '<td><span class="note-badge">' + seg.ml_chord + '</span></td>' +
-                    '<td>' + (seg.ml_confidence * 100).toFixed(0) + '%</td>' +
-                    '<td style="font-size:0.8rem;color:var(--text-secondary)">' + top3Str + '</td>' +
-                    '<td>' + icon + '</td>' +
-                '</tr>';
-            }
-
-            tbody.innerHTML = html;
-
-        } catch (e) {
-            console.error('Chord ML rendering error:', e);
-        }
-    })();
-    </script>
-    {% endif %}
-
     <!-- NOTE TIMELINE VISUALIZATION -->
     <div class="timeline-section reveal">
-        <h2 class="section-title"><span class="gradient-text">Note Timeline</span></h2>
+        <h2 class="section-title"><span class="gradient-text">Chord Timeline</span></h2>
         <div class="chord-timeline">
             <div class="timeline-track" id="timelineTrack">
-                {% for note in notes %}
-                {% if note.note != "REST" %}
+                {% for chord_item in chord_timeline %}
                 <div class="chord-block clickable-note" 
-                     title="{{ note.timestamp }} | {{ note.frequency }}"
-                     onclick="playDetectedNote('{{ note.note }}')">
-                    <div class="chord-name">{{ note.note }}</div>
-                    <div class="chord-type">{{ note.frequency }}</div>
-                    <div class="chord-time">{{ note.timestamp }}</div>
+                     title="{{ chord_item.start }}s - {{ chord_item.end }}s"
+                     onclick="playDetectedChord('{{ chord_item.chord }}', {{ chord_item.start }})">
+                    <div class="chord-name">{{ chord_item.chord }}</div>
+                    <div class="chord-type">Chord Block</div>
+                    <div class="chord-time">{{ chord_item.start }}s - {{ chord_item.end }}s</div>
                 </div>
-                {% else %}
-                <div class="chord-block rest-block" title="Silence">
+                {% empty %}
+                <div class="chord-block rest-block" title="No chords detected">
                     <div class="chord-name rest">—</div>
-                    <div class="chord-time">{{ note.timestamp }}</div>
+                    <div class="chord-time">0.0s</div>
                 </div>
-                {% endif %}
                 {% endfor %}
             </div>
         </div>
@@ -620,6 +519,7 @@
             </table>
         </div>
     </div>
+   
 
     <!-- DSP VISUALIZATIONS SECTION -->
     {% if viz_data %}
@@ -825,6 +725,37 @@
         return noteName.trim().replace(/♯/g, '#').replace(/♭/g, 'b');
     }
 
+    // =========================================================
+    // IN-MEMORY BLOB LOADER: ENABLES 100% SMOOTH SCRUBBING
+    // =========================================================
+    async function makeAudioPlayersScrubbable() {
+        const audioPlayers = document.querySelectorAll('audio.audio-player');
+        
+        for (const player of audioPlayers) {
+            let sourceUrl = player.getAttribute('src');
+            if (sourceUrl && !sourceUrl.startsWith('blob:') && !sourceUrl.startsWith('data:')) {
+                try {
+                    const response = await fetch(sourceUrl);
+                    if (response.ok) {
+                        const blob = await response.blob();
+                        const blobUrl = URL.createObjectURL(blob);
+                        
+                        const curTime = player.currentTime;
+                        const wasPaused = player.paused;
+
+                        player.src = blobUrl;
+                        player.currentTime = curTime;
+                        if (!wasPaused) player.play();
+                        
+                        console.log('✅ Local Blob Preloaded successfully for scrubbing:', sourceUrl);
+                    }
+                } catch (e) {
+                    console.warn('Could not preload audio into blob:', e);
+                }
+            }
+        }
+    }
+
     // Initialize piano + fretboard and process notes data when page loads
     function initResultsPiano() {
         console.log('🎹 Building results piano + 🎸 fretboard...');
@@ -887,7 +818,6 @@
             }
         }
 
-        // Auto-attach audio event listeners to all audio players on page
         document.querySelectorAll('audio.audio-player').forEach(audio => {
             audio.addEventListener('play', function() {
                 // Pause other audio elements
@@ -896,17 +826,35 @@
                 });
                 startVisualPianoSync(audio);
             });
+
+            audio.addEventListener('seeking', function() {
+                updateChordDisplay(this.currentTime);
+                highlightTimelineBlock(this.currentTime);
+            });
+
+            audio.addEventListener('seeked', function() {
+                updateChordDisplay(this.currentTime);
+                highlightTimelineBlock(this.currentTime);
+                if (!this.paused) {
+                    startVisualPianoSync(this);
+                }
+            });
+
             audio.addEventListener('pause', function() {
-                if (currentSyncAudio === audio && !isVisualPlaybackActive) {
+                if (currentSyncAudio === audio && !isVisualPlaybackActive && !audio.seeking) {
                     stopVisualPianoSync();
                 }
             });
+
             audio.addEventListener('ended', function() {
                 if (currentSyncAudio === audio) {
                     stopVisualPianoSync();
                 }
             });
         });
+
+        // Trigger conversion to local memory blobs for perfect scrubbing
+        makeAudioPlayersScrubbable();
     }
 
     function updateChordDisplay(currentTime) {
@@ -921,6 +869,31 @@
         } else {
             label.textContent = '—';
         }
+    }
+
+    // Highlight timeline block dynamically during playback
+    function highlightTimelineBlock(currentTime) {
+        const blocks = document.querySelectorAll('#timelineTrack .chord-block');
+        blocks.forEach(block => {
+            block.classList.remove('active-timeline-block');
+            const title = block.getAttribute('title');
+            if (title) {
+                const times = title.replace(/s/g, '').split('-').map(parseFloat);
+                if (times.length === 2 && currentTime >= times[0] && currentTime < times[1]) {
+                    block.classList.add('active-timeline-block');
+                    const track = document.getElementById('timelineTrack');
+                    const container = track.parentElement;
+                    if (container) {
+                        const blockLeft = block.offsetLeft;
+                        const containerWidth = container.clientWidth;
+                        container.scrollTo({ 
+                            left: blockLeft - (containerWidth / 2) + (block.clientWidth / 2), 
+                            behavior: 'smooth' 
+                        });
+                    }
+                }
+            }
+        });
     }
 
     // Highlight specific note keys on #resultsPiano with auto-scroll
@@ -1043,6 +1016,7 @@
             }
 
             updateChordDisplay(currentTime);
+            highlightTimelineBlock(currentTime);
             animFrameId = requestAnimationFrame(syncLoop);
         }
 
@@ -1064,6 +1038,10 @@
         const display = document.getElementById('liveChordDisplay');
         if (display) display.style.display = 'none';
 
+        // Clear timeline highlights
+        const blocks = document.querySelectorAll('#timelineTrack .chord-block');
+        blocks.forEach(block => block.classList.remove('active-timeline-block'));
+
         document.querySelectorAll('.btn-visual-piano').forEach(btn => {
             btn.classList.remove('active');
             const lbl = document.getElementById('vizPlayLabel');
@@ -1071,6 +1049,67 @@
             if (lbl) lbl.textContent = activeInstrumentView === 'guitar' ? 'Play on Guitar View' : 'Play on Visual Piano';
         });
     }
+
+    // Play chord from timeline block and sync player
+    window.playDetectedChord = function(chordName, startTime) {
+        if (!chordName || chordName === 'N/A' || chordName === 'REST' || chordName === '—') return;
+
+        // Seek active audio player to start time
+        const audios = document.querySelectorAll('audio.audio-player');
+        audios.forEach(audio => {
+            if (!audio.paused) {
+                audio.currentTime = startTime;
+            }
+        });
+
+        // Parse chord into key formulas for synthesis
+        const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const enharmonics = {'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'};
+
+        let root = '';
+        let quality = 'maj'; 
+
+        if (chordName.length >= 2 && (chordName[1] === '#' || chordName[1] === 'b')) {
+            root = chordName.slice(0, 2);
+            quality = chordName.slice(2);
+        } else if (chordName.length >= 1) {
+            root = chordName.slice(0, 1);
+            quality = chordName.slice(1);
+        }
+
+        if (enharmonics[root]) root = enharmonics[root];
+        const rootIdx = notes.indexOf(root);
+        if (rootIdx === -1) return;
+
+        let intervals = [0, 4, 7]; 
+        const qLower = quality.toLowerCase();
+        if (qLower.includes('min') || qLower.includes('m') && !qLower.includes('maj')) {
+            intervals = [0, 3, 7];
+        }
+        if (qLower.includes('dim')) {
+            intervals = [0, 3, 6];
+        }
+        if (qLower.includes('7')) {
+            if (qLower.includes('maj')) intervals = [0, 4, 7, 11];
+            else if (qLower.includes('min') || qLower.includes('m')) intervals = [0, 3, 7, 10];
+            else intervals = [0, 4, 7, 10]; 
+        }
+
+        const targetNotes = intervals.map(interval => {
+            const noteIdx = (rootIdx + interval) % 12;
+            const octave = 4 + Math.floor((rootIdx + interval) / 12);
+            return notes[noteIdx] + octave;
+        });
+
+        playPianoNotes(targetNotes, "1n", 0.8);
+        highlightKeysOnResultsPiano(targetNotes);
+
+        setTimeout(() => {
+            if (!currentSyncAudio || currentSyncAudio.paused) {
+                highlightKeysOnResultsPiano([]);
+            }
+        }, 1000);
+    };
 
     // Play note or chord when clicked from detection results table
     window.playDetectedNote = function(noteName) {

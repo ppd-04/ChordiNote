@@ -308,6 +308,7 @@ def upload_audio(request):
                 'karaoke_method_used': karaoke_method if karaoke_success else None,
                 'notes_json': json.dumps(detected_notes),
                 'chords_json': json.dumps(note_chords),
+                'chord_timeline': note_chords,
                 'viz_data' : json.dumps(viz_data) if viz_data else None,
                 'chord_analysis' : chord_analysis,
                 'musical_key': musical_key,
@@ -385,6 +386,71 @@ def metronome(request):
 
 def guitar(request):
     return render(request, 'detector/guitar.html')
+
+
+def serve_audio_ranged(request, filename):
+    """
+    Serves media audio files with HTTP 206 Partial Content (Byte Ranges)
+    so browsers (Chrome/Safari/Firefox) can seek and scrub smoothly.
+    """
+    file_path = os.path.join(settings.MEDIA_ROOT, 'uploads', filename)
+    if not os.path.exists(file_path):
+        raise Http404("Audio file not found")
+
+    file_size = os.path.getsize(file_path)
+    content_type, _ = mimetypes.guess_type(file_path)
+    content_type = content_type or 'audio/wav'
+
+    range_header = request.META.get('HTTP_RANGE', '').strip()
+    range_match = None
+
+    if range_header.startswith('bytes='):
+        range_str = range_header.split('=')[1]
+        parts = range_str.split('-')
+        start = int(parts[0]) if parts[0] else 0
+        end = int(parts[1]) if len(parts) > 1 and parts[1] else file_size - 1
+        start = max(0, start)
+        end = min(file_size - 1, end)
+        length = end - start + 1
+
+        def file_iterator(path, offset, length, chunk_size=8192):
+            with open(path, 'rb') as f:
+                f.seek(offset)
+                remaining = length
+                while remaining > 0:
+                    read_bytes = min(remaining, chunk_size)
+                    data = f.read(read_bytes)
+                    if not data:
+                        break
+                    remaining -= len(data)
+                    yield data
+
+        response = StreamingHttpResponse(
+            file_iterator(file_path, start, length),
+            status=206,
+            content_type=content_type
+        )
+        response['Content-Range'] = f'bytes {start}-{end}/{file_size}'
+        response['Content-Length'] = str(length)
+    else:
+        def full_file_iterator(path, chunk_size=8192):
+            with open(path, 'rb') as f:
+                while True:
+                    data = f.read(chunk_size)
+                    if not data:
+                        break
+                    yield data
+
+        response = StreamingHttpResponse(
+            full_file_iterator(file_path),
+            status=200,
+            content_type=content_type
+        )
+        response['Content-Length'] = str(file_size)
+
+    response['Accept-Ranges'] = 'bytes'
+    return response
+
 
 # import os
 # import json

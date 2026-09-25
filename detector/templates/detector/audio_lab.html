@@ -107,13 +107,23 @@
             <i class="fas fa-undo"></i> Reset
         </button>
 
-        <!-- NEW: Live Recording & Download -->
-        <button class="btn btn-danger" id="recordBtn" onclick="toggleRecording()" disabled>
-            <i class="fas fa-circle"></i> <span id="recordBtnText">Record</span>
-        </button>
-        <button class="btn btn-secondary" id="downloadBtn" onclick="downloadRecording()" disabled>
-            <i class="fas fa-download"></i> Download
-        </button>
+        <div class="lab-record-controls" style="display: flex; gap: 10px; align-items: center; margin-top: 15px;">
+            <!-- RECORD BUTTON -->
+            <button class="btn btn-danger" id="recordBtn" onclick="toggleRecording()" disabled>
+                <i class="fas fa-circle"></i> <span id="recordBtnText">Record</span>
+            </button>
+
+            <!-- DOWNLOAD BUTTON -->
+            <button class="btn btn-secondary" id="downloadBtn" onclick="downloadRecording()" disabled>
+                <i class="fas fa-download"></i> Download
+            </button>
+
+            <!-- LIVE RECORDING STATUS BADGE -->
+            <div id="recordingStatus" style="display: none; align-items: center; gap: 8px; color: #ef4444; font-weight: 600; font-size: 0.9rem;">
+                <i class="fas fa-circle" style="animation: pulse 1s infinite;"></i>
+                <span id="recordingTime">Recording: 00:00</span>
+            </div>
+        </div>
 
         <div class="audio-status" id="audioStatus">Load an audio file to start</div>
     </div>

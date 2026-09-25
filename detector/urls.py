@@ -17,6 +17,7 @@ urlpatterns = [
     path('tuner/', views.tuner, name='tuner'),
     path('metronome/', views.metronome, name='metronome'),
     path('guitar/', views.guitar, name='guitar'),
+    path('stream-audio/<str:filename>/', views.serve_audio_ranged, name='stream_audio'),
 ]
     # '' mane root, keu root url call korle home function call hobe
     # upload url call korle upload_audio function call hobe

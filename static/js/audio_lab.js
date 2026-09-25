@@ -1,9 +1,7 @@
-
-
 /**
  * ChordSense Audio Lab Engine
  * Complete real-time browser audio processing with Scrubbing support
- * NOW WITH: Live Recording + Download + Fixed Autotuner
+ * NOW WITH: Bulletproof Live Recording + Download + Fixed Autotuner
  */
 
 let player = null;
@@ -75,7 +73,6 @@ function initEffects() {
         compressor = new Tone.Compressor({ threshold: -24, ratio: 4 });
         masterVolume = new Tone.Volume(0);
         
-        // Positional syntax works on all Tone.js versions
         analyser = new Tone.Analyser("waveform", 1024);
         pitchAnalyser = new Tone.Analyser("waveform", 2048);
 
@@ -93,15 +90,33 @@ function initEffects() {
             Tone.Destination
         );
 
-        // Create a recording destination — captures the entire processed audio
-        // This connects AFTER all effects, so recording includes EVERYTHING
-        recordingDestination = Tone.context.createMediaStreamDestination();
-        masterVolume.connect(recordingDestination);
+        // CREATE MEDIA STREAM DESTINATION FOR RECORDING
+        setupRecordingDestination();
 
         effectsInitialized = true;
         console.log("🎛️ Audio Lab effects chain connected successfully.");
     } catch (err) {
         console.error("Failed to init effects chain:", err);
+    }
+}
+
+function setupRecordingDestination() {
+    try {
+        const rawCtx = Tone.context.rawContext || Tone.context._context || Tone.context;
+        if (rawCtx && typeof rawCtx.createMediaStreamDestination === 'function') {
+            recordingDestination = rawCtx.createMediaStreamDestination();
+        }
+
+        if (recordingDestination && masterVolume) {
+            // Connect native node via output
+            if (masterVolume.output && typeof masterVolume.output.connect === 'function') {
+                masterVolume.output.connect(recordingDestination);
+            } else if (typeof masterVolume.connect === 'function') {
+                masterVolume.connect(recordingDestination);
+            }
+        }
+    } catch (e) {
+        console.warn("MediaStream destination setup warning:", e);
     }
 }
 
@@ -192,14 +207,15 @@ function enableAllControls() {
     const timeline = document.getElementById('timelineSlider');
     const recordBtn = document.getElementById('recordBtn');
     
-    if (playBtn) { playBtn.disabled = false; playBtn.style.opacity = '1'; playBtn.style.cursor = 'pointer'; }
-    if (stopBtn) { stopBtn.disabled = false; stopBtn.style.opacity = '1'; stopBtn.style.cursor = 'pointer'; }
-    if (loopBtn) { loopBtn.disabled = false; loopBtn.style.opacity = '1'; loopBtn.style.cursor = 'pointer'; }
-    if (timeline) { timeline.disabled = false; timeline.style.opacity = '1'; timeline.style.cursor = 'pointer'; }
-    if (recordBtn) { recordBtn.disabled = false; recordBtn.style.opacity = '1'; recordBtn.style.cursor = 'pointer'; }
+    if (playBtn) { playBtn.disabled = false; playBtn.removeAttribute('disabled'); playBtn.style.opacity = '1'; playBtn.style.cursor = 'pointer'; }
+    if (stopBtn) { stopBtn.disabled = false; stopBtn.removeAttribute('disabled'); stopBtn.style.opacity = '1'; stopBtn.style.cursor = 'pointer'; }
+    if (loopBtn) { loopBtn.disabled = false; loopBtn.removeAttribute('disabled'); loopBtn.style.opacity = '1'; loopBtn.style.cursor = 'pointer'; }
+    if (timeline) { timeline.disabled = false; timeline.removeAttribute('disabled'); timeline.style.opacity = '1'; timeline.style.cursor = 'pointer'; }
+    if (recordBtn) { recordBtn.disabled = false; recordBtn.removeAttribute('disabled'); recordBtn.style.opacity = '1'; recordBtn.style.cursor = 'pointer'; }
 
     document.querySelectorAll('.lab-slider').forEach(slider => {
         slider.disabled = false;
+        slider.removeAttribute('disabled');
         slider.style.opacity = '1';
         slider.style.cursor = 'pointer';
     });
@@ -278,7 +294,10 @@ function getElapsedTime() {
             playOffset = 0;
             return 0;
         } else {
-            setTimeout(() => { stopAudio(); }, 10);
+            setTimeout(() => { 
+                stopAudio(); 
+                if (isRecording) stopRecording();
+            }, 10);
             return player.buffer.duration;
         }
     }
@@ -444,14 +463,11 @@ function updateLabel(id, text) {
 }
 
 // ============================================
-// 4B. AUTOTUNER DSP LOGIC (FIXED)
+// 4B. AUTOTUNER DSP LOGIC
 // ============================================
-
 function toggleAutotune(enabled) {
     isAutotuneEnabled = enabled;
     const controls = document.getElementById('autotuneControls');
-    
-    console.log('🎤 Autotune toggled:', enabled);
     
     if (controls) {
         controls.style.opacity = enabled ? '1' : '0.3';
@@ -473,16 +489,8 @@ function toggleAutotune(enabled) {
     }
 }
 
-function setAutotuneKey(val) {
-    autotuneKey = val;
-    console.log('🎼 Key changed to:', val);
-}
-
-function setAutotuneScale(val) {
-    autotuneScale = val;
-    console.log('🎼 Scale changed to:', val);
-}
-
+function setAutotuneKey(val) { autotuneKey = val; }
+function setAutotuneScale(val) { autotuneScale = val; }
 function setAutotuneSpeed(val) {
     autotuneSpeed = parseFloat(val) / 100;
     updateLabel('autotuneSpeedValue', `${val}%`);
@@ -491,30 +499,22 @@ function setAutotuneSpeed(val) {
 function detectVocalPitch(buffer, sampleRate) {
     const SIZE = buffer.length;
     let rms = 0;
-    for (let i = 0; i < SIZE; i++) {
-        rms += buffer[i] * buffer[i];
-    }
+    for (let i = 0; i < SIZE; i++) rms += buffer[i] * buffer[i];
     rms = Math.sqrt(rms / SIZE);
-
     if (rms < 0.015) return -1;
 
     const correlations = new Float32Array(SIZE);
     for (let lag = 0; lag < SIZE; lag++) {
         let sum = 0;
-        for (let i = 0; i < SIZE - lag; i++) {
-            sum += buffer[i] * buffer[i + lag];
-        }
+        for (let i = 0; i < SIZE - lag; i++) sum += buffer[i] * buffer[i + lag];
         correlations[lag] = sum;
     }
 
     let d = 0;
-    while (d < SIZE && correlations[d] > correlations[d + 1]) {
-        d++;
-    }
+    while (d < SIZE && correlations[d] > correlations[d + 1]) d++;
 
     let maxVal = -1;
     let maxPos = -1;
-
     const minLag = Math.floor(sampleRate / 800);
     const maxLag = Math.floor(sampleRate / 60);
 
@@ -533,9 +533,7 @@ function detectVocalPitch(buffer, sampleRate) {
         const curr = correlations[maxPos];
         const next = correlations[maxPos + 1];
         const denominator = 2 * (2 * curr - prev - next);
-        if (denominator !== 0) {
-            refinedLag = maxPos + (prev - next) / denominator;
-        }
+        if (denominator !== 0) refinedLag = maxPos + (prev - next) / denominator;
     }
 
     return sampleRate / refinedLag;
@@ -582,7 +580,6 @@ function processAutotune() {
     if (freq > 60 && freq < 800) {
         const currentMidi = 69 + 12 * Math.log2(freq / 440.0);
         const targetMidi = snapToScale(currentMidi, autotuneKey, autotuneScale);
-        
         const targetError = targetMidi - currentMidi;
         
         const speedSlider = document.getElementById('autotuneSpeedSlider');
@@ -591,10 +588,7 @@ function processAutotune() {
         
         currentAutotuneCorrection += (targetError - currentAutotuneCorrection) * lerpFactor;
 
-        if (pitchShift) {
-            pitchShift.pitch = currentAutotuneCorrection;
-        }
-
+        if (pitchShift) pitchShift.pitch = currentAutotuneCorrection;
         if (noteDisplay) noteDisplay.textContent = midiToNoteName(currentMidi);
         if (targetDisplay) targetDisplay.textContent = midiToNoteName(targetMidi);
         if (meter) {
@@ -604,7 +598,6 @@ function processAutotune() {
     } else {
         currentAutotuneCorrection += (0 - currentAutotuneCorrection) * 0.15;
         if (pitchShift) pitchShift.pitch = currentAutotuneCorrection;
-        
         if (noteDisplay) noteDisplay.textContent = '—';
         if (targetDisplay) targetDisplay.textContent = '—';
         if (meter) meter.style.left = '50%';
@@ -612,19 +605,10 @@ function processAutotune() {
 }
 
 // ============================================
-// 4C. LIVE RECORDING & DOWNLOAD (NEW)
+// 4C. LIVE RECORDING & DOWNLOAD SYSTEM (RELOAD PROOF)
 // ============================================
 
-/**
- * Toggle recording on/off.
- * 
- * How it works:
- * 1. We create a MediaStreamDestination from Tone's Web Audio context
- * 2. This destination receives the FULL processed audio (all effects applied)
- * 3. MediaRecorder captures this stream as webm/opus
- * 4. When stopped, we save it as a downloadable blob
- */
-async function toggleRecording() {
+window.toggleRecording = async function() {
     if (!audioLoaded) {
         alert('Please load an audio file first!');
         return;
@@ -635,78 +619,78 @@ async function toggleRecording() {
     } else {
         await startRecording();
     }
-}
+};
 
 async function startRecording() {
-    if (!recordingDestination) {
-        alert('Recording system not initialized. Try reloading the page.');
+    if (Tone.context.state !== 'running') {
+        await Tone.start();
+    }
+
+    setupRecordingDestination();
+
+    if (!recordingDestination || !recordingDestination.stream) {
+        alert('Recording stream is not available in your browser.');
         return;
     }
 
     try {
         recordedChunks = [];
         
-        // Try different MIME types for compatibility
         const mimeTypes = [
             'audio/webm;codecs=opus',
             'audio/webm',
             'audio/mp4',
-            'audio/ogg;codecs=opus',
+            'audio/aac',
+            'audio/ogg;codecs=opus'
         ];
         
         let selectedMimeType = '';
         for (const mimeType of mimeTypes) {
-            if (MediaRecorder.isTypeSupported(mimeType)) {
+            if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(mimeType)) {
                 selectedMimeType = mimeType;
                 break;
             }
         }
-        
-        if (!selectedMimeType) {
-            alert('Your browser does not support audio recording.');
-            return;
-        }
 
-        mediaRecorder = new MediaRecorder(recordingDestination.stream, {
-            mimeType: selectedMimeType,
-            audioBitsPerSecond: 128000,
-        });
+        const options = selectedMimeType ? { mimeType: selectedMimeType } : {};
+        mediaRecorder = new MediaRecorder(recordingDestination.stream, options);
 
         mediaRecorder.ondataavailable = (event) => {
-            if (event.data.size > 0) {
+            if (event.data && event.data.size > 0) {
                 recordedChunks.push(event.data);
             }
         };
 
         mediaRecorder.onstop = () => {
-            // Combine all chunks into a single blob
-            const blob = new Blob(recordedChunks, { type: selectedMimeType });
+            const blobType = selectedMimeType || 'audio/webm';
+            const blob = new Blob(recordedChunks, { type: blobType });
             
-            // Clean up previous blob URL if exists
             if (recordedBlobUrl) {
                 URL.revokeObjectURL(recordedBlobUrl);
             }
             
             recordedBlobUrl = URL.createObjectURL(blob);
             
-            // Enable download button
+            // UNLOCK DOWNLOAD BUTTON COMPLETELY
             const downloadBtn = document.getElementById('downloadBtn');
             if (downloadBtn) {
                 downloadBtn.disabled = false;
+                downloadBtn.removeAttribute('disabled');
                 downloadBtn.style.opacity = '1';
                 downloadBtn.style.cursor = 'pointer';
-                downloadBtn.classList.add('has-recording');
+                downloadBtn.style.pointerEvents = 'auto';
+                downloadBtn.classList.remove('btn-secondary');
+                downloadBtn.classList.add('btn-primary');
             }
             
-            console.log('🎙️ Recording saved:', (blob.size / 1024).toFixed(2), 'KB');
+            console.log('🎙️ Recording finished! Blob size:', (blob.size / 1024).toFixed(2), 'KB');
         };
 
-        // Start recording (capture data every 100ms)
         mediaRecorder.start(100);
         isRecording = true;
         recordingStartTime = Date.now();
 
-        // Update UI
+        // UI updates
         const recordBtn = document.getElementById('recordBtn');
         const recordBtnText = document.getElementById('recordBtnText');
         const statusBar = document.getElementById('recordingStatus');
@@ -715,16 +699,14 @@ async function startRecording() {
         if (recordBtnText) recordBtnText.textContent = 'Stop Recording';
         if (statusBar) statusBar.style.display = 'flex';
 
-        // Update timer display
         updateRecordingTimer();
         recordingTimerInterval = setInterval(updateRecordingTimer, 1000);
 
-        // Auto-start playback if not already playing
         if (!isPlaying) {
             togglePlay();
         }
 
-        console.log('🎙️ Recording started with codec:', selectedMimeType);
+        console.log('🎙️ Recording in progress...');
 
     } catch (err) {
         console.error('Recording error:', err);
@@ -738,7 +720,7 @@ function stopRecording() {
     mediaRecorder.stop();
     isRecording = false;
 
-    // Update UI
+    // UI updates
     const recordBtn = document.getElementById('recordBtn');
     const recordBtnText = document.getElementById('recordBtnText');
     const statusBar = document.getElementById('recordingStatus');
@@ -747,10 +729,8 @@ function stopRecording() {
     if (recordBtnText) recordBtnText.textContent = 'Record';
     if (statusBar) statusBar.style.display = 'none';
 
-    // Stop timer
     clearInterval(recordingTimerInterval);
-
-    console.log('🎙️ Recording stopped');
+    console.log('🎙️ Recording stopped, generating download...');
 }
 
 function updateRecordingTimer() {
@@ -762,31 +742,40 @@ function updateRecordingTimer() {
     if (timeEl) timeEl.textContent = `Recording: ${minutes}:${seconds}`;
 }
 
-function downloadRecording() {
+window.downloadRecording = function() {
     if (!recordedBlobUrl) {
-        alert('No recording available. Click Record first!');
+        alert('No recording found! Click "Record", play your audio, and click "Stop Recording" before downloading.');
         return;
     }
 
-    // Create a temporary download link
-    const a = document.createElement('a');
-    a.href = recordedBlobUrl;
-    
-    // Generate filename with timestamp
+    let ext = 'webm';
+    if (mediaRecorder && mediaRecorder.mimeType) {
+        if (mediaRecorder.mimeType.includes('mp4')) ext = 'mp4';
+        else if (mediaRecorder.mimeType.includes('aac')) ext = 'aac';
+        else if (mediaRecorder.mimeType.includes('ogg')) ext = 'ogg';
+    }
+
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-    a.download = `chordsense_lab_${timestamp}.webm`;
-    
+    const filename = `chordsense_audio_lab_${timestamp}.${ext}`;
+
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = recordedBlobUrl;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
     
-    console.log('💾 Recording downloaded');
-}
+    setTimeout(() => {
+        if (a.parentNode) a.parentNode.removeChild(a);
+    }, 500);
+    
+    console.log('💾 Audio downloaded:', filename);
+};
 
 // ============================================
 // 5. RESET ALL
 // ============================================
-function resetAllEffects() {
+window.resetAllEffects = function() {
     const autotuneCheck = document.getElementById('autotuneToggle');
     if (autotuneCheck) {
         autotuneCheck.checked = false;
@@ -834,7 +823,7 @@ function resetAllEffects() {
     if (scaleSel) scaleSel.value = 'chromatic';
     autotuneKey = 'C';
     autotuneScale = 'chromatic';
-}
+};
 
 // ============================================
 // 6. VISUALIZER
@@ -897,9 +886,13 @@ function startVisualization() {
 }
 
 // ============================================
-// 7. LISTENERS & TIMELINE INTERACTIONS
+// 7. INITIALIZE BINDINGS (INSTANT & DOM-READY)
 // ============================================
-document.addEventListener('DOMContentLoaded', function() {
+window.togglePlay = togglePlay;
+window.stopAudio = stopAudio;
+window.toggleLoop = toggleLoop;
+
+function initAudioLabUI() {
     const fileInput = document.getElementById('labFileInput');
     const dropZone = document.getElementById('labDropZone');
     const timeline = document.getElementById('timelineSlider');
@@ -929,22 +922,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (timeline) {
-        timeline.addEventListener('mousedown', () => {
-            isDraggingTimeline = true;
-        });
-
+        timeline.addEventListener('mousedown', () => { isDraggingTimeline = true; });
         timeline.addEventListener('input', function() {
             updateTimeLabel(this.value, player ? player.buffer.duration : 0);
         });
-
         timeline.addEventListener('change', function() {
             onTimelineSeek(this.value);
             isDraggingTimeline = false;
         });
-
-        timeline.addEventListener('touchstart', () => {
-            isDraggingTimeline = true;
-        });
+        timeline.addEventListener('touchstart', () => { isDraggingTimeline = true; });
         timeline.addEventListener('touchend', function() {
             onTimelineSeek(this.value);
             isDraggingTimeline = false;
@@ -980,9 +966,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // ==================================================
-    // AUTOTUNER EVENT LISTENERS (FIXED — moved from HTML)
-    // ==================================================
     const autotuneToggle = document.getElementById('autotuneToggle');
     if (autotuneToggle) {
         autotuneToggle.addEventListener('change', function() {
@@ -1010,17 +993,21 @@ document.addEventListener('DOMContentLoaded', function() {
             setAutotuneSpeed(this.value);
         });
     }
-});
+}
+
+// Run immediately if already loaded, otherwise attach listener
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAudioLabUI);
+} else {
+    initAudioLabUI();
+}
 
 
-
-
-
-/**
- * ChordSense Audio Lab Engine
- * Complete real-time browser audio processing with Scrubbing support
- * HIGH COMPATIBILITY EDITION: Uses native Web Audio nodes to prevent crashes.
- */
+// /**
+//  * ChordSense Audio Lab Engine
+//  * Complete real-time browser audio processing with Scrubbing support
+//  * NOW WITH: Live Recording + Download + Fixed Autotuner
+//  */
 
 // let player = null;
 // let isPlaying = false;
@@ -1029,8 +1016,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // let effectsInitialized = false;
 
 // // Time Tracking Variables
-// let playOffset = 0;       // Position in the song where playback started (seconds)
-// let startTime = 0;        // Tone.now() value when play was clicked (seconds)
+// let playOffset = 0;
+// let startTime = 0;
 // let progressInterval = null;
 // let isDraggingTimeline = false;
 
@@ -1045,15 +1032,12 @@ document.addEventListener('DOMContentLoaded', function() {
 // let tremolo = null;
 // let compressor = null;
 // let masterVolume = null;
-
-// // Native Web Audio Nodes (100% stable across all browsers & library versions)
 // let analyser = null;
-// let pitchAnalyser = null;
-// let recordingDestination = null;
 
-// // Autotune Engine Variables
+// // Autotune Engine Nodes & Variables
+// let pitchAnalyser = null;
 // let isAutotuneEnabled = false;
-// let autotuneSpeed = 0.5; // Lerp rate (0.01 = natural, 1.0 = full robot)
+// let autotuneSpeed = 0.5;
 // let autotuneScale = 'chromatic';
 // let autotuneKey = 'C';
 // let currentAutotuneCorrection = 0;
@@ -1064,6 +1048,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // let recordingStartTime = 0;
 // let recordingTimerInterval = null;
 // let recordedBlobUrl = null;
+// let recordingDestination = null;
 // let isRecording = false;
 
 // const NOTE_NAMES_MAP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -1093,32 +1078,27 @@ document.addEventListener('DOMContentLoaded', function() {
 //         compressor = new Tone.Compressor({ threshold: -24, ratio: 4 });
 //         masterVolume = new Tone.Volume(0);
         
-//         // Use Native Web Audio API Context (fully stable, never crashes)
-//         const audioCtx = Tone.context.rawContext || Tone.context;
-        
-//         analyser = audioCtx.createAnalyser();
-//         analyser.fftSize = 1024;
-        
-//         pitchAnalyser = audioCtx.createAnalyser();
-//         pitchAnalyser.fftSize = 2048;
+//         // Positional syntax works on all Tone.js versions
+//         analyser = new Tone.Analyser("waveform", 1024);
+//         pitchAnalyser = new Tone.Analyser("waveform", 2048);
 
-//         // Connect the Tone.js effects chain manually
-//         pitchShift.connect(eq);
-//         eq.connect(lowPassFilter);
-//         lowPassFilter.connect(highPassFilter);
-//         highPassFilter.connect(reverb);
-//         reverb.connect(delay);
-//         delay.connect(distortion);
-//         distortion.connect(tremolo);
-//         tremolo.connect(compressor);
-//         compressor.connect(masterVolume);
-        
-//         // Connect Master Volume to destination AND native analysers
-//         masterVolume.toDestination();
-//         masterVolume.connect(analyser);
+//         pitchShift.chain(
+//             eq,
+//             lowPassFilter,
+//             highPassFilter,
+//             reverb,
+//             delay,
+//             distortion,
+//             tremolo,
+//             compressor,
+//             masterVolume,
+//             analyser,
+//             Tone.Destination
+//         );
 
-//         // Setup recording stream destination (native node)
-//         recordingDestination = audioCtx.createMediaStreamDestination();
+//         // Create a recording destination — captures the entire processed audio
+//         // This connects AFTER all effects, so recording includes EVERYTHING
+//         recordingDestination = Tone.context.createMediaStreamDestination();
 //         masterVolume.connect(recordingDestination);
 
 //         effectsInitialized = true;
@@ -1168,12 +1148,11 @@ document.addEventListener('DOMContentLoaded', function() {
 //                     player.connect(pitchShift);
                     
 //                     if (pitchAnalyser) {
-//                         player.connect(pitchAnalyser); // Feed clean vocals directly to tracker
+//                         player.connect(pitchAnalyser);
 //                     }
 
 //                     const duration = player.buffer.duration;
                     
-//                     // Set up the timeline scrubber maximum range
 //                     const timeline = document.getElementById('timelineSlider');
 //                     if (timeline) {
 //                         timeline.max = duration;
@@ -1237,16 +1216,14 @@ document.addEventListener('DOMContentLoaded', function() {
 //     }
 
 //     if (isPlaying) {
-//         // PAUSE: Store where we paused, stop player, clear timer
 //         playOffset = getElapsedTime();
 //         player.stop();
 //         isPlaying = false;
 //         updatePlayButton(false);
 //         clearInterval(progressInterval);
 //     } else {
-//         // PLAY: Start player from offset, record current time, run loop
 //         if (playOffset >= player.buffer.duration) {
-//             playOffset = 0; // restart if we reached the end
+//             playOffset = 0;
 //         }
         
 //         startTime = Tone.now();
@@ -1291,23 +1268,19 @@ document.addEventListener('DOMContentLoaded', function() {
 //     }
 // }
 
-// // Helper: Calculate precisely where the playhead is right now
 // function getElapsedTime() {
 //     if (!isPlaying) return playOffset;
     
 //     const elapsed = Tone.now() - startTime;
-//     // Account for playback rate (speed)
 //     const rate = player ? player.playbackRate : 1;
 //     const currentPosition = playOffset + (elapsed * rate);
     
-//     // Stop naturally when end is reached
 //     if (currentPosition >= player.buffer.duration) {
 //         if (isLooping) {
 //             startTime = Tone.now();
 //             playOffset = 0;
 //             return 0;
 //         } else {
-//             // Force stop
 //             setTimeout(() => { stopAudio(); }, 10);
 //             return player.buffer.duration;
 //         }
@@ -1315,7 +1288,6 @@ document.addEventListener('DOMContentLoaded', function() {
 //     return currentPosition;
 // }
 
-// // Timer Loop: Updates the scrubber handle and elapsed time labels
 // function startProgressTimer() {
 //     clearInterval(progressInterval);
 //     progressInterval = setInterval(() => {
@@ -1330,7 +1302,6 @@ document.addEventListener('DOMContentLoaded', function() {
 //     }, 100);
 // }
 
-// // Format seconds into readable MM:SS layout
 // function formatTime(seconds) {
 //     const m = Math.floor(seconds / 60);
 //     const s = Math.floor(seconds % 60);
@@ -1344,7 +1315,6 @@ document.addEventListener('DOMContentLoaded', function() {
 //     }
 // }
 
-// // Handler: When user interacts with the timeline scrubber
 // function onTimelineSeek(val) {
 //     if (!player || !audioLoaded) return;
     
@@ -1352,7 +1322,6 @@ document.addEventListener('DOMContentLoaded', function() {
 //     updateTimeLabel(playOffset, player.buffer.duration);
 
 //     if (isPlaying) {
-//         // To seek while playing, we must stop, update startTime, and restart
 //         player.stop();
 //         startTime = Tone.now();
 //         player.start(0, playOffset);
@@ -1363,7 +1332,6 @@ document.addEventListener('DOMContentLoaded', function() {
 // // 4. REAL-TIME EFFECT PARAMETERS
 // // ============================================
 // function setPitch(val) {
-//     // Only adjust manual pitch if Autotune is OFF to prevent collisions
 //     if (pitchShift && !isAutotuneEnabled) {
 //         pitchShift.pitch = parseFloat(val);
 //     }
@@ -1372,7 +1340,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // function setSpeed(val) {
 //     if (player) {
-//         // If playing, we must recalculate offset on-the-fly to prevent jumps
 //         if (isPlaying) {
 //             playOffset = getElapsedTime();
 //             startTime = Tone.now();
@@ -1391,11 +1358,6 @@ document.addEventListener('DOMContentLoaded', function() {
 //         masterVolume.volume.value = (val / 100) * 46 - 40;
 //     }
 //     updateLabel('volumeValue', `${Math.round(val)}%`);
-// }
-
-// function setAutotuneSpeed(val) {
-//     autotuneSpeed = parseFloat(val) / 100;
-//     updateLabel('autotuneSpeedValue', `${val}%`);
 // }
 
 // function setBass(val) {
@@ -1485,7 +1447,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // }
 
 // // ============================================
-// // 4B. REAL-TIME AUTOTUNER DSP LOGIC
+// // 4B. AUTOTUNER DSP LOGIC (FIXED)
 // // ============================================
 
 // function toggleAutotune(enabled) {
@@ -1500,7 +1462,6 @@ document.addEventListener('DOMContentLoaded', function() {
 //     }
 
 //     if (!enabled && pitchShift) {
-//         // Reset pitch correction to the manual slider value when disabling
 //         const pitchSlider = document.getElementById('pitchSlider');
 //         pitchShift.pitch = pitchSlider ? parseFloat(pitchSlider.value) : 0;
 //         currentAutotuneCorrection = 0;
@@ -1525,6 +1486,11 @@ document.addEventListener('DOMContentLoaded', function() {
 //     console.log('🎼 Scale changed to:', val);
 // }
 
+// function setAutotuneSpeed(val) {
+//     autotuneSpeed = parseFloat(val) / 100;
+//     updateLabel('autotuneSpeedValue', `${val}%`);
+// }
+
 // function detectVocalPitch(buffer, sampleRate) {
 //     const SIZE = buffer.length;
 //     let rms = 0;
@@ -1533,7 +1499,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //     }
 //     rms = Math.sqrt(rms / SIZE);
 
-//     if (rms < 0.015) return -1; // Gate lower thresholds for silence
+//     if (rms < 0.015) return -1;
 
 //     const correlations = new Float32Array(SIZE);
 //     for (let lag = 0; lag < SIZE; lag++) {
@@ -1552,7 +1518,6 @@ document.addEventListener('DOMContentLoaded', function() {
 //     let maxVal = -1;
 //     let maxPos = -1;
 
-//     // Vocal fundamental range (60Hz to 800Hz)
 //     const minLag = Math.floor(sampleRate / 800);
 //     const maxLag = Math.floor(sampleRate / 60);
 
@@ -1610,10 +1575,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // function processAutotune() {
 //     if (!isAutotuneEnabled || !pitchAnalyser || !player || !isPlaying) return;
 
-//     // Read values directly from the native Audio Analyser buffer
-//     const buffer = new Float32Array(pitchAnalyser.frequencyBinCount);
-//     pitchAnalyser.getFloatTimeDomainData(buffer);
-
+//     const buffer = pitchAnalyser.getValue();
 //     const freq = detectVocalPitch(buffer, Tone.context.sampleRate);
     
 //     const noteDisplay = document.getElementById('autotuneDetectedNote');
@@ -1624,15 +1586,11 @@ document.addEventListener('DOMContentLoaded', function() {
 //         const currentMidi = 69 + 12 * Math.log2(freq / 440.0);
 //         const targetMidi = snapToScale(currentMidi, autotuneKey, autotuneScale);
         
-//         // Tuning discrepancy in semitones
 //         const targetError = targetMidi - currentMidi;
         
-//         // Read retune speed slider value
 //         const speedSlider = document.getElementById('autotuneSpeedSlider');
 //         const speedVal = speedSlider ? parseInt(speedSlider.value) : 50;
-        
-//         // Exponential scaling for natural feel to rigid correction
-//         const lerpFactor = Math.pow(speedVal / 100, 1.5) * 0.8 + 0.02; 
+//         const lerpFactor = Math.pow(speedVal / 100, 1.5) * 0.8 + 0.02;
         
 //         currentAutotuneCorrection += (targetError - currentAutotuneCorrection) * lerpFactor;
 
@@ -1640,16 +1598,13 @@ document.addEventListener('DOMContentLoaded', function() {
 //             pitchShift.pitch = currentAutotuneCorrection;
 //         }
 
-//         // Live visuals updating
 //         if (noteDisplay) noteDisplay.textContent = midiToNoteName(currentMidi);
 //         if (targetDisplay) targetDisplay.textContent = midiToNoteName(targetMidi);
 //         if (meter) {
-//             // Map -2 to +2 semitones boundary directly across meter range
 //             const offsetPercent = Math.max(5, Math.min(95, 50 + (currentAutotuneCorrection * 22.5)));
 //             meter.style.left = `${offsetPercent}%`;
 //         }
 //     } else {
-//         // Decay corrective shift back to center when vocals pause
 //         currentAutotuneCorrection += (0 - currentAutotuneCorrection) * 0.15;
 //         if (pitchShift) pitchShift.pitch = currentAutotuneCorrection;
         
@@ -1663,6 +1618,15 @@ document.addEventListener('DOMContentLoaded', function() {
 // // 4C. LIVE RECORDING & DOWNLOAD (NEW)
 // // ============================================
 
+// /**
+//  * Toggle recording on/off.
+//  * 
+//  * How it works:
+//  * 1. We create a MediaStreamDestination from Tone's Web Audio context
+//  * 2. This destination receives the FULL processed audio (all effects applied)
+//  * 3. MediaRecorder captures this stream as webm/opus
+//  * 4. When stopped, we save it as a downloadable blob
+//  */
 // async function toggleRecording() {
 //     if (!audioLoaded) {
 //         alert('Please load an audio file first!');
@@ -1685,12 +1649,12 @@ document.addEventListener('DOMContentLoaded', function() {
 //     try {
 //         recordedChunks = [];
         
-//         // Try different MIME types for compatibility across Safari, Chrome, and Firefox
+//         // Try different MIME types for compatibility
 //         const mimeTypes = [
 //             'audio/webm;codecs=opus',
 //             'audio/webm',
-//             'audio/ogg;codecs=opus',
 //             'audio/mp4',
+//             'audio/ogg;codecs=opus',
 //         ];
         
 //         let selectedMimeType = '';
@@ -1706,7 +1670,6 @@ document.addEventListener('DOMContentLoaded', function() {
 //             return;
 //         }
 
-//         // Connect mediaRecorder directly to the Web Audio stream destination
 //         mediaRecorder = new MediaRecorder(recordingDestination.stream, {
 //             mimeType: selectedMimeType,
 //             audioBitsPerSecond: 128000,
@@ -1719,8 +1682,10 @@ document.addEventListener('DOMContentLoaded', function() {
 //         };
 
 //         mediaRecorder.onstop = () => {
+//             // Combine all chunks into a single blob
 //             const blob = new Blob(recordedChunks, { type: selectedMimeType });
             
+//             // Clean up previous blob URL if exists
 //             if (recordedBlobUrl) {
 //                 URL.revokeObjectURL(recordedBlobUrl);
 //             }
@@ -1739,11 +1704,12 @@ document.addEventListener('DOMContentLoaded', function() {
 //             console.log('🎙️ Recording saved:', (blob.size / 1024).toFixed(2), 'KB');
 //         };
 
-//         mediaRecorder.start(100); // chunk buffer every 100ms
+//         // Start recording (capture data every 100ms)
+//         mediaRecorder.start(100);
 //         isRecording = true;
 //         recordingStartTime = Date.now();
 
-//         // Update UI states
+//         // Update UI
 //         const recordBtn = document.getElementById('recordBtn');
 //         const recordBtnText = document.getElementById('recordBtnText');
 //         const statusBar = document.getElementById('recordingStatus');
@@ -1752,10 +1718,11 @@ document.addEventListener('DOMContentLoaded', function() {
 //         if (recordBtnText) recordBtnText.textContent = 'Stop Recording';
 //         if (statusBar) statusBar.style.display = 'flex';
 
+//         // Update timer display
 //         updateRecordingTimer();
 //         recordingTimerInterval = setInterval(updateRecordingTimer, 1000);
 
-//         // Auto-play the track if it is stopped
+//         // Auto-start playback if not already playing
 //         if (!isPlaying) {
 //             togglePlay();
 //         }
@@ -1774,6 +1741,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //     mediaRecorder.stop();
 //     isRecording = false;
 
+//     // Update UI
 //     const recordBtn = document.getElementById('recordBtn');
 //     const recordBtnText = document.getElementById('recordBtnText');
 //     const statusBar = document.getElementById('recordingStatus');
@@ -1782,7 +1750,9 @@ document.addEventListener('DOMContentLoaded', function() {
 //     if (recordBtnText) recordBtnText.textContent = 'Record';
 //     if (statusBar) statusBar.style.display = 'none';
 
+//     // Stop timer
 //     clearInterval(recordingTimerInterval);
+
 //     console.log('🎙️ Recording stopped');
 // }
 
@@ -1797,13 +1767,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // function downloadRecording() {
 //     if (!recordedBlobUrl) {
-//         alert('No recording found. Click Record first!');
+//         alert('No recording available. Click Record first!');
 //         return;
 //     }
 
+//     // Create a temporary download link
 //     const a = document.createElement('a');
 //     a.href = recordedBlobUrl;
     
+//     // Generate filename with timestamp
 //     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
 //     a.download = `chordsense_lab_${timestamp}.webm`;
     
@@ -1888,11 +1860,8 @@ document.addEventListener('DOMContentLoaded', function() {
 //     const height = 120;
 
 //     function draw() {
-//         // Read values directly from the native Audio Analyser buffer
-//         const waveform = new Float32Array(analyser.frequencyBinCount);
-//         analyser.getFloatTimeDomainData(waveform);
+//         const waveform = analyser.getValue();
 
-//         // Compute autotuning loop steps
 //         processAutotune();
 
 //         ctx.fillStyle = '#0f0a1a';
@@ -1930,9 +1899,20 @@ document.addEventListener('DOMContentLoaded', function() {
 //     draw();
 // }
 
+
 // // ============================================
 // // 7. LISTENERS & TIMELINE INTERACTIONS
 // // ============================================
+
+// // Expose core player and recording functions globally so that 
+// // inline HTML onclick attributes (e.g. onclick="toggleRecording()") work seamlessly.
+// window.togglePlay = togglePlay;
+// window.stopAudio = stopAudio;
+// window.toggleLoop = toggleLoop;
+// window.toggleRecording = toggleRecording;
+// window.downloadRecording = downloadRecording;
+// window.resetAllEffects = resetAllEffects;
+
 // document.addEventListener('DOMContentLoaded', function() {
 //     const fileInput = document.getElementById('labFileInput');
 //     const dropZone = document.getElementById('labDropZone');
@@ -2015,7 +1995,7 @@ document.addEventListener('DOMContentLoaded', function() {
 //     }
 
 //     // ==================================================
-//     // AUTOTUNER EVENT LISTENERS (FIXED)
+//     // AUTOTUNER EVENT LISTENERS (FIXED — moved from HTML)
 //     // ==================================================
 //     const autotuneToggle = document.getElementById('autotuneToggle');
 //     if (autotuneToggle) {
@@ -2044,4 +2024,29 @@ document.addEventListener('DOMContentLoaded', function() {
 //             setAutotuneSpeed(this.value);
 //         });
 //     }
+
+//     // ==================================================
+//     // RECORD & DOWNLOAD BUTTON EVENT LISTENERS
+//     // ==================================================
+//     const recordBtn = document.getElementById('recordBtn');
+//     if (recordBtn) {
+//         recordBtn.addEventListener('click', function(e) {
+//             e.preventDefault();
+//             toggleRecording();
+//         });
+//     }
+
+//     const downloadBtn = document.getElementById('downloadBtn');
+//     if (downloadBtn) {
+//         // Initialize download button as visually disabled until a recording is completed
+//         downloadBtn.disabled = true;
+//         downloadBtn.style.opacity = '0.4';
+//         downloadBtn.style.cursor = 'not-allowed';
+
+//         downloadBtn.addEventListener('click', function(e) {
+//             e.preventDefault();
+//             downloadRecording();
+//         });
+//     }
 // });
+
