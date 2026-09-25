@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css/cat.css' %}">
+    <link rel="stylesheet" href="{% static 'css/guitar.css' %}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     {% block extra_css %}{% endblock %}
 </head>
@@ -57,9 +58,19 @@
                 <a href="{% url 'game_lobby' %}" class="nav-link">
                     <i class="fas fa-gamepad"></i> Games
                 </a>
-                <a href="{% url 'piano' %}" class="nav-link">
-                    <i class="fas fa-piano"></i> Piano
-                </a>
+                <div class="nav-dropdown">
+                    <button class="nav-link nav-dropdown-btn">
+                        <i class="fas fa-guitar"></i> Instruments <i class="fas fa-chevron-down dropdown-arrow"></i>
+                    </button>
+                    <div class="nav-dropdown-menu">
+                        <a href="{% url 'piano' %}" class="dropdown-item">
+                            <i class="fas fa-music"></i> Piano
+                        </a>
+                        <a href="{% url 'guitar' %}" class="dropdown-item">
+                            <i class="fas fa-guitar"></i> Guitar
+                        </a>
+                    </div>
+                </div>
                 <!-- Move the Audio Lab link right here! -->
                 <a href="{% url 'audio_lab' %}" class="nav-link">
                     <i class="fas fa-sliders"></i> Audio Lab

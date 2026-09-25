@@ -1,0 +1,135 @@
+{% extends 'detector/base.html' %}
+{% load static %}
+
+{% block title %}Guitar — ChordSense{% endblock %}
+
+{% block content %}
+
+<section class="guitar-page">
+    <h1 class="page-title reveal">
+        <i class="fas fa-guitar"></i> Acoustic Guitar
+    </h1>
+    <p class="page-subtitle reveal">
+        Select chords to play or build a loop with realistic strumming
+    </p>
+
+    <!-- CHORD SECTION -->
+    <div class="guitar-chords-section reveal">
+        <h2 class="section-title"><span class="gradient-text">Chord Library</span></h2>
+        <p class="section-subtitle">Click any chord to hear it strummed</p>
+
+        <div class="chord-category">
+            <h3><i class="fas fa-star"></i> Major Chords</h3>
+            <div class="chord-grid">
+                <button class="chord-btn" data-chord="C">C</button>
+                <button class="chord-btn" data-chord="D">D</button>
+                <button class="chord-btn" data-chord="E">E</button>
+                <button class="chord-btn" data-chord="F">F</button>
+                <button class="chord-btn" data-chord="G">G</button>
+                <button class="chord-btn" data-chord="A">A</button>
+                <button class="chord-btn" data-chord="B">B</button>
+            </div>
+        </div>
+
+        <div class="chord-category">
+            <h3><i class="fas fa-moon"></i> Minor Chords</h3>
+            <div class="chord-grid">
+                <button class="chord-btn minor" data-chord="Cm">Cm</button>
+                <button class="chord-btn minor" data-chord="Dm">Dm</button>
+                <button class="chord-btn minor" data-chord="Em">Em</button>
+                <button class="chord-btn minor" data-chord="Fm">Fm</button>
+                <button class="chord-btn minor" data-chord="Gm">Gm</button>
+                <button class="chord-btn minor" data-chord="Am">Am</button>
+                <button class="chord-btn minor" data-chord="Bm">Bm</button>
+            </div>
+        </div>
+
+        <div class="chord-category">
+            <h3><i class="fas fa-bolt"></i> 7th Chords</h3>
+            <div class="chord-grid">
+                <button class="chord-btn seventh" data-chord="C7">C7</button>
+                <button class="chord-btn seventh" data-chord="D7">D7</button>
+                <button class="chord-btn seventh" data-chord="E7">E7</button>
+                <button class="chord-btn seventh" data-chord="G7">G7</button>
+                <button class="chord-btn seventh" data-chord="A7">A7</button>
+                <button class="chord-btn seventh" data-chord="Am7">Am7</button>
+                <button class="chord-btn seventh" data-chord="Dm7">Dm7</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOOP SECTION -->
+    <div class="guitar-loop-section reveal">
+        <h2 class="section-title"><span class="gradient-text">Chord Loop Player</span></h2>
+        <p class="section-subtitle">Build a chord progression and loop it with strumming</p>
+
+        <div class="loop-builder">
+            <div class="loop-slots" id="loopSlots">
+                <div class="loop-slot empty" data-slot="0">
+                    <span class="slot-number">1</span>
+                    <span class="slot-chord">—</span>
+                </div>
+                <div class="loop-slot empty" data-slot="1">
+                    <span class="slot-number">2</span>
+                    <span class="slot-chord">—</span>
+                </div>
+                <div class="loop-slot empty" data-slot="2">
+                    <span class="slot-number">3</span>
+                    <span class="slot-chord">—</span>
+                </div>
+                <div class="loop-slot empty" data-slot="3">
+                    <span class="slot-number">4</span>
+                    <span class="slot-chord">—</span>
+                </div>
+            </div>
+
+            <div class="loop-controls">
+                <div class="loop-setting">
+                    <label><i class="fas fa-tachometer-alt"></i> BPM</label>
+                    <input type="range" id="loopBpm" min="60" max="180" value="100" class="loop-slider">
+                    <span id="loopBpmValue">100</span>
+                </div>
+                <div class="loop-setting">
+                    <label><i class="fas fa-drum"></i> Strum</label>
+                    <select id="strumPattern" class="loop-select">
+                        <option value="down">↓ Down</option>
+                        <option value="downup" selected>↓↑ Down-Up</option>
+                        <option value="island">↓ ↓↑ ↓↑ Island</option>
+                        <option value="folk">↓ ↓↑ ↑↓↑ Folk</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="loop-buttons">
+                <button class="btn btn-primary" id="loopPlayBtn">
+                    <i class="fas fa-play"></i> Play Loop
+                </button>
+                <button class="btn btn-secondary" id="loopStopBtn" style="display:none;">
+                    <i class="fas fa-stop"></i> Stop
+                </button>
+                <button class="btn btn-secondary" id="loopClearBtn">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="guitar-tips reveal">
+        <div class="tip-card">
+            <i class="fas fa-layer-group"></i>
+            <h3>Play Chords</h3>
+            <p>Click chord buttons for realistic acoustic strumming with wooden cabinet body resonance simulation.</p>
+        </div>
+        <div class="tip-card">
+            <i class="fas fa-repeat"></i>
+            <h3>Loop Progressions</h3>
+            <p>Fill the loop slots with chords and hit Play to hear your progression played as a loop.</p>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/guitar.js' %}"></script>
+{% endblock %}

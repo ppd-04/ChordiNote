@@ -1,0 +1,140 @@
+/* ============================================
+   GUITAR PAGE — CHORDS & LOOP PLAYER ONLY
+   ============================================ */
+
+.guitar-page {
+    padding: 3rem 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* Chord Section */
+.guitar-chords-section {
+    margin-bottom: 3rem;
+}
+
+.chord-category {
+    margin-bottom: 2rem;
+}
+
+.chord-category h3 {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+.chord-category h3 i {
+    color: var(--primary);
+    margin-right: 8px;
+}
+
+.chord-grid {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.chord-btn {
+    width: 70px;
+    height: 70px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-glass);
+    border: 2px solid var(--border-glass);
+    color: var(--text-primary);
+    font-size: 1.3rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: 'Poppins', sans-serif;
+    backdrop-filter: blur(10px);
+}
+
+.chord-btn:hover {
+    border-color: var(--primary);
+    background: rgba(167, 139, 250, 0.1);
+    transform: translateY(-3px);
+    box-shadow: var(--glow-purple);
+}
+
+.chord-btn.strumming {
+    background: linear-gradient(135deg, var(--primary-dark), var(--secondary)) !important;
+    border-color: var(--primary) !important;
+    transform: scale(0.95);
+    color: white;
+}
+
+.chord-btn.minor { border-color: rgba(244, 114, 182, 0.3); }
+.chord-btn.minor:hover { border-color: var(--secondary); box-shadow: var(--glow-pink); }
+.chord-btn.seventh { border-color: rgba(103, 232, 249, 0.3); }
+.chord-btn.seventh:hover { border-color: var(--accent); box-shadow: 0 0 30px rgba(103, 232, 249, 0.3); }
+
+/* Loop Section */
+.guitar-loop-section {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius);
+    padding: 2rem;
+    backdrop-filter: blur(15px);
+    margin-bottom: 3rem;
+}
+
+.loop-slots {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.loop-slot {
+    height: 100px;
+    border: 2px dashed var(--border-glass);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.loop-slot.empty { background: rgba(255, 255, 255, 0.02); }
+.loop-slot.filled { border-style: solid; border-color: var(--primary); background: rgba(167, 139, 250, 0.08); }
+.loop-slot.active {
+    border-color: #4ade80 !important;
+    background: rgba(74, 222, 128, 0.15) !important;
+    box-shadow: 0 0 25px rgba(74, 222, 128, 0.4);
+    transform: scale(1.05);
+}
+
+.slot-number { font-size: 0.7rem; color: var(--text-secondary); font-weight: 600; }
+.slot-chord {
+    font-size: 1.8rem; font-weight: 800;
+    background: var(--gradient-main);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.loop-slot.empty .slot-chord { -webkit-text-fill-color: var(--text-secondary); opacity: 0.3; }
+
+.loop-controls { display: flex; gap: 2rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.loop-setting { display: flex; align-items: center; gap: 10px; }
+.loop-setting label { color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; white-space: nowrap; }
+.loop-setting label i { color: var(--primary); margin-right: 4px; }
+
+.loop-slider { width: 120px; -webkit-appearance: none; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; }
+.loop-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--gradient-main); cursor: pointer; }
+
+.loop-select {
+    padding: 8px 12px; background: rgba(15,10,26,0.8); color: var(--text-primary);
+    border: 1px solid var(--border-glass); border-radius: 8px;
+    font-family: 'Poppins', sans-serif; font-size: 0.85rem; cursor: pointer;
+}
+
+.loop-buttons { display: flex; gap: 1rem; justify-content: center; }
+
+.guitar-tips { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; }
+
+@media (max-width: 600px) {
+    .loop-slots { grid-template-columns: repeat(2, 1fr); }
+    .chord-btn { width: 55px; height: 55px; font-size: 1.1rem; }
+    .loop-controls { flex-direction: column; }
+}
