@@ -90,6 +90,139 @@
         display: block;
         margin-top: auto;
     }
+
+    /* Microphone Device Selection Bar & Modal */
+    .mic-selection-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+    .current-mic-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(167, 139, 250, 0.12);
+        border: 1px solid rgba(167, 139, 250, 0.3);
+        border-radius: 30px;
+        padding: 0.4rem 1rem;
+        font-size: 0.85rem;
+        color: #e9d5ff;
+        max-width: 280px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .btn-mic-settings {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #f3f4f6;
+        padding: 0.45rem 0.9rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.2s ease;
+    }
+    .btn-mic-settings:hover {
+        background: rgba(167, 139, 250, 0.25);
+        border-color: #a78bfa;
+        color: #fff;
+    }
+
+    /* POPUP MODAL STYLING */
+    .mic-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(6px);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+    .mic-modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+    .mic-modal-box {
+        background: #150e24;
+        border: 1px solid rgba(167, 139, 250, 0.3);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(167, 139, 250, 0.2);
+        border-radius: 16px;
+        width: 90%;
+        max-width: 480px;
+        padding: 1.75rem;
+        transform: scale(0.92);
+        transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .mic-modal-overlay.active .mic-modal-box {
+        transform: scale(1);
+    }
+    .mic-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 0.85rem;
+        margin-bottom: 1.25rem;
+    }
+    .mic-modal-header h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        color: #f3f4f6;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .mic-modal-close {
+        background: none;
+        border: none;
+        color: #9ca3af;
+        font-size: 1.5rem;
+        cursor: pointer;
+        line-height: 1;
+        transition: color 0.2s;
+    }
+    .mic-modal-close:hover {
+        color: #f3f4f6;
+    }
+    .mic-modal-body p {
+        color: #9ca3af;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+    .mic-select-row {
+        display: flex;
+        gap: 0.6rem;
+        margin-bottom: 1.25rem;
+    }
+    .mic-dropdown {
+        flex: 1;
+        background: rgba(15, 10, 26, 0.8);
+        border: 1px solid rgba(167, 139, 250, 0.3);
+        color: #f3f4f6;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        outline: none;
+    }
+    .mic-dropdown:focus {
+        border-color: #a78bfa;
+        box-shadow: 0 0 10px rgba(167, 139, 250, 0.3);
+    }
+    .mic-modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+    }
 </style>
 
 <section class="upload-section">
@@ -219,6 +352,17 @@
                 {% csrf_token %}
 
                 <div class="recording-panel">
+                    <!-- MIC SELECTION TRIGGER -->
+                    <div class="mic-selection-bar">
+                        <div class="current-mic-badge" id="currentMicDisplay">
+                            <i class="fas fa-microphone"></i>
+                            <span id="currentMicName">Default Microphone</span>
+                        </div>
+                        <button type="button" class="btn-mic-settings" id="openMicModalBtn">
+                            <i class="fas fa-sliders"></i> Change Mic
+                        </button>
+                    </div>
+
                     <div class="recording-visualizer">
                         <canvas id="recordingWaveform" width="600" height="150"></canvas>
                         <div class="recording-status" id="recordingStatus">
@@ -337,6 +481,33 @@
 
     </div>
 </section>
+
+<!-- MICROPHONE SELECTION POPUP MODAL -->
+<div class="mic-modal-overlay" id="micModal">
+    <div class="mic-modal-box">
+        <div class="mic-modal-header">
+            <h3><i class="fas fa-microphone-lines"></i> Select Microphone</h3>
+            <button type="button" class="mic-modal-close" id="closeMicModalBtn">&times;</button>
+        </div>
+        <div class="mic-modal-body">
+            <p>Select the input audio device or external microphone you want to record with:</p>
+            <div class="mic-select-row">
+                <select id="audioDeviceSelect" class="mic-dropdown">
+                    <option value="">Default System Microphone</option>
+                </select>
+                <button type="button" class="btn btn-secondary" id="refreshMicsBtn" title="Refresh devices">
+                    <i class="fas fa-rotate-right"></i>
+                </button>
+            </div>
+        </div>
+        <div class="mic-modal-footer">
+            <button type="button" class="btn btn-primary" id="saveMicBtn">
+                <i class="fas fa-check"></i> Use This Mic
+            </button>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -377,6 +548,9 @@
                 buildPiano('uploadPiano', { compact: true, showLabels: true });
                 window.uploadPianoInitialized = true;
             }
+
+            // Populate available microphones when user enters recording tab
+            populateAudioDevices();
         }
     }
 
@@ -441,6 +615,78 @@
     });
 
     // ============================================
+    // MICROPHONE SELECTION MODAL LOGIC
+    // ============================================
+    let selectedDeviceId = "";
+    const micModal = document.getElementById('micModal');
+    const openMicModalBtn = document.getElementById('openMicModalBtn');
+    const closeMicModalBtn = document.getElementById('closeMicModalBtn');
+    const saveMicBtn = document.getElementById('saveMicBtn');
+    const refreshMicsBtn = document.getElementById('refreshMicsBtn');
+    const audioDeviceSelect = document.getElementById('audioDeviceSelect');
+    const currentMicName = document.getElementById('currentMicName');
+
+    function openMicModal() {
+        micModal.classList.add('active');
+        populateAudioDevices();
+    }
+
+    function closeMicModal() {
+        micModal.classList.remove('active');
+    }
+
+    openMicModalBtn.addEventListener('click', openMicModal);
+    closeMicModalBtn.addEventListener('click', closeMicModal);
+    refreshMicsBtn.addEventListener('click', () => populateAudioDevices(true));
+
+    micModal.addEventListener('click', function(e) {
+        if (e.target === micModal) closeMicModal();
+    });
+
+    saveMicBtn.addEventListener('click', function() {
+        selectedDeviceId = audioDeviceSelect.value;
+        const selectedOption = audioDeviceSelect.options[audioDeviceSelect.selectedIndex];
+        currentMicName.textContent = selectedOption ? selectedOption.text : "Default Microphone";
+        closeMicModal();
+    });
+
+    async function populateAudioDevices(forcePrompt = false) {
+        try {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+                return;
+            }
+
+            // If forced or device labels are blank, request mic permission once so labels show up
+            if (forcePrompt) {
+                const tempStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                tempStream.getTracks().forEach(t => t.stop());
+            }
+
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const audioInputs = devices.filter(d => d.kind === 'audioinput');
+
+            audioDeviceSelect.innerHTML = '';
+            
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = "";
+            defaultOpt.text = "Default System Microphone";
+            audioDeviceSelect.appendChild(defaultOpt);
+
+            audioInputs.forEach((device, index) => {
+                const opt = document.createElement('option');
+                opt.value = device.deviceId;
+                opt.text = device.label || `Microphone ${index + 1}`;
+                if (device.deviceId === selectedDeviceId) {
+                    opt.selected = true;
+                }
+                audioDeviceSelect.appendChild(opt);
+            });
+        } catch (err) {
+            console.warn("Could not enumerate audio devices:", err);
+        }
+    }
+
+    // ============================================
     // LIVE RECORDING TAB (NEW FUNCTIONALITY)
     // ============================================
     let mediaRecorder = null;
@@ -469,12 +715,19 @@
     startRecordBtn.addEventListener('click', async function() {
         try {
             // Request microphone access
+            const audioConstraints = {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+            };
+
+            // Apply selected microphone if chosen
+            if (selectedDeviceId) {
+                audioConstraints.deviceId = { exact: selectedDeviceId };
+            }
+
             recordingStream = await navigator.mediaDevices.getUserMedia({ 
-                audio: {
-                    echoCancellation: true,
-                    noiseSuppression: true,
-                    autoGainControl: true
-                } 
+                audio: audioConstraints
             });
 
             // Create MediaRecorder
@@ -538,7 +791,7 @@
 
         } catch (error) {
             console.error('Error accessing microphone:', error);
-            alert('Could not access microphone. Please grant permission and try again.');
+            alert('Could not access the selected microphone. Please check permissions and try again.');
         }
     });
 
