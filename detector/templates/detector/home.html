@@ -57,9 +57,6 @@
             <a href="{% url 'upload' %}" class="btn btn-primary">
                 <i class="fas fa-wand-magic-sparkles"></i> Start Detecting
             </a>
-            <a href="#how-it-works" class="btn btn-secondary">
-                <i class="fas fa-play"></i> How It Works
-            </a>
         </div>
     </div>
     <div class="hero-visual">
@@ -77,23 +74,23 @@
     <div class="feature-grid">
         <div class="feature-card reveal reveal-delay-1">
             <div class="feature-icon"><i class="fas fa-wave-square"></i></div>
-            <h3>FFT Analysis</h3>
-            <p>Decomposes audio into frequency components using Fast Fourier Transform to reveal every note.</p>
+            <h3>Note Detection</h3>
+            <p>Detects the notes of piano, guitar or even your voice!</p>
         </div>
         <div class="feature-card reveal reveal-delay-2">
             <div class="feature-icon"><i class="fas fa-clock-rotate-left"></i></div>
-            <h3>Autocorrelation</h3>
-            <p>Time-domain pitch detection that finds repeating patterns in the raw audio waveform.</p>
+            <h3>Chord Detection</h3>
+            <p>Detect the chords of any music given</p>
         </div>
         <div class="feature-card reveal reveal-delay-3">
             <div class="feature-icon"><i class="fas fa-guitar"></i></div>
-            <h3>Chord Recognition</h3>
-            <p>Maps detected notes to chord templates — major, minor, seventh, and more.</p>
+            <h3>Musical Games</h3>
+            <p>Learn how to sing the notes by playing games</p>
         </div>
         <div class="feature-card reveal reveal-delay-4">
             <div class="feature-icon"><i class="fas fa-timeline"></i></div>
-            <h3>Timeline View</h3>
-            <p>Visual chord progression displayed along a synchronized audio timeline.</p>
+            <h3>Audio Lab</h3>
+            <p>Sculpt your sound with custom EQ, reverb, delay, and server-side autotune</p>
         </div>
     </div>
 </section>
@@ -135,27 +132,5 @@
     </div>
 </section>
 
-
-
-<section class="stats-section">
-    <div class="stats-grid">
-        <div class="stat-card reveal reveal-delay-1">
-            <div class="stat-number">12</div>
-            <div class="stat-label">Pitch Classes Detected</div>
-        </div>
-        <div class="stat-card reveal reveal-delay-2">
-            <div class="stat-number">44.1k</div>
-            <div class="stat-label">Samples Per Second</div>
-        </div>
-        <div class="stat-card reveal reveal-delay-3">
-            <div class="stat-number">2</div>
-            <div class="stat-label">Detection Methods</div>
-        </div>
-        <div class="stat-card reveal reveal-delay-4">
-            <div class="stat-number">∞</div>
-            <div class="stat-label">Songs to Analyze</div>
-        </div>
-    </div>
-</section>
 
 {% endblock %}
