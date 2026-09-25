@@ -102,14 +102,18 @@
         <!-- 1. Original Audio Player -->
         <div class="player-card">
             <h3><i class="fas fa-file-audio"></i> Original Audio</h3>
-            <audio controls preload="auto" class="audio-player" src="{% if filename %}{% url 'stream_audio' filename %}{% else %}{{ original_url }}{% endif %}"></audio>
+            <audio controls preload="auto" class="audio-player" src="{{ original_url }}">
+                <source src="{{ original_url }}">
+            </audio>
         </div>
 
         <!-- 2. Instrumental Track Player (Vocals Removed) -->
         {% if has_karaoke %}
         <div class="player-card karaoke-card">
             <h3><i class="fas fa-microphone-slash"></i> Instrumental (Vocals Removed)</h3>
-            <audio controls preload="auto" class="audio-player" src="{{ instrumental_url }}"></audio>
+            <audio controls preload="auto" class="audio-player" src="{{ instrumental_url }}">
+                <source src="{{ instrumental_url }}">
+            </audio>
             <p class="player-hint">
                 Vocals suppressed using {{ karaoke_method_used }} method.
                 All pitch detections were performed on this track.
@@ -119,7 +123,9 @@
         <!-- 3. Isolated Vocal Track Player (Voice Only) -->
         <div class="player-card vocal-extract-card">
             <h3><i class="fas fa-microphone"></i> Extracted Vocals (Voice Only)</h3>
-            <audio controls preload="auto" class="audio-player" src="{{ vocal_url }}"></audio>
+            <audio controls preload="auto" class="audio-player" src="{{ vocal_url }}">
+                <source src="{{ vocal_url }}">
+            </audio>
             <p class="player-hint">
                 Isolated vocal frequencies extracted using {{ karaoke_method_used }} method.
             </p>
@@ -130,7 +136,9 @@
         {% if has_reconstruction %}
         <div class="player-card">
             <h3><i class="fas fa-wand-magic-sparkles"></i> Full Reconstruction</h3>
-            <audio id="reconstructedAudio" controls preload="auto" class="audio-player" src="{{ reconstructed_url }}"></audio>
+            <audio id="reconstructedAudio" controls preload="auto" class="audio-player" src="{{ reconstructed_url }}">
+                <source src="{{ reconstructed_url }}">
+            </audio>
             <p class="player-hint">All detected notes including chords and bass</p>
         </div>
         {% endif %}
@@ -139,7 +147,9 @@
         {% if has_melody %}
         <div class="player-card melody-card">
             <h3><i class="fas fa-music"></i> Core Melody</h3>
-            <audio controls preload="auto" class="audio-player" src="{{ melody_url }}"></audio>
+            <audio controls preload="auto" class="audio-player" src="{{ melody_url }}">
+                <source src="{{ melody_url }}">
+            </audio>
             <p class="player-hint">Single-note melody line extracted from the detection</p>
         </div>
         {% endif %}
@@ -792,6 +802,11 @@
         
         for (const player of audioPlayers) {
             let sourceUrl = player.getAttribute('src');
+            if (!sourceUrl) {
+                const srcTag = player.querySelector('source');
+                if (srcTag) sourceUrl = srcTag.getAttribute('src');
+            }
+
             if (sourceUrl && !sourceUrl.startsWith('blob:') && !sourceUrl.startsWith('data:')) {
                 try {
                     const response = await fetch(sourceUrl);
@@ -804,7 +819,7 @@
 
                         player.src = blobUrl;
                         player.currentTime = curTime;
-                        if (!wasPaused) player.play();
+                        if (!wasPaused && curTime > 0) player.play();
                         
                         console.log('✅ Local Blob Preloaded successfully for scrubbing:', sourceUrl);
                     }
