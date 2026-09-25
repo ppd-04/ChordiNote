@@ -1,34 +1,18 @@
-/**
- * MISO THE CAT
- * 
- * Behaviors:
- * - Sleeps when idle (default state)
- * - Walks around randomly every 20-40 seconds
- * - Says random music tips in speech bubbles
- * - Meows (real cat sound!) and shows a heart when clicked
- * - Wakes up on mouse movement
- * - Falls asleep after 15 seconds of no interaction
- */
-
-// ============================================
-// CAT STATE
-// ============================================
-
 let catElement = null;
 let catContainer = null;
 let bubbleElement = null;
-let catState = 'sleeping';  // 'sleeping', 'awake', 'walking', 'happy'
+let catState = 'sleeping'; 
 let idleTimer = null;
 let walkTimer = null;
 let blinkTimer = null;
 let speechTimer = null;
 let lastMouseMove = Date.now();
-let currentPosition = 60; // px from left edge
+let currentPosition = 60;
 
 // Meow audio element
 let meowAudio = null;
 
-// Random music-themed messages
+
 const CAT_MESSAGES = [
     "Meow! I'm Miso 🎵",
     "Did you know? A4 = 440 Hz is the universal tuning standard!",
@@ -92,16 +76,10 @@ function initCat() {
     }, { passive: true });
 }
 
-// ============================================
-// MEOW AUDIO (real cat sound from cat.wav)
-// ============================================
-
 function initMeowAudio() {
-    // Create audio element and preload the file
-    // NOTE: Adjust the path below if your meow.wav is in a different location
     meowAudio = new Audio('/static/sounds/meow.wav');
     meowAudio.preload = 'auto';
-    meowAudio.volume = 0.6; // 0.0 to 1.0 — tweak as needed
+    meowAudio.volume = 0.6;
 }
 
 function playMeow() {
@@ -235,7 +213,7 @@ function scheduleNextSpeech() {
             showSpeech(msg, 5000);
         }
         scheduleNextSpeech();
-    }, 15000 + Math.random() * 15000);
+    }, 10000 + Math.random() * 10000);
 }
 
 function showSpeech(text, duration = 4000) {
@@ -325,7 +303,7 @@ function resetIdleTimer() {
         if (catState === 'awake') {
             fallAsleep();
         }
-    }, 15000);
+    }, 10000);
 }
 
 // ============================================

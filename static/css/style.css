@@ -152,12 +152,21 @@ body {
 .nav-logo {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px; /* Space between the cat logo and the text */
     text-decoration: none;
-    color: var(--text-primary);
-    font-size: 1.5rem;
-    font-weight: 700;
-    transition: var(--transition);
+}
+
+.custom-logo-img {
+    width: 90px;    /* Increased size so the cat details are sharp and visible */
+    height: 90px;   /* Matches width to keep it square */
+    object-fit: contain;
+}
+
+.nav-logo span {
+    font-size: 1.6rem;    /* Makes the 'ChordSense' name much larger and prominent */
+    font-weight: 700;     /* Bolder text weight for the logo title */
+    color: var(--text-primary, #ffffff); /* Ensures bright white/primary color contrast */
+    letter-spacing: 0.5px;
 }
 
 .nav-logo:hover {
@@ -4660,12 +4669,27 @@ body {
 }
 
 .nav-dropdown-btn {
-    cursor: pointer;
-    background: none;
-    font-family: 'Poppins', sans-serif;
+    cursor: pointer !important;
+    background: none !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-secondary, #b4b0c2);
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    /* Match the vertical padding of your regular nav links while keeping horizontal padding 0 */
+    padding: 0.5rem 0 !important; 
+}
+
+.nav-dropdown-btn:hover {
+    color: var(--text-primary, #ffffff) !important;
+    background: none !important;
+    box-shadow: none !important;
 }
 
 .dropdown-arrow {

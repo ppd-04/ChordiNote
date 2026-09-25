@@ -41,7 +41,7 @@
     <nav class="navbar" id="navbar">
         <div class="nav-container">
             <a href="{% url 'home' %}" class="nav-logo">
-                <i class="fas fa-music"></i>
+                <img src="{% static 'assets/images/logo2.png' %}" alt="ChordSense Logo" class="custom-logo-img">
                 <span>ChordSense</span>
             </a>
             <!-- All links must be inside this nav-links div to align properly -->
@@ -54,6 +54,10 @@
                 </a>
                 <a href="{% url 'game_lobby' %}" class="nav-link">
                     <i class="fas fa-gamepad"></i> Games
+                </a>
+                <!-- Audio Lab link -->
+                <a href="{% url 'audio_lab' %}" class="nav-link">
+                    <i class="fas fa-sliders"></i> Audio Lab
                 </a>
                 <div class="nav-dropdown">
                     <button class="nav-link nav-dropdown-btn">
@@ -68,16 +72,20 @@
                         </a>
                     </div>
                 </div>
-                <!-- Move the Audio Lab link right here! -->
-                <a href="{% url 'audio_lab' %}" class="nav-link">
-                    <i class="fas fa-sliders"></i> Audio Lab
-                </a>
-                <a href="{% url 'metronome' %}" class="nav-link">
-                    <i class="fas fa-clock"></i> Metronome
-                </a>
-                <a href="{% url 'tuner' %}" class="nav-link">
-                    <i class="fas fa-guitar"></i> Tuner
-                </a>
+                <!-- New Tools Dropdown containing Metronome and Tuner -->
+                <div class="nav-dropdown">
+                    <button class="nav-link nav-dropdown-btn">
+                        <i class="fas fa-toolbox"></i> Tools <i class="fas fa-chevron-down dropdown-arrow"></i>
+                    </button>
+                    <div class="nav-dropdown-menu">
+                        <a href="{% url 'metronome' %}" class="dropdown-item">
+                            <i class="fas fa-clock"></i> Metronome
+                        </a>
+                        <a href="{% url 'tuner' %}" class="dropdown-item">
+                            <i class="fas fa-guitar"></i> Tuner
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>
@@ -89,7 +97,7 @@
 
     <footer class="footer">
         <div class="footer-content">
-            <p>Made with <span class="heart">♥</span> for Signal Processing — ChordSense 2025</p>
+            <p>Builded by: Fahmid and Praggo</p>
         </div>
     </footer>
 

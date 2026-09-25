@@ -4,10 +4,97 @@
 {% block title %}Upload — ChordSense{% endblock %}
 
 {% block content %}
+<style>
+    /* Profile Groups & Layout Styling */
+    .profile-groups-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2.5rem;
+        margin-top: 1.5rem;
+    }
+    .profile-group-section {
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 14px;
+        padding: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .profile-group-section:hover {
+        border-color: rgba(167, 139, 250, 0.25);
+        background: rgba(255, 255, 255, 0.04);
+    }
+    .group-title {
+        font-size: 1.15rem;
+        color: #a78bfa;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        border-bottom: 1px solid rgba(167, 139, 250, 0.2);
+        padding-bottom: 0.6rem;
+        font-weight: 600;
+    }
+    .profile-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+    }
+    .profile-option {
+        cursor: pointer;
+        position: relative;
+        display: block;
+    }
+    .profile-option input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .profile-card {
+        background: rgba(15, 10, 26, 0.55);
+        border: 2px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 1.25rem;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    /* Hover and Selected Interactions */
+    .profile-option:hover .profile-card {
+        transform: translateY(-3px);
+        border-color: #a78bfa;
+        box-shadow: 0 8px 24px rgba(167, 139, 250, 0.2);
+        background: rgba(15, 10, 26, 0.8);
+    }
+    .profile-option.selected .profile-card {
+        border-color: #c084fc;
+        background: rgba(167, 139, 250, 0.12);
+        box-shadow: 0 0 20px rgba(167, 139, 250, 0.25);
+    }
+    .profile-card h4 {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #f3f4f6;
+        line-height: 1.4;
+        transition: color 0.2s ease;
+    }
+    .profile-option.selected .profile-card h4 {
+        color: #e9d5ff;
+    }
+    .profile-detail {
+        font-size: 0.8rem;
+        color: #9ca3af;
+        display: block;
+        margin-top: auto;
+    }
+</style>
 
 <section class="upload-section">
     <h1 class="page-title reveal">
-        <i class="fas fa-wand-magic-sparkles"></i> Upload Your Audio
+        Upload Your Audio
     </h1>
     <p class="page-subtitle reveal">
         Drop a melody and watch the notes appear like magic
@@ -57,21 +144,48 @@
                 <div class="options-panel">
                     <h3><i class="fas fa-sliders"></i> Analysis Profile</h3>
                     <p class="options-hint">Choose the profile that best matches your audio</p>
-                    <div class="profile-grid">
-                        {% for key, profile in profiles.items %}
-                        <label class="profile-option {% if forloop.first %}selected{% endif %}">
-                            <input type="radio" name="profile" value="{{ key }}"
-                                   {% if forloop.first %}checked{% endif %}>
-                            <div class="profile-card">
-                                <h4>{{ profile.label }}</h4>
-                                <span class="profile-detail">Range: {{ profile.fmin }} – {{ profile.fmax }}</span>
+                    
+                    <div class="profile-groups-container">
+                        <!-- MONOPHONIC / PYIN GROUP -->
+                        <div class="profile-group-section">
+                            <h4 class="group-title">
+                                <i class="fas fa-wave-square"></i> Monophonic Models (If you upload solo melody or vocals)
+                            </h4>
+                            <div class="profile-grid">
+                                {% for key, profile in monophonic_profiles.items %}
+                                <label class="profile-option {% if key == 'pyin_clean_melody' %}selected{% endif %}">
+                                    <input type="radio" name="profile" value="{{ key }}"
+                                           {% if key == 'pyin_clean_melody' %}checked{% endif %}>
+                                    <div class="profile-card">
+                                        <h4>{{ profile.label }}</h4>
+                                        <span class="profile-detail">Range: {{ profile.fmin }} – {{ profile.fmax }}</span>
+                                    </div>
+                                </label>
+                                {% endfor %}
                             </div>
-                        </label>
-                        {% endfor %}
+                        </div>
+
+                        <!-- POLYPHONIC GROUP -->
+                        <div class="profile-group-section">
+                            <h4 class="group-title">
+                                <i class="fas fa-layer-group"></i> Polyphonic Models (If you upload Chords, Piano, & Multi-instruments)
+                            </h4>
+                            <div class="profile-grid">
+                                {% for key, profile in polyphonic_profiles.items %}
+                                <label class="profile-option">
+                                    <input type="radio" name="profile" value="{{ key }}">
+                                    <div class="profile-card">
+                                        <h4>{{ profile.label }}</h4>
+                                        <span class="profile-detail">Range: {{ profile.fmin }} – {{ profile.fmax }}</span>
+                                    </div>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
-                                <!-- KARAOKE VOCAL REMOVAL -->
+                <!-- KARAOKE VOCAL REMOVAL -->
                 <div class="karaoke-panel">
                     <label class="karaoke-checkbox">
                         <input type="checkbox" name="remove_vocals" id="removeVocals">
@@ -152,21 +266,48 @@
                 <div class="options-panel">
                     <h3><i class="fas fa-sliders"></i> Analysis Profile</h3>
                     <p class="options-hint">Choose the profile that best matches your audio</p>
-                    <div class="profile-grid">
-                        {% for key, profile in profiles.items %}
-                        <label class="profile-option {% if forloop.first %}selected{% endif %}">
-                            <input type="radio" name="profile" value="{{ key }}"
-                                   {% if forloop.first %}checked{% endif %}>
-                            <div class="profile-card">
-                                <h4>{{ profile.label }}</h4>
-                                <span class="profile-detail">Range: {{ profile.fmin }} – {{ profile.fmax }}</span>
+                    
+                    <div class="profile-groups-container">
+                        <!-- MONOPHONIC / PYIN GROUP -->
+                        <div class="profile-group-section">
+                            <h4 class="group-title">
+                                <i class="fas fa-wave-square"></i> Monophonic Models (Solo Melody & Vocals via pYIN)
+                            </h4>
+                            <div class="profile-grid">
+                                {% for key, profile in monophonic_profiles.items %}
+                                <label class="profile-option {% if key == 'pyin_clean_melody' %}selected{% endif %}">
+                                    <input type="radio" name="profile" value="{{ key }}"
+                                           {% if key == 'pyin_clean_melody' %}checked{% endif %}>
+                                    <div class="profile-card">
+                                        <h4>{{ profile.label }}</h4>
+                                        <span class="profile-detail">Range: {{ profile.fmin }} – {{ profile.fmax }}</span>
+                                    </div>
+                                </label>
+                                {% endfor %}
                             </div>
-                        </label>
-                        {% endfor %}
+                        </div>
+
+                        <!-- POLYPHONIC GROUP -->
+                        <div class="profile-group-section">
+                            <h4 class="group-title">
+                                <i class="fas fa-layer-group"></i> Polyphonic Models (Chords, Piano, & Multi-instruments)
+                            </h4>
+                            <div class="profile-grid">
+                                {% for key, profile in polyphonic_profiles.items %}
+                                <label class="profile-option">
+                                    <input type="radio" name="profile" value="{{ key }}">
+                                    <div class="profile-card">
+                                        <h4>{{ profile.label }}</h4>
+                                        <span class="profile-detail">Range: {{ profile.fmin }} – {{ profile.fmax }}</span>
+                                    </div>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
-                                <!-- KARAOKE VOCAL REMOVAL -->
+                <!-- KARAOKE VOCAL REMOVAL -->
                 <div class="karaoke-panel">
                     <label class="karaoke-checkbox">
                         <input type="checkbox" name="remove_vocals" id="removeVocals">
@@ -198,7 +339,6 @@
 
     </div>
 </section>
-
 {% endblock %}
 
 {% block extra_js %}
