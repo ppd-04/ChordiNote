@@ -4725,3 +4725,206 @@ body {
     text-align: center;
     color: var(--primary);
 }
+
+
+/* ============================================
+   AUDIO LAB AUTOTUNER PANEL STYLING
+   ============================================ */
+
+.autotune-panel {
+    border: 1px solid rgba(167, 139, 250, 0.3) !important;
+    background: linear-gradient(135deg, rgba(167, 139, 250, 0.05), rgba(244, 114, 182, 0.05)) !important;
+}
+
+.autotune-panel h3 i {
+    color: var(--primary) !important;
+    text-shadow: var(--glow-purple);
+}
+
+/* Custom Styled Switch Toggle */
+.autotune-checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.autotune-checkbox-container input[type="checkbox"] {
+    display: none;
+}
+
+.autotune-toggle {
+    width: 44px;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 11px;
+    position: relative;
+    transition: var(--transition);
+    border: 1px solid var(--border-glass);
+}
+
+.autotune-toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: var(--text-secondary);
+    border-radius: 50%;
+    transition: var(--transition);
+}
+
+.autotune-checkbox-container input:checked + .autotune-toggle {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-color: var(--primary);
+}
+
+.autotune-checkbox-container input:checked + .autotune-toggle::after {
+    left: 24px;
+    background: #ffffff;
+}
+
+/* Dropdown Selectors Styling */
+.lab-select-dark {
+    flex: 1;
+    padding: 8px 12px;
+    background: rgba(15, 10, 26, 0.9);
+    color: var(--text-primary);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-sm);
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    outline: none;
+    transition: var(--transition);
+}
+
+.lab-select-dark:focus {
+    border-color: var(--primary);
+    box-shadow: var(--glow-purple);
+}
+
+/* Live Note Alignment Display */
+.autotune-visuals {
+    margin-top: 1.5rem;
+    padding: 1.2rem;
+    background: rgba(15, 10, 26, 0.5);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-glass);
+}
+
+.autotune-notes {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.vocal-note-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 70px;
+}
+
+.note-box-title {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+
+.vocal-note-val {
+    font-size: 1.6rem;
+    font-weight: 800;
+    font-family: monospace;
+    color: var(--text-secondary);
+}
+
+.vocal-note-box.corrected .vocal-note-val {
+    background: var(--gradient-main);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.4));
+}
+
+.vocal-note-arrow {
+    font-size: 1.2rem;
+    color: var(--primary);
+    animation: pulseArrow 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseArrow {
+    0%, 100% { transform: scale(1) translateX(0); opacity: 0.6; }
+    50% { transform: scale(1.15) translateX(3px); opacity: 1; }
+}
+
+/* ============================================
+   RECORDING BUTTON & STATUS BAR
+   ============================================ */
+
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(239, 68, 68, 0.5);
+}
+
+.btn-danger.recording-active {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    animation: recordingBtnPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes recordingBtnPulse {
+    0%, 100% { box-shadow: 0 4px 20px rgba(239, 68, 68, 0.5); }
+    50% { box-shadow: 0 4px 30px rgba(239, 68, 68, 0.9); }
+}
+
+.btn-secondary.has-recording {
+    border-color: #4ade80 !important;
+    color: #4ade80 !important;
+    background: rgba(74, 222, 128, 0.1) !important;
+}
+
+.recording-status-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-sm);
+    margin-top: 1rem;
+    animation: slideDown 0.3s ease;
+}
+
+.recording-status-bar .recording-pulse {
+    color: #ef4444;
+    animation: recordingPulse 1s ease-in-out infinite;
+}
+
+@keyframes recordingPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.2); }
+}
+
+.recording-status-bar #recordingTime {
+    font-weight: 700;
+    color: #ef4444;
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+}
+
+.recording-status-bar .recording-hint {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-left: auto;
+}
