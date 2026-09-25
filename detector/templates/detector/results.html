@@ -46,6 +46,9 @@
     {% if notes_json %}
 <script id="notes-data-json" type="application/json">{{ notes_json|safe }}</script>
 {% endif %}
+{% if chords_json %}
+<script id="chords-data-json" type="application/json">{{ chords_json|safe }}</script>
+{% endif %}
 
     <!-- AUDIO PLAYERS -->
         <!-- AUDIO PLAYERS -->
@@ -88,7 +91,7 @@
         {% if has_reconstruction %}
         <div class="player-card">
             <h3><i class="fas fa-wand-magic-sparkles"></i> Full Reconstruction</h3>
-            <audio controls class="audio-player">
+            <audio id="reconstructedAudio" controls class="audio-player">
                 <source src="{{ reconstructed_url }}" type="audio/wav">
             </audio>
             <p class="player-hint">All detected notes including chords and bass</p>
@@ -139,6 +142,34 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- LIVE CHORD DISPLAY (shown during piano playback) -->
+    <div id="liveChordDisplay" style="display:none; text-align:center; margin: 0.5rem 0 1.2rem 0;">
+        <div style="
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(99,102,241,0.13);
+            border: 1px solid rgba(99,102,241,0.35);
+            border-radius: 14px;
+            padding: 0.6rem 1.8rem;
+            backdrop-filter: blur(8px);
+        ">
+            <i class="fas fa-music" style="color:#a78bfa; font-size:1rem;"></i>
+            <span style="color:var(--text-secondary); font-size:0.85rem; font-weight:500;">Current Chord:</span>
+            <span id="liveChordLabel" style="
+                font-size: 1.5rem;
+                font-weight: 800;
+                background: linear-gradient(135deg, #818cf8, #c084fc);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                min-width: 3.5rem;
+                text-align: left;
+                letter-spacing: 0.02em;
+            ">—</span>
+        </div>
+    </div>
 
     <!-- INTERACTIVE PIANO SECTION -->
     <div class="piano-section reveal">
@@ -704,6 +735,7 @@
     console.log('🎹 Results page visual piano script loaded');
 
     let processedNotesData = [];
+    let processedChordsData = [];
     let currentSyncAudio = null;
     let animFrameId = null;
     let isVisualPlaybackActive = false;
@@ -764,6 +796,17 @@
             }
         }
 
+        // Parse chord data
+        const chordsEl = document.getElementById('chords-data-json');
+        if (chordsEl) {
+            try {
+                processedChordsData = JSON.parse(chordsEl.textContent);
+                console.log('🎵 Parsed', processedChordsData.length, 'chord windows');
+            } catch (err) {
+                console.error('Failed to parse chords_json:', err);
+            }
+        }
+
         // Auto-attach audio event listeners to all audio players on page
         document.querySelectorAll('audio.audio-player').forEach(audio => {
             audio.addEventListener('play', function() {
@@ -784,6 +827,20 @@
                 }
             });
         });
+    }
+
+    function updateChordDisplay(currentTime) {
+        const display = document.getElementById('liveChordDisplay');
+        const label = document.getElementById('liveChordLabel');
+        if (!display || !label) return;
+        const match = processedChordsData.find(c => currentTime >= c.start && currentTime < c.end);
+        if (match) {
+            display.style.display = 'flex';
+            display.style.justifyContent = 'center';
+            label.textContent = match.chord;
+        } else {
+            label.textContent = '—';
+        }
     }
 
     // Highlight specific note keys on #resultsPiano with auto-scroll
@@ -874,6 +931,7 @@
             });
 
             highlightKeysOnResultsPiano(activeNotes);
+            updateChordDisplay(currentTime);
             animFrameId = requestAnimationFrame(syncLoop);
         }
 
@@ -889,6 +947,9 @@
         }
         currentSyncAudio = null;
         highlightKeysOnResultsPiano([]);
+        // Hide chord display
+        const display = document.getElementById('liveChordDisplay');
+        if (display) display.style.display = 'none';
 
         document.querySelectorAll('.btn-visual-piano').forEach(btn => {
             btn.classList.remove('active');

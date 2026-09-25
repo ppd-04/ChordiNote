@@ -10,11 +10,13 @@ from .dsp_engine import process_audio_file, ANALYSIS_PROFILES
 from .polyphonic_engine import process_audio_polyphonic, POLYPHONIC_PROFILES, get_profile_display_info
 from .polyphonic_engine_v2 import process_audio_polyphonic_v2, V2_PROFILES, get_v2_profile_display_info
 from .polyphonic_engine_v4 import process_audio_polyphonic_v4
+from .voice_engine import process_audio_voice
 from .audio_renderer import render_reconstructed_audio, calculate_reconstruction_error
 
 from .visualizer import generate_all_visualizations
 from .ml_chord_classifier import analyze_chords
 from .key_detector import detect_key_from_notes
+from .note_chord_detector import detect_chords_from_notes
 from .sheet_generator import generate_piano_abc
 from .karaoke import remove_vocals_center_cancellation, remove_vocals_nmf
 
@@ -117,6 +119,14 @@ def upload_audio(request):
             "fmax": profile["fmax"],
             "engine": "pyin",
         }
+        
+    # Add Voice Engine profile
+    combined_profiles["voice_acapella"] = {
+        "label": "[Vocal] Acapella / Monophonic Voice (pYIN + Gate)",
+        "fmin": "C2",
+        "fmax": "C6",
+        "engine": "voice",
+    }
     
     # Add Polyphonic CQT v1 profiles
     for key in POLYPHONIC_PROFILES.keys():
@@ -221,6 +231,10 @@ def upload_audio(request):
                 detected_notes = process_audio_polyphonic(detection_file, actual_profile)
                 profile_label = POLYPHONIC_PROFILES.get(actual_profile, {}).get('label', actual_profile)
                 engine_used = "Polyphonic V1 (CQT DSP)"
+            elif profile_name.startswith('voice_'):
+                detected_notes = process_audio_voice(detection_file)
+                profile_label = "Acapella / Monophonic Voice (pYIN + Gate)"
+                engine_used = "Monophonic Voice Engine (pYIN + Noise Gate)"
             else:
                 actual_profile = profile_name.replace('pyin_', '')
                 detected_notes = process_audio_file(detection_file, actual_profile)
@@ -305,6 +319,13 @@ def upload_audio(request):
             except Exception as viz_err:
                 viz_data = None
 
+            # Symbolic Grid Hybrid Chord Detection (uses V4 note events mapped to time grid)
+            note_chords = []
+            try:
+                note_chords = detect_chords_from_notes(detected_notes, musical_key)
+            except Exception as ncd_err:
+                print(f"Note chord detection error: {ncd_err}")
+
             reconstruction_metrics = None
             if render_success:
                 try:
@@ -339,6 +360,7 @@ def upload_audio(request):
                 'vocal_url': vocal_url,
                 'karaoke_method_used': karaoke_method if karaoke_success else None,
                 'notes_json': json.dumps(detected_notes),
+                'chords_json': json.dumps(note_chords),
                 'viz_data' : json.dumps(viz_data) if viz_data else None,
                 'chord_analysis' : chord_analysis,
                 'musical_key': musical_key,
