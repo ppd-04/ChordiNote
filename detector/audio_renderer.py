@@ -202,7 +202,26 @@ def calculate_reconstruction_error(original_path, reconstructed_path, sample_rat
         else:
             match_score = 0.0
 
-        # 3. Spectral Distance / Log-Spectral Distance (LSD)
+        # 3. Harmonic Pitch Match Score (Chromagram Cosine Similarity)
+        # Chroma features group energy into the 12 musical pitch classes (C, C#, D... B),
+        # making it resilient to timber/overtone differences and focusing strictly on pitch accuracy.
+        chroma_orig = librosa.feature.chroma_stft(y=y_orig, sr=sample_rate)
+        chroma_rec = librosa.feature.chroma_stft(y=y_rec, sr=sample_rate)
+
+        flat_chroma_orig = chroma_orig.flatten()
+        flat_chroma_rec = chroma_rec.flatten()
+
+        dot_chroma = np.dot(flat_chroma_orig, flat_chroma_rec)
+        norm_chroma_orig = np.linalg.norm(flat_chroma_orig)
+        norm_chroma_rec = np.linalg.norm(flat_chroma_rec)
+
+        if norm_chroma_orig > 0 and norm_chroma_rec > 0:
+            chroma_sim = float(dot_chroma / (norm_chroma_orig * norm_chroma_rec))
+            pitch_match_score = float(np.clip(chroma_sim, 0.0, 1.0) * 100.0)
+        else:
+            pitch_match_score = 0.0
+
+        # 4. Spectral Distance / Log-Spectral Distance (LSD)
         log_diff = np.log10(stft_orig + 1e-4) - np.log10(stft_rec + 1e-4)
         spectral_error = float(np.sqrt(np.mean(log_diff ** 2)))
 
@@ -210,7 +229,8 @@ def calculate_reconstruction_error(original_path, reconstructed_path, sample_rat
             "mse": round(mse, 6),
             "rmse": round(rmse, 4),
             "spectral_error": round(spectral_error, 4),
-            "match_score": round(match_score, 1)
+            "match_score": round(match_score, 1),
+            "pitch_match_score": round(pitch_match_score, 1)
         }
     except Exception as err:
         print(f"Failed to calculate reconstruction metrics: {err}")

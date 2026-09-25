@@ -163,10 +163,15 @@
                 <span>Reconstruction Fidelity & Signal Error Analysis</span>
             </h3>
             <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 0;">
+                <div class="stat-card" style="border-top: 3px solid #38bdf8; text-align: center; padding: 1rem;">
+                    <div class="stat-number" style="font-size: 1.6rem; color: #38bdf8;">{{ reconstruction_metrics.pitch_match_score }}%</div>
+                    <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Harmonic Pitch Match</div>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">Chroma Pitch Cosine</p>
+                </div>
                 <div class="stat-card" style="border-top: 3px solid #4ade80; text-align: center; padding: 1rem;">
                     <div class="stat-number" style="font-size: 1.6rem; color: #4ade80;">{{ reconstruction_metrics.match_score }}%</div>
                     <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Signal Match Score</div>
-                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">Cosine Similarity</p>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">Spectral Envelope Cosine</p>
                 </div>
                 <div class="stat-card" style="border-top: 3px solid #60a5fa; text-align: center; padding: 1rem;">
                     <div class="stat-number" style="font-size: 1.6rem; color: #60a5fa;">{{ reconstruction_metrics.mse }}</div>

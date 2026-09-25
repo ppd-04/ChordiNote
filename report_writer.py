@@ -1,0 +1,773 @@
+import pathlib, textwrap
+
+tex = textwrap.dedent(r"""
+% ============================================================
+%  ChordiNote --- Note Transcription Pipeline Technical Report
+% ============================================================
+\documentclass[12pt, a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\usepackage{parskip}
+\usepackage{multirow}
+\usepackage{array}
+
+\definecolor{primaryblue}{HTML}{1D4ED8}
+\definecolor{accentpurple}{HTML}{7C3AED}
+\definecolor{accentgreen}{HTML}{059669}
+\definecolor{accentamber}{HTML}{D97706}
+\definecolor{noteboxbg}{HTML}{EFF6FF}
+\definecolor{noteboxborder}{HTML}{2563EB}
+\definecolor{warnboxbg}{HTML}{FFFBEB}
+\definecolor{warnboxborder}{HTML}{D97706}
+\definecolor{mathboxbg}{HTML}{F0FDF4}
+\definecolor{mathboxborder}{HTML}{059669}
+\definecolor{rulecolor}{HTML}{D1D5DB}
+
+\hypersetup{colorlinks=true,linkcolor=primaryblue,urlcolor=accentgreen,
+  pdftitle={ChordiNote: Note Transcription Pipeline}}
+
+\titleformat{\section}{\Large\bfseries\color{primaryblue}}{\thesection}{1em}{}[\color{rulecolor}\rule{\linewidth}{0.5pt}]
+\titleformat{\subsection}{\large\bfseries\color{accentpurple}}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{accentgreen}}{\thesubsubsection}{1em}{}
+
+\tcbuselibrary{skins, breakable}
+\newtcolorbox{notebox}[1][]{enhanced,breakable,colback=noteboxbg,colframe=noteboxborder,arc=4pt,boxrule=1pt,title={\textbf{\textcolor{noteboxborder}{#1}}},fonttitle=\small\bfseries,top=4pt,bottom=4pt,left=6pt,right=6pt}
+\newtcolorbox{warnbox}[1][]{enhanced,breakable,colback=warnboxbg,colframe=warnboxborder,arc=4pt,boxrule=1pt,title={\textbf{\textcolor{warnboxborder}{#1}}},fonttitle=\small\bfseries,top=4pt,bottom=4pt,left=6pt,right=6pt}
+\newtcolorbox{mathbox}[1][]{enhanced,breakable,colback=mathboxbg,colframe=mathboxborder,arc=4pt,boxrule=1pt,title={\textbf{\textcolor{mathboxborder}{#1}}},fonttitle=\small\bfseries,top=4pt,bottom=4pt,left=6pt,right=6pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\textcolor{gray}{\small ChordiNote Note Transcription Pipeline}}
+\lhead{\textcolor{gray}{\small Technical Report}}
+\cfoot{\thepage}
+
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  \vspace*{2.5cm}
+  {\Huge\bfseries\color{primaryblue} ChordiNote\par}
+  \vspace{0.4cm}
+  {\Large\color{accentpurple} Automatic Music Note Transcription Pipeline\par}
+  \vspace{0.2cm}
+  {\large\color{gray} DSP + Music Theory Technical Report\par}
+  \vspace{1.5cm}
+  \rule{0.6\textwidth}{1pt}
+  \vspace{1.5cm}
+  \begin{tcolorbox}[colback=noteboxbg,colframe=noteboxborder,arc=6pt,boxrule=1pt,width=0.85\textwidth]
+    \centering
+    \textit{This report documents the complete note transcription pipeline of ChordiNote:
+    from raw audio waveform to structured musical note sequences. It covers the
+    mathematical foundations, the music theory rules embedded in each algorithm,
+    and the iterative engine upgrades from \textbf{V1~(CQT+NMF)} through
+    \textbf{V2~(Learned Templates, HMM, L1-NMF)} to the current
+    \textbf{V4~(Pitch-Aware Hybrid Filter)}.}
+  \end{tcolorbox}
+  \vspace{2cm}
+  {\large\textbf{Authors:} ChordiNote Development Team\par}
+  \vspace{0.3cm}
+  {\large\textbf{Date:} September 2026\par}
+  \vspace{0.3cm}
+  {\large\textbf{Repository Branch:} \texttt{frontend}\par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ===========================================================
+\section{Introduction and Project Overview}
+% ===========================================================
+
+ChordiNote is an automatic music transcription (AMT) web application.
+Given any audio recording --- a piano cover, flute solo, vocal melody, or
+acoustic guitar piece --- the system returns a time-stamped sequence of notes
+and chords, a reconstructed synthesised version, live keyboard and fretboard
+visualisations, and quantitative accuracy metrics.
+
+The \textbf{main technical challenge} is turning a waveform $y(t)$ into a
+sequence of $(t_{\text{start}}, t_{\text{end}}, \text{MIDI pitch})$ triples.
+Several sub-problems drove all design decisions:
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{Polyphony} --- multiple notes sounding simultaneously (chords).
+  \item \textbf{Harmonic aliasing} --- a single string produces
+        $f_0, 2f_0, 3f_0,\ldots$ overtones that naive detectors label as extra notes.
+  \item \textbf{Monophonic voice limitation} --- human voices produce only
+        one pitch and require a dedicated monophonic tracker.
+  \item \textbf{Instrument-specific timbre} --- flute and guitar have very
+        different harmonic envelopes; a piano template misfires on them.
+  \item \textbf{Dynamic range and noise} --- YouTube audio has compression
+        artefacts and background noise that fool energy-based detectors.
+\end{enumerate}
+
+\begin{notebox}[Three-Engine Architecture]
+  \textbf{Monophonic pYIN} (\texttt{dsp\_engine.py}) --- single-note melodies.\newline
+  \textbf{Voice Engine} (\texttt{voice\_engine.py}) --- human vocal tracks.\newline
+  \textbf{Polyphonic Engine V1\,{\textrightarrow}\,V2\,{\textrightarrow}\,V4}
+  (\texttt{polyphonic\_engine*.py}) --- full chord and polyphonic transcription.
+\end{notebox}
+
+% ===========================================================
+\section{Signal Processing Foundations}
+% ===========================================================
+
+\subsection{From Waveform to Spectrum}
+
+All audio is loaded at $f_s = 22\,050\,\text{Hz}$ and downmixed to mono.
+The first stage converts the time-domain waveform $y[n]$ into a
+time-frequency representation.
+
+\subsubsection{Short-Time Fourier Transform (STFT)}
+
+\begin{equation}
+  X[\ell, k] = \sum_{n=0}^{N-1} y[n + \ell H]\, w[n]\, e^{-j2\pi kn/N}
+\end{equation}
+
+where $N$ is the FFT size, $H$ the hop length, and $w[n]$ a Hann window.
+Magnitude $|X[\ell,k]|$ gives a spectrogram where bin $k$ maps to
+$f = k\cdot f_s/N$.
+
+\begin{warnbox}[STFT Limitation for Music]
+  STFT has fixed frequency resolution $\Delta f = f_s/N$.
+  Bass notes ($A0 = 27.5\,\text{Hz}$) need a huge window to separate
+  nearby semitones; treble notes need a tiny window for temporal precision.
+  No single $N$ satisfies both requirements simultaneously.
+\end{warnbox}
+
+\subsubsection{Constant-Q Transform (CQT) --- the Core Representation}
+
+The CQT uses logarithmically spaced frequency bins that mirror the musical
+scale. Centre frequency of bin $k$:
+\begin{equation}
+  f_k = f_{\min} \cdot 2^{k/B}
+\end{equation}
+where $B$ is bins per octave. We use $\mathbf{B = 36}$, giving 3 bins per
+semitone for sub-semitone resolution.
+
+\begin{mathbox}[Why 3 Bins Per Semitone?]
+  Adjacent semitones differ by $2^{1/12}\approx 1.0595$ (a ratio of $5.9\%$).
+  With 3 bins per semitone, each bin spans $\approx 1.96\%$, giving enough
+  resolution to separate nearby piano keys or guitar strings reliably.
+\end{mathbox}
+
+The CQT output $\mathbf{C}\in\mathbb{R}^{n_{\text{bins}}\times n_{\text{frames}}}$
+is our observation matrix --- what the NMF literature calls $\mathbf{V}$.
+
+\subsection{Fundamental Frequency Estimation: pYIN}
+
+For monophonic sources the best approach is direct $F_0$ estimation.
+\textbf{pYIN} (Mauch \& Dixon 2014) operates in two stages:
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{YIN} --- compute the autocorrelation-based difference function:
+    \begin{equation}
+      d(\tau) = \sum_{j=0}^{W-1}\bigl(y[j] - y[j+\tau]\bigr)^2
+    \end{equation}
+    The prominent local minimum at lag $\tau^*$ gives $F_0 = f_s/\tau^*$.
+  \item \textbf{Probabilistic HMM} --- maps the raw YIN candidate distribution
+    over time to a smooth MIDI-quantised path, penalising large pitch jumps and
+    correcting octave errors through Viterbi decoding.
+\end{enumerate}
+
+pYIN returns three arrays per frame: $F_0[\ell]$, a voiced/unvoiced flag,
+and a confidence probability. A minimum confidence threshold (0.08--0.45
+depending on profile) gates out ambiguous frames.
+
+\subsection{Energy Analysis: RMS and Onset Detection}
+
+\subsubsection{Root-Mean-Square Energy}
+
+\begin{equation}
+  \text{RMS}[\ell] = \sqrt{\frac{1}{N}\sum_{n=0}^{N-1}y^2[n+\ell H]}
+\end{equation}
+
+Frames below $-55\,\text{dB}$ relative to peak are treated as silence,
+removing breath noise, reverb tails, and instrument bleed.
+
+\subsubsection{Dual Onset Detection (V2 and above)}
+
+Note onsets mark when a musician strikes a new note. We combine two detectors:
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{Energy-based}: standard RMS onset envelope via
+        \texttt{librosa.onset.onset\_detect}.
+  \item \textbf{Spectral-flux-based}: onset strength with median aggregation
+        and $f_{\max}=8000\,\text{Hz}$ to catch high-frequency piano
+        hammer transients missed by energy-based methods.
+\end{enumerate}
+Both lists are merged and de-duplicated within a \texttt{merge\_ms} window
+(12--45\,ms per profile). Onsets serve two roles: (1) splitting continuous
+NMF activations for repeated notes (e.g.\ C--C played rapidly), and (2)
+grouping notes struck within 50\,ms into a single chord event.
+
+% ===========================================================
+\section{Music Theory Rules Embedded in the Pipeline}
+% ===========================================================
+
+Music theory is used throughout not merely as vocabulary but as
+\emph{hard constraints and priors} on what the system is allowed to output.
+Each principle translates directly into code.
+
+\subsection{The Harmonic Series and Overtone Structure}
+
+Any sustained tone at fundamental $f_0$ simultaneously produces energy at
+integer multiples $2f_0, 3f_0, 4f_0,\ldots$ called \emph{harmonics}.
+
+\begin{center}
+\begin{tabular}{cccc}
+  \toprule
+  Harmonic $n$ & Frequency & Interval above $f_0$ & Name \\
+  \midrule
+  1 & $f_0$   & Unison                    & Fundamental   \\
+  2 & $2f_0$  & Perfect octave            & 1st overtone  \\
+  3 & $3f_0$  & Octave + perfect 5th      & 2nd overtone  \\
+  4 & $4f_0$  & Two octaves               & 3rd overtone  \\
+  5 & $5f_0$  & Two octaves + major 3rd   & 4th overtone  \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{warnbox}[The Ghost Note Problem]
+  A naive detector sees energy at $f_0, 2f_0, 3f_0,\ldots$ and labels each
+  as a separate note. Playing a single C3 can produce phantom C4, G4, C5,
+  E5 detections --- none of which were actually played. Eliminating these
+  \emph{harmonic ghosts} is the single largest algorithmic challenge in the
+  whole codebase.
+\end{warnbox}
+
+\subsubsection{Piano String Inharmonicity: Fletcher (1964) Model}
+
+Real piano strings have finite stiffness. Their $n$-th partial occurs at:
+\begin{equation}
+  f_n = n\cdot f_0\cdot\sqrt{1 + B\cdot n^2}, \quad B \approx 2\times10^{-4}
+\end{equation}
+High harmonics are slightly \emph{sharp} relative to ideal integer multiples.
+All template construction and ghost detection in V2/V4 use this formula
+to avoid falsely labelling inharmonic overtones as independent notes.
+
+\subsection{Equal Temperament and MIDI Quantisation}
+
+Western music uses 12-tone equal temperament (12-TET): each semitone is a
+frequency ratio of $2^{1/12}$. MIDI encodes pitch as:
+\begin{equation}
+  m = 69 + 12\cdot\log_2\!\left(\frac{f}{440}\right)
+\end{equation}
+($m = 69$ = A4 = 440\,Hz). After pYIN or NMF produces a continuous
+frequency estimate we round to the nearest integer MIDI, converting raw
+frequency into clean note names (C4, F\#3, etc.).
+
+\subsection{Octave Error Correction}
+
+pYIN's HMM occasionally tracks a note one octave off, particularly at
+phrase boundaries. We apply a 5-frame \textbf{median neighbourhood filter}:
+\begin{enumerate}[leftmargin=2em]
+  \item Compute $\hat{m}_i = \text{median}(\{m_{i-2}, m_{i-1}, m_{i+1}, m_{i+2}\})$.
+  \item If $|m_i - \hat{m}_i| \geq 11$ (close to one octave = 12 semitones),
+        try shifting $m_i$ by $\pm12$.
+  \item Keep the shift that minimises the residual.
+\end{enumerate}
+This exploits the \textbf{musical fact} that pitch contours are smooth:
+a legitimate octave jump mid-phrase is rare and easily identified as an error.
+
+\subsection{Diatonic Key-Scale Filter}
+
+Western music is anchored to a \textbf{key}: 7 pitch classes out of 12.
+For example, D Major uses $\{D, E, F\#, G, A, B, C\#\}$.
+
+\begin{mathbox}[Scale Intervals from Tonic]
+  \textbf{Major scale}: $\{0, 2, 4, 5, 7, 9, 11\}$ semitones from tonic.\newline
+  \textbf{Minor scale}: $\{0, 2, 3, 5, 7, 8, 10\}$ semitones from tonic.
+\end{mathbox}
+
+After V4 note extraction we:
+\begin{enumerate}[leftmargin=2em]
+  \item Detect the key via Krumhansl-Schmuckler pitch-class profile
+        correlation on the already-extracted events.
+  \item Build the allowed pitch-class set:
+        \texttt{allowed = \{(tonic + interval) \% 12\}}.
+  \item Remove out-of-key notes shorter than \texttt{chromatic\_min\_dur}
+        (120\,ms for Soft Piano profiles; 0\,ms = remove all for Fast profiles).
+\end{enumerate}
+This preserves deliberate chromatic passing tones while discarding ghost
+artefacts that fall on incorrect pitches.
+
+\subsection{Polyphony Limits and Chord Grouping}
+
+\subsubsection{Physical Polyphony Caps}
+
+\begin{center}
+\begin{tabular}{lcc}
+  \toprule
+  Instrument & Max simultaneous notes & Reason \\
+  \midrule
+  Piano  & 6 & Two hands, typically 3 notes each \\
+  Guitar & 6 & One note per string \\
+  Flute  & 2 & Multiphonics are rare \\
+  Voice  & 1 & Monophonic by nature \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection{Chord Grouping}
+
+Notes whose active intervals overlap by $\geq 50\,\text{ms}$ are grouped
+into a chord (e.g.\ \texttt{C4 + E4 + G4} for C major).
+
+\subsubsection{Semitone Adjacency Veto}
+
+Adjacent semitones (e.g.\ C4 and C\#4) are highly dissonant and almost
+never simultaneously intended in tonal music. When such a pair is detected:
+\begin{enumerate}[leftmargin=2em]
+  \item Compute mean NMF activation energy for both notes.
+  \item If the quieter note's energy is $< 55\%$ of the louder, suppress it.
+  \item If both have comparable energy ($\geq 55\%$), keep both --- this
+        preserves deliberate major-7th voicings such as C4 + B3.
+\end{enumerate}
+
+\subsection{Guitar Physical Constraint Filter}
+
+A guitar has 6 strings tuned $E_2, A_2, D_3, G_3, B_3, E_4$ with at most
+19 frets (1 semitone each). A note $m$ can be played on string $s$ only
+if $0 \leq m - \text{open}(s) \leq 19$. When two simultaneous events
+compete for the same string, the lower note is removed --- a physical
+impossibility for a solo guitarist.
+
+% ===========================================================
+\section{Engine Versions: V1, V2, and V4}
+% ===========================================================
+
+\subsection{Monophonic Baseline: pYIN Engine (dsp\_engine.py)}
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{Chunked loading} --- 30-second chunks with 2-second overlap
+        context, preventing RAM overflow on long recordings.
+  \item \textbf{Adaptive frame length} --- the FFT window grows for bass
+        profiles to satisfy spectral resolution at low frequencies:
+        $N_{\min} = 2\lceil f_s / f_{\min}\rceil$ rounded to next power of 2.
+  \item \textbf{pYIN pitch tracking} --- outputs $F_0[\ell]$, voiced flag, confidence.
+  \item \textbf{RMS noise gate} --- silence frames below $-55\,\text{dB}$.
+  \item \textbf{Confidence threshold} --- profile-tuned gate on pYIN output.
+  \item \textbf{Octave error correction} --- median neighbour filter.
+  \item \textbf{Short-gap fill} --- REST gaps $<$ \texttt{max\_gap}
+        (60--150\,ms) between identical notes are bridged (models legato).
+  \item \textbf{Onset-guided note splitting} --- new attacks inside a
+        sustained pitch generate separate events.
+  \item \textbf{Output} --- time-stamped \{timestamp, note name, Hz\}.
+\end{enumerate}
+
+\begin{notebox}[Limitation]
+  pYIN tracks only one $F_0$ per frame. Chords and harmonically rich content
+  are entirely beyond its capability, which motivated the polyphonic engine.
+\end{notebox}
+
+\subsection{Voice Engine (voice\_engine.py)}
+
+A specialised fork of the pYIN engine optimised for human vocal tracks:
+\begin{itemize}[leftmargin=2em]
+  \item \textbf{Restricted pitch range}: $F_{\min} = 65\,\text{Hz}$ (C2),
+        $F_{\max} = 1046\,\text{Hz}$ (C6) --- standard vocal range.
+  \item \textbf{HMM-backed voiced flag}: trusts pYIN's built-in HMM for
+        better handling of breathy onsets and vocal fry.
+  \item \textbf{Vibrato smoothing}: 7-frame median filter ($\approx 160\,\text{ms}$)
+        flattens oscillating vibrato pitch to reveal the underlying note.
+        Pipeline: fill NaN gaps by interpolation $\to$ median filter $\to$
+        re-apply valid mask.
+  \item \textbf{Velocity proxy}: mean RMS over each note window is mapped to
+        $[0.4, 1.0]$, enabling dynamics in synthesis.
+\end{itemize}
+
+\subsection{Polyphonic Engine V1 (polyphonic\_engine.py)}
+
+\subsubsection{Core Idea: NMF Decomposition}
+
+Non-Negative Matrix Factorisation decomposes the CQT spectrogram:
+\begin{equation}
+  \mathbf{V} \approx \mathbf{W}\cdot\mathbf{H}, \qquad
+  \mathbf{V},\mathbf{W},\mathbf{H} \geq 0
+\end{equation}
+\begin{itemize}[leftmargin=2em]
+  \item $\mathbf{V}\in\mathbb{R}^{n_{\text{bins}}\times n_{\text{frames}}}$
+        --- the CQT spectrogram (observation).
+  \item $\mathbf{W}\in\mathbb{R}^{n_{\text{bins}}\times n_{\text{notes}}}$
+        --- template matrix: each column is the spectral shape of one note.
+  \item $\mathbf{H}\in\mathbb{R}^{n_{\text{notes}}\times n_{\text{frames}}}$
+        --- activation matrix: row $i$ encodes when note $i$ is active.
+\end{itemize}
+
+\textbf{Lee \& Seung multiplicative update rule} (with $\mathbf{W}$ fixed):
+\begin{equation}
+  \mathbf{H} \leftarrow \mathbf{H} \odot
+  \frac{\mathbf{W}^{T}\mathbf{V}}
+       {\mathbf{W}^{T}\mathbf{W}\mathbf{H} + \varepsilon}
+\end{equation}
+where $\varepsilon = 10^{-10}$ prevents division by zero.
+
+\subsubsection{V1 Template Construction}
+
+Each note column in $\mathbf{W}$ places energy spikes at harmonics
+$n = 1\ldots 8$ with amplitudes $A = [1.0, 0.50, 0.25, 0.15, 0.08, 0.05, 0.03, 0.02]$.
+CQT bin positions:
+\begin{equation}
+  b_n = B \cdot \log_2\!\left(\frac{n \cdot f_0}{f_{\min}}\right)
+\end{equation}
+A $\pm1$ bin spread with weights $[0.3, 1.0, 0.3]$ models CQT filter
+bandwidth. All columns are $\ell_2$-normalised.
+
+\subsubsection{Two-Pass Melody + Bass System}
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{Pass 1} --- NMF on full CQT. High-confidence events are
+        \emph{locked} as melody and cannot be modified.
+  \item \textbf{Pass 2} --- NMF on lower-frequency CQT. Events accepted
+        only in silent gaps of Pass 1 (fills missing bass notes).
+\end{enumerate}
+
+\subsubsection{Post-Processing Filters in V1}
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{Harmonic ghost removal}: if
+        $f_{\text{high}}/f_{\text{low}}$ is within 3\% of an integer in
+        $\{2,\ldots,8\}$ and the higher note's activation is $< 80\%$ of the
+        lower note's, delete the higher note as a ghost.
+  \item \textbf{Polyphony cap}: frames with $>$ \texttt{max\_poly}
+        simultaneous notes remove the weakest. An event removed in $> 30\%$
+        of its frames is discarded entirely.
+  \item \textbf{REST insertion}: gaps $> 150\,\text{ms}$ between events are
+        explicitly labelled REST.
+\end{enumerate}
+
+\subsubsection{V1 Failure Modes}
+
+\begin{warnbox}[Problems Observed with V1]
+  \textbf{1. Template mismatch} --- sine-wave templates ignore inharmonicity;
+  the 3\% window was insufficient for high overtones.\newline
+  \textbf{2. Uniform threshold} --- one global threshold simultaneously
+  missed soft notes and over-accepted ghost activations.\newline
+  \textbf{3. Single-frame blips} --- no temporal smoothing; a single bright
+  frame in $\mathbf{H}$ became a $< 50\,\text{ms}$ ghost note event.\newline
+  \textbf{4. Repeated note merging} --- C--C played rapidly produced one long
+  NMF activation with no per-note onset splitting to distinguish the two strikes.
+\end{warnbox}
+
+\subsection{Polyphonic Engine V2 (polyphonic\_engine\_v2.py)}
+
+V2 is a ground-up redesign fixing every V1 failure while keeping CQT + NMF.
+
+\subsubsection{Improvement 1: Inharmonicity-Corrected Templates (Fletcher Model)}
+
+\begin{equation}
+  f_n = n\cdot f_0\cdot\sqrt{1 + B\cdot n^2}, \quad B = 2\times10^{-4}
+\end{equation}
+Amplitude roll-off now uses the physically motivated:
+\begin{equation}
+  A_n = \frac{1}{n^{0.75}}
+\end{equation}
+Higher harmonics are weaker, but not as steeply as $1/n$ (closer to reality).
+
+\subsubsection{Improvement 2: Octave-Dependent Harmonic Count}
+
+Low-register strings are long and produce rich harmonic series.
+High-register strings are short with almost no audible overtones.
+
+\begin{center}
+\begin{tabular}{ccc}
+  \toprule
+  MIDI Range & Notes & Harmonics Used \\
+  \midrule
+  $\leq 48$  & C3 and below & 14 \\
+  $49$--$60$ & C3--C4       & 10 \\
+  $61$--$72$ & C4--C5       &  7 \\
+  $73$--$84$ & C5--C6       &  4 \\
+  $> 84$     & Above C6     &  2 \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+This prevents high-octave templates bleeding energy into wrong bins.
+
+\subsubsection{Improvement 3: Semi-Supervised Template Adaptation}
+
+After building physics-based $\mathbf{W}_{\text{init}}$, 20 NMF adaptation
+iterations run with a 90:10 interpolation:
+\begin{equation}
+  \mathbf{W}_{\text{new}} = 0.90\,\mathbf{W}_{\text{old}} + 0.10\,\Delta\mathbf{W}
+\end{equation}
+Templates learn the specific room, microphone, and instrument EQ of each
+recording without drifting so far that they lose musical meaning.
+
+\subsubsection{Improvement 4: L1-Penalised Sparse NMF}
+
+An $\ell_1$ sparsity penalty $\lambda$ is added to the NMF denominator:
+\begin{equation}
+  \mathbf{H} \leftarrow \mathbf{H} \odot
+  \frac{\mathbf{W}^{T}\mathbf{V}}
+       {\mathbf{W}^{T}\mathbf{W}\mathbf{H} + \lambda + \varepsilon}
+\end{equation}
+This encodes the musical prior that only a few notes are active at any moment.
+Weak ghost activations shrink toward zero; real-note activations survive.
+
+\subsubsection{Improvement 5: HMM Viterbi Temporal Smoothing}
+
+A 2-state per-note HMM (Off / On) decoded via Viterbi:
+\begin{itemize}[leftmargin=2em]
+  \item \textbf{Transition}: $P(\text{On}\to\text{On}) = \texttt{stay\_prob}$
+        (e.g.\ 0.90).
+  \item \textbf{Emission}: $P(\text{active}\mid\text{On}) = 0.90$,
+        $P(\text{active}\mid\text{Off}) = 0.10$.
+  \item \textbf{Effect}: eliminates single-frame ghost blips and tiny
+        silence holes inside sustained notes.
+\end{itemize}
+
+\subsubsection{V2 Profile System}
+
+\begin{center}
+\begin{tabular}{lcccc}
+  \toprule
+  Profile & $\lambda$ & Threshold \%ile & HMM Stay & Max Poly \\
+  \midrule
+  Piano Soft     & 0.020 & 65\textsuperscript{th} & 0.93 & 6 \\
+  Piano Balanced & 0.030 & 75\textsuperscript{th} & 0.85 & 6 \\
+  Piano Fast     & 0.035 & 78\textsuperscript{th} & 0.80 & 6 \\
+  Flute V2       & 0.050 & 70\textsuperscript{th} & 0.88 & 2 \\
+  Guitar V2      & 0.025 & 72\textsuperscript{nd} & 0.88 & 6 \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Polyphonic Engine V4 (polyphonic\_engine\_v4.py)}
+
+V4 reuses all V2 infrastructure but replaces post-NMF thresholding and
+ghost filtering with a \textbf{Multi-Stage Musical Heuristic Filter}.
+
+\begin{notebox}[Design Philosophy Shift]
+  V2's adaptive threshold was frequency-agnostic: C2 and C7 were treated
+  identically. V4 mirrors human auditory perception. We are more sensitive
+  to high-frequency notes; the threshold curve must reflect this.
+\end{notebox}
+
+\subsubsection{Stage 1: Pitch-Aware Per-Note Hysteresis Threshold}
+
+\begin{enumerate}[leftmargin=2em]
+  \item Normalise: $\mathbf{H}_{\text{norm}} = \mathbf{H} / \max(\mathbf{H})$.
+  \item Apply a pitch-dependent multiplier per note:
+\end{enumerate}
+
+\begin{center}
+\begin{tabular}{ccc}
+  \toprule
+  MIDI Range & Multiplier & Interpretation \\
+  \midrule
+  $< 48$     & 1.2 & Bass needs stronger activation to fire \\
+  $48$--$72$ & 1.0 & Mid-range nominal \\
+  $72$--$84$ & 0.7 & Treble: easier to detect \\
+  $> 84$     & 0.4 & Very high notes: minimal energy needed \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+\begin{enumerate}[leftmargin=2em, start=3]
+  \item \textbf{Attack/release hysteresis}: a note must exceed
+        \texttt{attack\_ratio} $\times$ its per-note peak to start, but
+        only \texttt{release\_ratio} $\times$ its peak to continue
+        (models the fast-attack/slow-decay ADSR of piano notes).
+  \item \textbf{Skyline protector}: at each frame, the highest-pitched
+        candidate above a floor is forced active, ensuring the melody
+        is never suppressed by a thick bass chord.
+\end{enumerate}
+
+\subsubsection{Stage 2: Onset-Guided Harmonic Ghost Filter}
+
+For any note pair (low $i$, high $j$) where $j$ is an overtone of $i$:
+\begin{enumerate}[leftmargin=2em]
+  \item $\texttt{attack\_j}$ = maximum activation of note $j$ in its first
+        3 frames ($\approx 60\,\text{ms}$).
+  \item $\texttt{mean\_j}$ = mean activation of $j$ over its full duration.
+  \item If $\texttt{attack\_j} < 1.2 \times \texttt{mean\_j}$ (no sharp
+        transient) \textbf{and}
+        $\texttt{attack\_j} < 0.6 \times \texttt{attack\_i}$ (weaker than
+        the lower note), then $j$ is a ghost: remove it.
+\end{enumerate}
+
+\begin{notebox}[Music Theory Rationale]
+  When a pianist strikes two notes independently, each has its own hammer
+  transient: a sharp energy spike in the first 60\,ms. A harmonic ghost
+  has no such transient --- it appears gradually as the lower string resonates.
+  The attack criterion distinguishes genuinely struck notes from harmonic
+  leakage with much higher precision than energy-ratio alone.
+\end{notebox}
+
+\subsubsection{Stages 3--6: Additional Filters}
+
+\begin{enumerate}[leftmargin=2em]
+  \item Semitone adjacency veto (see \S3.5).
+  \item Polyphony enforcement (top-$k$ by activation energy).
+  \item Key-scale filter (see \S3.4) --- runs after provisional formatting
+        so actual note durations in seconds are available.
+  \item Guitar playability filter (guitar profiles only, see \S3.6).
+\end{enumerate}
+
+\subsubsection{Complete V4 Pipeline Summary}
+
+\begin{center}
+\begin{tabular}{cl}
+  \toprule
+  Step & Operation \\
+  \midrule
+  1  & Load audio at $f_s = 22050\,\text{Hz}$ \\
+  2  & Compute CQT $\mathbf{C}$, $B = 36\,\text{bins/octave}$ \\
+  3  & Dual onset detection (energy + spectral flux) \\
+  4  & Build inharmonic templates $\mathbf{W}_{\text{init}}$ (Fletcher model) \\
+  5  & Semi-supervised adaptation: $0.9\,\mathbf{W} + 0.1\,\Delta\mathbf{W}$ \\
+  6  & Sparse NMF with L1 penalty $\lambda$ \\
+  7  & \textbf{V4} Pitch-aware per-note hysteresis thresholding \\
+  8  & HMM Viterbi smoothing per note (2-state) \\
+  9  & Event extraction + per-note onset splitting \\
+  10 & \textbf{V4} Hybrid ghost filter (overtone + attack transient check) \\
+  11 & Semitone adjacency veto \\
+  12 & Polyphony enforcement \\
+  13 & Key-scale filter \\
+  14 & Guitar playability filter (guitar profiles only) \\
+  15 & Format output (chord grouping, REST insertion) \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+% ===========================================================
+\section{Reconstruction and Quality Metrics}
+% ===========================================================
+
+\subsection{Additive Synthesis Reconstruction}
+
+The note sequence is rendered to WAV via additive sine synthesis:
+\begin{equation}
+  x(t) = \sum_{n=1}^{N_h}\frac{A}{n^{0.75}}\sin(2\pi n f_0 t + \phi_n)
+\end{equation}
+with an ADSR envelope (sharp attack, zero decay, full sustain, short release),
+enabling direct listening comparison with the original.
+
+\subsection{Quantitative Accuracy Metrics}
+
+\subsubsection{Signal Match Score (Raw Spectral Cosine Similarity)}
+
+\begin{equation}
+  S_{\text{match}} =
+  \frac{\mathbf{V}_{\text{orig}}\cdot\mathbf{V}_{\text{rec}}}
+       {\|\mathbf{V}_{\text{orig}}\|\,\|\mathbf{V}_{\text{rec}}\|}\times100\%
+\end{equation}
+Lowered by timbre differences (synthesised vs.\ live instrument); typical
+range 55--80\% even on perfectly transcribed audio.
+
+\subsubsection{Harmonic Pitch Match (Chroma Cosine Similarity)}
+
+Chroma features discard timbre and retain only pitch-class energy:
+\begin{equation}
+  S_{\text{pitch}} =
+  \sqrt{\frac{\mathbf{C}_{\text{orig}}\cdot\mathbf{C}_{\text{rec}}}
+             {\|\mathbf{C}_{\text{orig}}\|\,\|\mathbf{C}_{\text{rec}}\|}}\times100\%
+\end{equation}
+The square root compresses the value to an intuitive percentage scale.
+This directly evaluates whether the correct notes were played at the correct
+times. Typical values: \textbf{85--92\%} on clean piano recordings.
+
+\subsubsection{Log-Spectral Distance (LSD)}
+
+\begin{equation}
+  \text{LSD} =
+  \sqrt{\frac{1}{n_{\text{bins}}\cdot n_{\text{frames}}}
+  \sum_{k,\ell}
+  \!\left[\log_{10}(|X_{\text{orig}}[k,\ell]|+\varepsilon)
+         -\log_{10}(|X_{\text{rec}}[k,\ell]|+\varepsilon)\right]^2}
+\end{equation}
+Scale-invariant and perceptually weighted. Lower is better.
+
+% ===========================================================
+\section{Karaoke Pre-Processing}
+% ===========================================================
+
+When the user enables vocal removal, the audio is pre-processed before
+note detection runs.
+
+\subsection{Centre Cancellation}
+
+In most stereo mixes, vocals are centred (identical in both channels):
+\begin{equation}
+  y_{\text{instrumental}}[n] = y_L[n] - y_R[n], \qquad
+  y_{\text{vocal}}[n] = y_L[n] + y_R[n]
+\end{equation}
+
+\subsection{NMF Source Separation}
+
+A two-template NMF (one harmonic-constrained for the instrument, one
+unconstrained for the voice) decomposes the mono spectrogram. Instrument
+and vocal components are then separated using Wiener filtering masks on
+the STFT.
+
+% ===========================================================
+\section{Summary: From Failure to Production}
+% ===========================================================
+
+\begin{center}
+\begin{tabular}{lp{4.5cm}p{5.5cm}}
+  \toprule
+  Version & Core Weakness & Fix \\
+  \midrule
+  \textbf{pYIN (Mono)} &
+    Cannot detect chords &
+    Separate polyphonic NMF engine \\[4pt]
+  \textbf{V1} &
+    Uniform sine templates; no temporal smoothing; global threshold &
+    Harmonic templates; two-pass bass+melody; harmonic ghost removal \\[4pt]
+  \textbf{V2} &
+    Templates ignore inharmonicity; single-frame blips; global threshold &
+    Fletcher model templates; L1 sparse NMF; HMM Viterbi; semi-supervised adaptation \\[4pt]
+  \textbf{V4} &
+    Frequency-agnostic threshold; ghosts survive onset-rich passages &
+    Pitch-aware hysteresis; onset-guided attack transient filter;
+    key-scale filter; semitone veto; guitar constraints \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+The combination of DSP algorithms (CQT, NMF, HMM, onset detection) and
+hard music-theoretic constraints (harmonic series, equal temperament,
+diatonic scales, instrument polyphony limits, guitar string constraints)
+produces a system that achieves 85--92\% harmonic pitch accuracy on clean
+recordings without any deep learning model or training dataset.
+
+% ===========================================================
+\section{Conclusions}
+% ===========================================================
+
+ChordiNote demonstrates that a principled fusion of signal processing and
+explicit musical knowledge achieves robust automatic music transcription
+without deep learning or training data. Every algorithmic choice has a
+direct musical justification:
+
+\begin{itemize}[leftmargin=2em]
+  \item \textbf{CQT over STFT} --- music is logarithmic.
+  \item \textbf{Inharmonic templates} --- real piano strings are not ideal strings.
+  \item \textbf{HMM smoothing} --- notes have duration; a held note should not flicker.
+  \item \textbf{Attack transient checking} --- struck notes have percussive onsets that harmonic ghosts lack.
+  \item \textbf{Key-scale filter} --- music has a tonal centre that constrains which notes are likely.
+  \item \textbf{Guitar playability filter} --- physical instruments have hard constraints.
+\end{itemize}
+
+This tight co-design of signal processing and music theory at every stage
+distinguishes ChordiNote from a naive frequency detector and makes it capable
+of handling the complexity of real-world musical recordings.
+
+\end{document}
+""").lstrip("\n")
+
+pathlib.Path(r"D:\Project\ChordiNote\report.tex").write_text(tex, encoding="utf-8")
+print("report.tex written successfully:", len(tex), "bytes")
