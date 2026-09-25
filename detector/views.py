@@ -395,6 +395,9 @@ def tuner(request):
 def metronome(request):
     return render(request, 'detector/metronome.html')
 
+def guitar(request):
+    return render(request, 'detector/guitar.html')
+
 # import os
 # import json
 # import librosa
