@@ -171,24 +171,61 @@
         </div>
     </div>
 
-    <!-- INTERACTIVE PIANO SECTION -->
-    <div class="piano-section reveal">
+    <!-- INSTRUMENT VISUALIZER TOGGLE + PIANO/GUITAR SECTION -->
+    <div class="piano-section reveal" id="instrumentVisualizerSection">
+
+        <!-- Header with controls -->
         <div class="piano-section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
             <div>
                 <h2 class="section-title" style="margin-bottom: 0.25rem;">
-                    <span class="gradient-text">Interactive Visual Piano</span>
+                    <span class="gradient-text" id="vizSectionTitle">Interactive Visual Piano</span>
                 </h2>
-                <p class="section-subtitle" style="margin-bottom: 0;">
+                <p class="section-subtitle" style="margin-bottom: 0;" id="vizSectionSubtitle">
                     Keys light up live during playback, or click keys to play pitches manually
                 </p>
             </div>
-            <button class="btn btn-primary btn-visual-piano" onclick="toggleVisualPianoPlayback('reconstructedAudio', this)">
-                <i class="fas fa-play"></i> <i class="fas fa-keyboard"></i> Play on Visual Piano
-            </button>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <!-- 🎹 / 🎸 Toggle -->
+                <div class="viz-instrument-toggle" id="vizInstrumentToggle">
+                    <button class="viz-instr-btn active" id="btnShowPiano" onclick="switchInstrumentView('piano')">
+                        🎹 Piano
+                    </button>
+                    <button class="viz-instr-btn" id="btnShowGuitar" onclick="switchInstrumentView('guitar')">
+                        🎸 Guitar
+                    </button>
+                </div>
+                <!-- Play button -->
+                <button class="btn btn-primary btn-visual-piano" onclick="toggleVisualPianoPlayback('reconstructedAudio', this)">
+                    <i class="fas fa-play"></i>
+                    <span id="vizPlayLabel">Play on Visual Piano</span>
+                </button>
+            </div>
         </div>
-        <div class="piano-container-results">
-            <div id="resultsPiano"></div>
+
+        <!-- PIANO VIEW -->
+        <div id="vizPianoView">
+            <div class="piano-container-results">
+                <div id="resultsPiano"></div>
+            </div>
         </div>
+
+        <!-- GUITAR VIEW (hidden by default) -->
+        <div id="vizGuitarView" style="display:none;">
+            <div id="fretboardContainer" style="
+                background: linear-gradient(135deg, rgba(28,14,9,0.95), rgba(43,24,16,0.9));
+                border: 1px solid rgba(255,200,120,0.12);
+                border-radius: 14px;
+                padding: 1.5rem 1rem 1.2rem;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,220,150,0.08);
+                overflow-x: auto;
+            ">
+                <div id="resultsFretboard"></div>
+            </div>
+            <p style="text-align:center; color: var(--text-secondary); font-size:0.8rem; margin-top:0.8rem;">
+                Standard tuning (EADGBe) · Frets 1–15 shown · Dots light up in real-time during playback
+            </p>
+        </div>
+
     </div>
 
     <!-- PIANO SHEET MUSIC DOWNLOAD SECTION -->
@@ -680,6 +717,10 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Fretboard visualizer -->
+<script src="{% static 'js/fretboard.js' %}"></script>
+<script src="{% static 'js/guitar.js' %}"></script>
+
 <!-- Visualizations Script -->
 {% if viz_data %}
 <script src="{% static 'js/visualizer.js' %}"></script>
@@ -732,14 +773,45 @@
 <!-- Piano Script -->
 <script src="{% static 'js/piano.js' %}"></script>
 <script>
-    console.log('🎹 Results page visual piano script loaded');
+    console.log('🎹 Results page visual piano + 🎸 fretboard script loaded');
 
     let processedNotesData = [];
     let processedChordsData = [];
     let currentSyncAudio = null;
     let animFrameId = null;
     let isVisualPlaybackActive = false;
+    let activeInstrumentView = 'piano';   // 'piano' | 'guitar'
     const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+    // ── Instrument view switcher ────────────────────────────────────────────
+    window.switchInstrumentView = function(view) {
+        activeInstrumentView = view;
+        const pianoView  = document.getElementById('vizPianoView');
+        const guitarView = document.getElementById('vizGuitarView');
+        const btnPiano   = document.getElementById('btnShowPiano');
+        const btnGuitar  = document.getElementById('btnShowGuitar');
+        const title      = document.getElementById('vizSectionTitle');
+        const subtitle   = document.getElementById('vizSectionSubtitle');
+        const playLabel  = document.getElementById('vizPlayLabel');
+
+        if (view === 'guitar') {
+            pianoView.style.display  = 'none';
+            guitarView.style.display = 'block';
+            btnPiano.classList.remove('active');
+            btnGuitar.classList.add('active');
+            title.textContent    = 'Interactive Guitar Fretboard';
+            subtitle.textContent = 'Fret positions light up in real-time during playback';
+            playLabel.textContent = 'Play on Guitar View';
+        } else {
+            pianoView.style.display  = 'block';
+            guitarView.style.display = 'none';
+            btnPiano.classList.add('active');
+            btnGuitar.classList.remove('active');
+            title.textContent    = 'Interactive Visual Piano';
+            subtitle.textContent = 'Keys light up live during playback, or click keys to play pitches manually';
+            playLabel.textContent = 'Play on Visual Piano';
+        }
+    };
 
     function midiToNoteName(midi) {
         if (typeof midi !== 'number' || isNaN(midi)) return '';
@@ -753,13 +825,18 @@
         return noteName.trim().replace(/♯/g, '#').replace(/♭/g, 'b');
     }
 
-    // Initialize piano and process notes data when page loads
+    // Initialize piano + fretboard and process notes data when page loads
     function initResultsPiano() {
-        console.log('🎹 Building results piano...');
+        console.log('🎹 Building results piano + 🎸 fretboard...');
         const pianoContainer = document.getElementById('resultsPiano');
         if (!pianoContainer) return;
 
         buildPiano('resultsPiano', { compact: false, showLabels: true });
+
+        // Init fretboard
+        if (typeof initFretboard === 'function') {
+            initFretboard('resultsFretboard');
+        }
 
         // Parse detected notes dataset for real-time visual syncing
         const dataEl = document.getElementById('notes-data-json');
@@ -777,7 +854,9 @@
                     }
 
                     let notes = [];
+                    let midiNotes = [];
                     if (item.midi_notes && Array.isArray(item.midi_notes) && item.midi_notes.length > 0) {
+                        midiNotes = item.midi_notes;
                         notes = item.midi_notes.map(midiToNoteName);
                     } else if (item.note && item.note !== 'REST') {
                         notes = item.note.split(' + ').map(cleanNoteName);
@@ -787,6 +866,7 @@
                         start: start,
                         end: end,
                         notes: notes,
+                        midiNotes: midiNotes,
                         isRest: item.note === 'REST' || notes.length === 0
                     };
                 });
@@ -924,13 +1004,44 @@
             const activeEvents = processedNotesData.filter(n => !n.isRest && currentTime >= n.start && currentTime < n.end);
 
             const activeNotes = [];
+            const activeMidi  = [];
             activeEvents.forEach(evt => {
                 evt.notes.forEach(note => {
                     if (!activeNotes.includes(note)) activeNotes.push(note);
                 });
+                if (evt.midiNotes) {
+                    evt.midiNotes.forEach(m => {
+                        if (!activeMidi.includes(m)) activeMidi.push(m);
+                    });
+                }
             });
 
+            // Update piano view
             highlightKeysOnResultsPiano(activeNotes);
+
+            // Update guitar fretboard view
+            if (typeof updateFretboard === 'function') {
+                // Prefer MIDI numbers; fall back to deriving from note names
+                if (activeMidi.length > 0) {
+                    updateFretboard(activeMidi);
+                } else if (activeNotes.length > 0) {
+                    // Convert note names to MIDI for fretboard
+                    const midiArr = activeNotes.map(n => {
+                        const m = n.match(/^([A-G][#b]?)(\d+)$/);
+                        if (!m) return null;
+                        const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+                        const noteFlat  = {'Db':'C#','Eb':'D#','Fb':'E','Gb':'F#','Ab':'G#','Bb':'A#','Cb':'B'};
+                        const pname = noteFlat[m[1]] || m[1];
+                        const idx   = noteNames.indexOf(pname);
+                        if (idx === -1) return null;
+                        return (parseInt(m[2]) + 1) * 12 + idx;
+                    }).filter(x => x !== null);
+                    updateFretboard(midiArr);
+                } else {
+                    clearFretboard();
+                }
+            }
+
             updateChordDisplay(currentTime);
             animFrameId = requestAnimationFrame(syncLoop);
         }
@@ -947,13 +1058,17 @@
         }
         currentSyncAudio = null;
         highlightKeysOnResultsPiano([]);
+        if (typeof clearFretboard === 'function') clearFretboard();
+
         // Hide chord display
         const display = document.getElementById('liveChordDisplay');
         if (display) display.style.display = 'none';
 
         document.querySelectorAll('.btn-visual-piano').forEach(btn => {
             btn.classList.remove('active');
-            btn.innerHTML = '<i class="fas fa-piano"></i> <i class="fas fa-play"></i> Play on Visual Piano';
+            const lbl = document.getElementById('vizPlayLabel');
+            btn.querySelector('i').className = 'fas fa-play';
+            if (lbl) lbl.textContent = activeInstrumentView === 'guitar' ? 'Play on Guitar View' : 'Play on Visual Piano';
         });
     }
 
@@ -981,7 +1096,13 @@
             targetNotes = [cleanNote];
         }
 
-        playPianoNotes(targetNotes.length === 1 ? targetNotes[0] : targetNotes, "1n", 0.8);
+        if (activeInstrumentView === 'guitar') {
+            if (typeof playGuitarNotes === 'function') {
+                playGuitarNotes(targetNotes.length === 1 ? targetNotes[0] : targetNotes, 0.8);
+            }
+        } else {
+            playPianoNotes(targetNotes.length === 1 ? targetNotes[0] : targetNotes, "1n", 0.8);
+        }
         highlightKeysOnResultsPiano(targetNotes);
 
         // Clear highlight after 1 second

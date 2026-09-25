@@ -300,3 +300,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+async function playGuitarNotes(notes, velocity = 0.8) {
+    if (Tone.context.state !== 'running') {
+        await Tone.start();
+    }
+    if (!isGuitarReady) await initGuitar();
+
+    const noteArray = Array.isArray(notes) ? notes : [notes];
+    
+    const time = Tone.now();
+    noteArray.forEach((note, i) => {
+        let stringIdx = 5; 
+        if (typeof chooseBestPositions === 'function') {
+           const m = note.match(/^([A-G][#b]?)(\d+)$/);
+           if (m) {
+               const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+               const noteFlat  = {'Db':'C#','Eb':'D#','Fb':'E','Gb':'F#','Ab':'G#','Bb':'A#','Cb':'B'};
+               const pname = noteFlat[m[1]] || m[1];
+               const idx   = noteNames.indexOf(pname);
+               const midi = (parseInt(m[2]) + 1) * 12 + idx;
+               const pos = chooseBestPositions([midi]);
+               if (pos && pos.length > 0) {
+                   stringIdx = pos[0].string;
+               }
+           }
+        }
+        
+        if (guitarStrings[stringIdx]) {
+            guitarStrings[stringIdx].triggerAttack(note, time + (i * 0.015)); 
+        }
+    });
+}

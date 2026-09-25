@@ -294,6 +294,67 @@ def _key_scale_filter(events, formatted_events, chromatic_min_dur=0.0):
 
 
 # ===========================================================================
+# STAGE 6 - Guitar Playability Filter
+# ===========================================================================
+
+def _guitar_playability_filter(events):
+    """
+    Physical guitar constraints:
+    1. Maximum 6 notes at once (polyphony capped at 6 naturally by strings).
+    2. Only one note per string. If multiple notes map to the same string concurrently,
+       drop the lower notes (higher notes usually lead the melody).
+    """
+    if not events:
+        return events
+        
+    # Sort events by pitch descending (highest pitch first)
+    ev_by_pitch = sorted(enumerate(events), key=lambda x: -x[1][0])
+    
+    OPEN_MIDI = [40, 45, 50, 55, 59, 64] # E2, A2, D3, G3, B3, E4
+    MAX_FRET = 19
+    
+    event_strings = {}
+    remove_set = set()
+    
+    for idx, ev in ev_by_pitch:
+        midi, start, end = ev
+        
+        valid_strings = []
+        for s, open_note in enumerate(OPEN_MIDI):
+            if 0 <= midi - open_note <= MAX_FRET:
+                valid_strings.append(s)
+                
+        if not valid_strings:
+            remove_set.add(idx)
+            continue
+            
+        # Prefer higher strings
+        valid_strings.sort(reverse=True)
+        
+        assigned_string = None
+        for s in valid_strings:
+            conflict = False
+            for other_idx, other_s in event_strings.items():
+                if other_s == s:
+                    other_ev = events[other_idx]
+                    o_start, o_end = other_ev[1], other_ev[2]
+                    # Check for overlap
+                    if max(start, o_start) < min(end, o_end):
+                        conflict = True
+                        break
+            if not conflict:
+                assigned_string = s
+                break
+                
+        if assigned_string is not None:
+            event_strings[idx] = assigned_string
+        else:
+            remove_set.add(idx)
+            
+    return [ev for i, ev in enumerate(events) if i not in remove_set]
+
+
+# ===========================================================================
 # MAIN ENTRY POINT
 # ===========================================================================
 
@@ -368,5 +429,8 @@ def process_audio_polyphonic_v4(file_path, profile_name="piano_v2"):
             final_events, provisional_out,
             chromatic_min_dur=profile.get("chromatic_min_dur", 0.0),
         )
+
+    if profile_name == "guitar_v2" or profile.get("is_guitar", False):
+        final_events = _guitar_playability_filter(final_events)
 
     return _format_output(final_events, times, H_norm=H_norm, note_midi_list=note_midi_list)

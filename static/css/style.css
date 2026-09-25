@@ -4961,3 +4961,36 @@ body {
     font-size: 0.85rem;
     margin-left: auto;
 }
+/* ============================================
+   INSTRUMENT VISUALIZER TOGGLE
+   ============================================ */
+.viz-instrument-toggle {
+    display: inline-flex;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.viz-instr-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.viz-instr-btn:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.viz-instr-btn.active {
+    background: rgba(99, 102, 241, 0.2);
+    color: #a78bfa;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
