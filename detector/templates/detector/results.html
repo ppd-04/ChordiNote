@@ -19,6 +19,20 @@
         padding: 1rem 0;
         scroll-behavior: smooth;
     }
+    /* Compact stat cards for results page */
+    .results-page .stats-grid {
+        gap: 0.75rem;
+    }
+    .results-page .stat-card {
+        padding: 0.9rem 0.75rem;
+    }
+    .results-page .stat-number {
+        font-size: 1.4rem;
+    }
+    .results-page .stat-label {
+        font-size: 0.78rem;
+        margin-top: 0.25rem;
+    }
 </style>
 
 {% if viz_data %}
@@ -35,7 +49,7 @@
     </p>
 
     <!-- STATS ROW -->
-    <div class="stats-grid reveal" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+    <div class="stats-grid reveal" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
         <div class="stat-card">
             <div class="stat-number">{{ total_notes }}</div>
             <div class="stat-label">Notes Detected</div>
@@ -58,7 +72,24 @@
         </div>
     </div>
 
-    <!-- AUDIO PLAYERS -->
+    <!-- RESULTS VIEW TABS (Eliminates excessive vertical scrolling) -->
+    <div class="results-view-tabs reveal">
+        <button type="button" class="results-vtab-btn active" onclick="switchResultsTab('visualizer', this)">
+            <i class="fas fa-sliders"></i> Visualizer & Audio
+        </button>
+        <button type="button" class="results-vtab-btn" onclick="switchResultsTab('sheet', this)">
+            <i class="fas fa-file-lines"></i> Sheet Music & Notes
+        </button>
+        {% if viz_data %}
+        <button type="button" class="results-vtab-btn" onclick="switchResultsTab('dsp', this)">
+            <i class="fas fa-chart-simple"></i> DSP Analysis
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- TAB 1: VISUALIZER & AUDIO -->
+    <div id="resTabVisualizer" class="results-tab-panel active">
+        <!-- AUDIO PLAYERS -->
     {% if notes_json %}
 <script id="notes-data-json" type="application/json">{{ notes_json|safe }}</script>
 {% endif %}
@@ -228,12 +259,38 @@
             <p style="text-align:center; color: var(--text-secondary); font-size:0.8rem; margin-top:0.8rem;">
                 Standard tuning (EADGBe) · Frets 1–15 shown · Dots light up in real-time during playback
             </p>
+        </div> <!-- close vizGuitarView -->
+
+    </div> <!-- close instrumentVisualizerSection / piano-section -->
+
+    <!-- NOTE TIMELINE VISUALIZATION -->
+    <div class="timeline-section reveal">
+        <h2 class="section-title"><span class="gradient-text">Chord Timeline</span></h2>
+        <div class="chord-timeline">
+            <div class="timeline-track" id="timelineTrack">
+                {% for chord_item in chord_timeline %}
+                <div class="chord-block clickable-note" 
+                     title="{{ chord_item.start }}s - {{ chord_item.end }}s"
+                     onclick="playDetectedChord('{{ chord_item.chord }}', {{ chord_item.start }})">
+                    <div class="chord-name">{{ chord_item.chord }}</div>
+                    <div class="chord-type">Chord Block</div>
+                    <div class="chord-time">{{ chord_item.start }}s - {{ chord_item.end }}s</div>
+                </div>
+                {% empty %}
+                <div class="chord-block rest-block" title="No chords detected">
+                    <div class="chord-name rest">—</div>
+                    <div class="chord-time">0.0s</div>
+                </div>
+                {% endfor %}
+            </div>
         </div>
-
     </div>
+    </div> <!-- END TAB 1: VISUALIZER & AUDIO -->
 
-    <!-- PIANO SHEET MUSIC DOWNLOAD SECTION -->
-    <div class="sheet-music-section reveal" style="margin-top: 2rem; margin-bottom: 2rem;">
+    <!-- TAB 2: SHEET MUSIC & NOTES -->
+    <div id="resTabSheet" class="results-tab-panel" style="display: none;">
+        <!-- PIANO SHEET MUSIC DOWNLOAD SECTION -->
+        <div class="sheet-music-section reveal" style="margin-top: 2rem; margin-bottom: 2rem;">
         <div class="player-card" style="background: rgba(18, 18, 24, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: var(--radius); padding: 1.8rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
             <div>
                 <h2 class="section-title" style="margin-bottom: 0.4rem; display: flex; align-items: center; gap: 10px;">
@@ -417,6 +474,8 @@
                 });
             }
         }
+        // Expose renderSheet globally so tab switcher can call it
+        window.renderSheet = renderSheet;
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', renderSheet);
         } else {
@@ -461,29 +520,6 @@
     }
     </script>
 
-    <!-- NOTE TIMELINE VISUALIZATION -->
-    <div class="timeline-section reveal">
-        <h2 class="section-title"><span class="gradient-text">Chord Timeline</span></h2>
-        <div class="chord-timeline">
-            <div class="timeline-track" id="timelineTrack">
-                {% for chord_item in chord_timeline %}
-                <div class="chord-block clickable-note" 
-                     title="{{ chord_item.start }}s - {{ chord_item.end }}s"
-                     onclick="playDetectedChord('{{ chord_item.chord }}', {{ chord_item.start }})">
-                    <div class="chord-name">{{ chord_item.chord }}</div>
-                    <div class="chord-type">Chord Block</div>
-                    <div class="chord-time">{{ chord_item.start }}s - {{ chord_item.end }}s</div>
-                </div>
-                {% empty %}
-                <div class="chord-block rest-block" title="No chords detected">
-                    <div class="chord-name rest">—</div>
-                    <div class="chord-time">0.0s</div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-
     <!-- DETAILED NOTE TABLE -->
     <div class="table-section reveal">
         <h2 class="section-title"><span class="gradient-text">Detailed Note List</span></h2>
@@ -519,10 +555,11 @@
             </table>
         </div>
     </div>
-   
+    </div> <!-- END TAB 2: SHEET MUSIC & DETAILED NOTES -->
 
-    <!-- DSP VISUALIZATIONS SECTION -->
+    <!-- TAB 3: DSP VISUALIZATIONS SECTION -->
     {% if viz_data %}
+    <div id="resTabDsp" class="results-tab-panel" style="display: none;">
     <div class="viz-section reveal">
         <h2 class="section-title"><span class="gradient-text">DSP Laboratory</span></h2>
         <p class="section-subtitle">Signal processing visualizations generated from your audio</p>
@@ -604,6 +641,7 @@
             </div>
         </div>
     </div>
+    </div> <!-- END TAB 3: DSP -->
     {% endif %}
 
     <!-- BACK BUTTON -->
@@ -682,6 +720,27 @@
     let isVisualPlaybackActive = false;
     let activeInstrumentView = 'piano';   // 'piano' | 'guitar'
     const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+    // ── Results View Switcher ────────────────────────────────────────────────
+    window.switchResultsTab = function(tabName, btn) {
+        document.querySelectorAll('.results-vtab-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+
+        const pVisualizer = document.getElementById('resTabVisualizer');
+        const pSheet      = document.getElementById('resTabSheet');
+        const pDsp        = document.getElementById('resTabDsp');
+
+        if (pVisualizer) pVisualizer.style.display = (tabName === 'visualizer') ? 'block' : 'none';
+        if (pSheet)      pSheet.style.display      = (tabName === 'sheet') ? 'block' : 'none';
+        if (pDsp)        pDsp.style.display        = (tabName === 'dsp') ? 'block' : 'none';
+
+        if (tabName === 'dsp' && typeof initVisualizations === 'function') {
+            setTimeout(initVisualizations, 60);
+        }
+        if (tabName === 'sheet' && typeof renderSheet === 'function') {
+            setTimeout(renderSheet, 60);
+        }
+    };
 
     // ── Instrument view switcher ────────────────────────────────────────────
     window.switchInstrumentView = function(view) {

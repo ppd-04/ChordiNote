@@ -1202,11 +1202,110 @@ body {
    RESULTS PAGE ADDITIONS
    ============================================ */
 
+/* Profile Category Tabs */
+.profile-tabs-header {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 1rem;
+    margin-bottom: 1.25rem;
+    background: rgba(15, 10, 26, 0.6);
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.profile-tab-btn {
+    flex: 1;
+    padding: 0.65rem 1rem;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-secondary, #9ca3af);
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.profile-tab-btn:hover {
+    color: #f3f4f6;
+    background: rgba(167, 139, 250, 0.08);
+}
+
+.profile-tab-btn.active {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.35), rgba(168, 85, 247, 0.35));
+    border: 1px solid rgba(167, 139, 250, 0.4);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.25);
+}
+
+.profile-tab-sub {
+    font-size: 0.76rem;
+    opacity: 0.75;
+    font-weight: 400;
+}
+
+.profile-category-content {
+    animation: fadeInTab 0.25s ease forwards;
+}
+
+@keyframes fadeInTab {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Results View Navigation Tabs */
+.results-view-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin: 1.8rem 0 1.5rem 0;
+    flex-wrap: wrap;
+}
+
+.results-vtab-btn {
+    padding: 0.65rem 1.4rem;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary, #9ca3af);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    backdrop-filter: blur(10px);
+}
+
+.results-vtab-btn:hover {
+    background: rgba(167, 139, 250, 0.12);
+    border-color: rgba(167, 139, 250, 0.3);
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+.results-vtab-btn.active {
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    border-color: rgba(167, 139, 250, 0.5);
+    color: #ffffff;
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
+}
+
+.results-tab-panel {
+    animation: fadeInTab 0.3s ease forwards;
+}
+
 .audio-players {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 2rem;
-    margin: 2rem 0;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin: 1.5rem 0;
 }
 
 .player-card {

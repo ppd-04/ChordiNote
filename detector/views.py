@@ -1,10 +1,11 @@
 import os
 import json
+import mimetypes
 import librosa
 import numpy as np
 
 from django.shortcuts import render
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
