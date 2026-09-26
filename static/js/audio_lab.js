@@ -1,5 +1,5 @@
 /**
- * ChordSense Audio Lab Engine
+ * Crescendo Audio Lab Engine
  * Complete real-time browser audio processing with Scrubbing support
  * NOW WITH: Bulletproof Live Recording + Download + Fixed Autotuner
  */
@@ -756,7 +756,7 @@ window.downloadRecording = function() {
     }
 
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-    const filename = `chordsense_audio_lab_${timestamp}.${ext}`;
+    const filename = `crescendo_audio_lab_${timestamp}.${ext}`;
 
     const a = document.createElement('a');
     a.style.display = 'none';
@@ -1004,7 +1004,7 @@ if (document.readyState === 'loading') {
 
 
 // /**
-//  * ChordSense Audio Lab Engine
+//  * Crescendo Audio Lab Engine
 //  * Complete real-time browser audio processing with Scrubbing support
 //  * NOW WITH: Live Recording + Download + Fixed Autotuner
 //  */
@@ -1777,7 +1777,7 @@ if (document.readyState === 'loading') {
     
 //     // Generate filename with timestamp
 //     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-//     a.download = `chordsense_lab_${timestamp}.webm`;
+//     a.download = `crescendo_lab_${timestamp}.webm`;
     
 //     document.body.appendChild(a);
 //     a.click();

@@ -1,24 +1,4 @@
-"""
-note_chord_detector.py  -  Symbolic Grid Hybrid Chord Detector
-==============================================================
-
-Pipeline
---------
-1.  Parse V4 Polyphonic note events (already overtone-free).
-2.  Map notes onto a fixed time grid (e.g., 0.5-second sliding windows).
-3.  Accumulate symbolic MIDI notes into a Pitch Class Profile (PCP) per window.
-4.  Track the lowest MIDI note in each window as the Bass note.
-5.  Score diatonic chord candidates against the PCP using cosine similarity,
-    applying strong bonuses/penalties based on the Bass note.
-6.  Smooth the sequence using a Viterbi HMM.
-7.  Merge consecutive identical chords.
-"""
-
 import numpy as np
-
-# ---------------------------------------------------------------------------
-# CONSTANTS
-# ---------------------------------------------------------------------------
 
 PITCH_CLASSES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
@@ -40,13 +20,9 @@ _MAJOR_QUALITY = ['maj', 'min', 'min', 'maj', 'maj', 'min', 'dim']
 _MINOR_QUALITY = ['min', 'dim', 'maj', 'min', 'min', 'maj', 'maj']
 _SEVENTH_MAP   = {'maj': 'maj7', 'min': 'min7', 'dim': 'm7b5'}
 
-_WINDOW_SIZE_SEC = 0.5  # Fixed time grid resolution
-_SELF_TRANSITION = 0.95 # HMM self-loop prior (increased to hold chords longer)
+_WINDOW_SIZE_SEC = 0.5
+_SELF_TRANSITION = 0.95
 
-
-# ---------------------------------------------------------------------------
-# KEY PARSING & CANDIDATES
-# ---------------------------------------------------------------------------
 
 def _parse_key(key_str: str):
     if not key_str or key_str.strip().lower() in ('unknown', ''):
@@ -91,30 +67,23 @@ def _build_candidates(key_str: str):
         vec = _make_template_vector(chord_root, _CHORD_TEMPLATES[quality])
         candidates.append((label, chord_root, vec, prior))
 
-    # Diatonic triads & 7ths
     for interval, quality in zip(scale, qualities):
         chord_root = (root_pc + interval) % 12
-        _add(chord_root, quality, prior=0.1)  # Boost diatonic triads
+        _add(chord_root, quality, prior=0.1)
         q7 = _SEVENTH_MAP.get(quality)
         if q7:
-            _add(chord_root, q7, prior=-0.1)  # Penalize 7ths (simplicity bias)
+            _add(chord_root, q7, prior=-0.1)
 
-    # Secondary dominants
     for interval in scale:
         sd_root = (root_pc + interval - 7) % 12
         _add(sd_root, '7', prior=-0.2)
 
-    # All other major/minor triads as fallbacks (penalized slightly vs diatonic)
     for c_root in range(12):
         _add(c_root, 'maj', prior=-0.1)
         _add(c_root, 'min', prior=-0.1)
 
     return candidates
 
-
-# ---------------------------------------------------------------------------
-# SYMBOLIC GRID WINDOWING
-# ---------------------------------------------------------------------------
 
 def _parse_timestamp(ts_str):
     parts = ts_str.replace("s", "").split("-")
@@ -124,7 +93,7 @@ def _parse_timestamp(ts_str):
 def _build_symbolic_windows(detected_notes, window_size_sec=_WINDOW_SIZE_SEC):
     max_end = 0.0
     valid_notes = []
-    
+
     for ev in detected_notes:
         if ev.get("note") == "REST" or not ev.get("midi_notes"):
             continue
@@ -144,16 +113,15 @@ def _build_symbolic_windows(detected_notes, window_size_sec=_WINDOW_SIZE_SEC):
         return []
 
     n_windows = int(np.ceil(max_end / window_size_sec))
-    windows = [{"start": i * window_size_sec, 
-                "end": (i + 1) * window_size_sec, 
-                "pcp": np.zeros(12), 
+    windows = [{"start": i * window_size_sec,
+                "end": (i + 1) * window_size_sec,
+                "pcp": np.zeros(12),
                 "bass_midi": 128} for i in range(n_windows)]
 
-    # Distribute notes into windows
     for note_ev in valid_notes:
         start_idx = int(note_ev["start"] // window_size_sec)
         end_idx   = int(note_ev["end"] // window_size_sec)
-        
+
         for w_idx in range(start_idx, min(end_idx + 1, n_windows)):
             w = windows[w_idx]
             for midi, vel in zip(note_ev["midi_notes"], note_ev["velocities"]):
@@ -164,45 +132,35 @@ def _build_symbolic_windows(detected_notes, window_size_sec=_WINDOW_SIZE_SEC):
     return windows
 
 
-# ---------------------------------------------------------------------------
-# SCORING
-# ---------------------------------------------------------------------------
-
 def _score_windows(windows, candidates):
     results = []
     for w in windows:
         pcp = w["pcp"]
         bass_pc = w["bass_midi"] % 12 if w["bass_midi"] < 128 else -1
-        
+
         norm = np.linalg.norm(pcp)
         if norm > 0:
             pcp = pcp / norm
-            
+
         scores = {}
         for label, root_pc, tmpl, prior in candidates:
-            # Base cosine similarity + prior bias
             score = float(np.dot(pcp, tmpl)) + prior
-            
-            # Bass Heuristics
+
             if bass_pc != -1:
                 if bass_pc == root_pc:
-                    score += 0.3  # Strong bonus for root inversion
+                    score += 0.3
                 elif tmpl[bass_pc] > 0:
-                    score += 0.1  # Slight bonus for valid inversion (e.g. 3rd in bass)
+                    score += 0.1
                 else:
-                    score -= 0.1  # Relaxed penalty for clashing bass note (was -0.5)
-                    
+                    score -= 0.1
+
             scores[label] = score
-            
+
         best_label = max(scores, key=scores.__getitem__) if scores else "N/A"
         results.append((w["start"], w["end"], best_label, scores))
-        
+
     return results
 
-
-# ---------------------------------------------------------------------------
-# VITERBI HMM
-# ---------------------------------------------------------------------------
 
 def _viterbi_smooth(raw_results, candidates):
     if not raw_results:
@@ -221,7 +179,7 @@ def _viterbi_smooth(raw_results, candidates):
     log_emit = np.zeros((n_chords, T))
     for t, (_, _, _, scores) in enumerate(raw_results):
         score_vec  = np.array([scores.get(lbl, 0.0) for lbl in chord_labels])
-        score_vec  = score_vec * 15.0  # sharpen
+        score_vec  = score_vec * 15.0
         score_vec -= score_vec.max()
         prob_vec   = np.exp(score_vec)
         prob_vec  /= (prob_vec.sum() + 1e-12)
@@ -276,14 +234,7 @@ def _merge_chord_sequence(raw_results, smooth_labels):
     return merged
 
 
-# ---------------------------------------------------------------------------
-# PUBLIC API
-# ---------------------------------------------------------------------------
-
 def detect_chords_from_notes(detected_notes, musical_key: str = 'C Major'):
-    """
-    Main entry point for the Symbolic Grid Hybrid approach.
-    """
     try:
         windows = _build_symbolic_windows(detected_notes)
         if not windows:
@@ -304,5 +255,4 @@ def detect_chords_from_notes(detected_notes, musical_key: str = 'C Major'):
         return []
 
 def detect_chords_from_audio(audio_path: str, musical_key: str = 'C Major', beats_per_window: int = 2):
-    """Deprecated shim for audio-based fallback."""
     return []

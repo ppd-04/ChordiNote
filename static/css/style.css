@@ -163,7 +163,7 @@ body {
 }
 
 .nav-logo span {
-    font-size: 1.6rem;    /* Makes the 'ChordSense' name much larger and prominent */
+    font-size: 1.6rem;    /* Makes the 'Crescendo' name much larger and prominent */
     font-weight: 700;     /* Bolder text weight for the logo title */
     color: var(--text-primary, #ffffff); /* Ensures bright white/primary color contrast */
     letter-spacing: 0.5px;

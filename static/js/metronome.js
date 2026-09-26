@@ -1,5 +1,5 @@
 /**
- * ChordSense Metronome
+ * Crescendo Metronome
  * 
  * Precision timing using Web Audio API's scheduler.
  * 

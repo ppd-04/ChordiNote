@@ -21,17 +21,16 @@ def _build_chord_midi(root_name, intervals):
     return [root + interval for interval in intervals]
 
 
-
 CHORD_TYPES = {
-    '':      [0, 4, 7],         # Major (C, D, E, etc.)
-    'm':     [0, 3, 7],         # Minor (Cm, Dm, Em, etc.)
-    '7':     [0, 4, 7, 10],     # Dominant 7th
-    'm7':    [0, 3, 7, 10],     # Minor 7th
-    'maj7':  [0, 4, 7, 11],     # Major 7th
-    'dim':   [0, 3, 6],         # Diminished
-    'aug':   [0, 4, 8],         # Augmented
-    'sus2':  [0, 2, 7],         # Suspended 2nd
-    'sus4':  [0, 5, 7],         # Suspended 4th
+    '':      [0, 4, 7],
+    'm':     [0, 3, 7],
+    '7':     [0, 4, 7, 10],
+    'm7':    [0, 3, 7, 10],
+    'maj7':  [0, 4, 7, 11],
+    'dim':   [0, 3, 6],
+    'aug':   [0, 4, 8],
+    'sus2':  [0, 2, 7],
+    'sus4':  [0, 5, 7],
 }
 
 
@@ -53,49 +52,35 @@ HARD_CHORDS = NORMAL_CHORDS + [
 
 
 def get_chord_name(root, chord_type):
-
     return f"{root}{chord_type}"
 
 
 def midi_to_frequency(midi_note):
-    # formula diye midi note number to frequency
     return 440.0 * (2.0 ** ((midi_note - 69) / 12.0))
 
 
 def generate_chord_audio(root, chord_type, duration=2.5, sample_rate=22050):
-
     intervals = CHORD_TYPES.get(chord_type, [0, 4, 7])
     midi_notes = _build_chord_midi(root, intervals)
 
-
     num_samples = int(duration * sample_rate)
-
-    # time array r 
     t = np.linspace(0, duration, num_samples, endpoint=False)
 
-    #shobgula mix
     signal = np.zeros(num_samples)
 
     for midi_note in midi_notes:
         freq = midi_to_frequency(midi_note)
-
         note_signal = np.sin(2 * np.pi * freq * t)
-
-        # ken jani eshb habijabi korse. maybe valo shunate 
         note_signal += 0.4 * np.sin(2 * np.pi * 2 * freq * t)
         note_signal += 0.15 * np.sin(2 * np.pi * 3 * freq * t)
         note_signal += 0.06 * np.sin(2 * np.pi * 4 * freq * t)
-
         signal += note_signal
 
-    # normalize korar jonno
     peak = np.max(np.abs(signal))
     if peak > 0:
         signal = signal / peak * 0.7
 
-    # smooth hobe shunte. fade in fad eout
     attack_samples = min(int(0.05 * sample_rate), num_samples // 4)
-
     release_samples = min(int(0.2 * sample_rate), num_samples // 4)
 
     envelope = np.ones(num_samples)
@@ -106,22 +91,17 @@ def generate_chord_audio(root, chord_type, duration=2.5, sample_rate=22050):
 
     signal *= envelope
 
-
     signal_int = np.int16(signal * 32767)
-
 
     buffer = io.BytesIO()
     with wave.open(buffer, 'w') as wav_file:
-        wav_file.setnchannels(1)           # Mono
-        wav_file.setsampwidth(2)           # 2 bytes = 16 bit
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
         wav_file.setframerate(sample_rate)
-        # struct.pack converts each integer to bytes
         wav_file.writeframes(struct.pack(f'<{len(signal_int)}h', *signal_int))
-
 
     wav_bytes = buffer.getvalue()
     return base64.b64encode(wav_bytes).decode('utf-8')
-
 
 
 def generate_reference_c():

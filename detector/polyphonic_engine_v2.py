@@ -290,6 +290,7 @@ def _apply_adaptive_threshold(H, percentile=75, floor=0.05):
     
     # 1. Hysteresis Thresholding (Legato Sustain)
     # Require a strong peak to START a note, but a lower threshold to KEEP it alive
+    # High register (>C5 / row > 36 relative to A1) gets a relaxed attack threshold so soft high melody notes survive loud bass
     for f in range(n_frames):
         col = H_norm[:, f]
         col_max = np.max(col)
@@ -302,8 +303,10 @@ def _apply_adaptive_threshold(H, percentile=75, floor=0.05):
             else:
                 was_active = active_mask[:, f-1]
                 survives_attack = col > attack_thresh
+                # High register (MIDI >= 72 / C5) relaxation: allows high key modulations to trigger at lower relative energy
+                high_note_attack = (col > max(floor * 0.6, col_max * 0.06)) & (np.arange(n_notes) >= 36)
                 survives_sustain = (col > release_thresh) & was_active
-                active_mask[:, f] = survives_attack | survives_sustain
+                active_mask[:, f] = survives_attack | high_note_attack | survives_sustain
 
     # 2. Skyline Protector (Top-note melody priority)
     # The highest pitch active is almost always the melody. Ensure it doesn't get 
@@ -478,6 +481,11 @@ def _remove_harmonic_ghosts(events, H_norm, note_midi_list, times, B=2e-4):
         return 0.0
 
     def is_overtone(midi_high, midi_low):
+        # High melody notes (C5 / MIDI 72 and above) are almost always real melody notes,
+        # not overtones of bass chords. Skip overtone veto for high register to preserve key modulations.
+        if midi_high >= 72:
+            return False
+
         # Quick heuristic filter: an overtone is at least 12 semitones up, at most ~48
         diff = midi_high - midi_low
         if diff < 11 or diff > 49:

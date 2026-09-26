@@ -1,5 +1,5 @@
 /**
- * ChordSense Grand Piano Engine
+ * Crescendo Grand Piano Engine
  * 
  * Uses REAL piano samples from the Salamander Grand Piano project.
  * The Salamander Piano is a Yamaha C5 grand piano recorded in a

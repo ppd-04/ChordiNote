@@ -202,22 +202,35 @@ def calculate_reconstruction_error(original_path, reconstructed_path, sample_rat
         else:
             match_score = 0.0
 
-        # 3. Harmonic Pitch Match Score (Chromagram Cosine Similarity)
-        # Chroma features group energy into the 12 musical pitch classes (C, C#, D... B),
-        # making it resilient to timber/overtone differences and focusing strictly on pitch accuracy.
-        chroma_orig = librosa.feature.chroma_stft(y=y_orig, sr=sample_rate)
-        chroma_rec = librosa.feature.chroma_stft(y=y_rec, sr=sample_rate)
+        # 3. Harmonic Pitch Match Score (Log-Chroma Perceptual Cosine Similarity)
+        # Chroma features group energy into 12 pitch classes (C, C#, D... B).
+        # Using dB log scaling and active-frame masking isolates melodic pitch accuracy
+        # from background noise, room reverb, and instrument timbre differences.
+        chroma_orig_raw = librosa.feature.chroma_stft(y=y_orig, sr=sample_rate)
+        chroma_rec_raw = librosa.feature.chroma_stft(y=y_rec, sr=sample_rate)
 
-        flat_chroma_orig = chroma_orig.flatten()
-        flat_chroma_rec = chroma_rec.flatten()
+        chroma_orig_db = librosa.power_to_db(chroma_orig_raw, ref=np.max)
+        chroma_rec_db = librosa.power_to_db(chroma_rec_raw, ref=np.max)
 
-        dot_chroma = np.dot(flat_chroma_orig, flat_chroma_rec)
-        norm_chroma_orig = np.linalg.norm(flat_chroma_orig)
-        norm_chroma_rec = np.linalg.norm(flat_chroma_rec)
+        # Normalize dB chromagrams to [0, 1] range
+        c_orig_norm = np.clip((chroma_orig_db + 80) / 80, 0, 1)
+        c_rec_norm = np.clip((chroma_rec_db + 80) / 80, 0, 1)
 
-        if norm_chroma_orig > 0 and norm_chroma_rec > 0:
-            chroma_sim = float(dot_chroma / (norm_chroma_orig * norm_chroma_rec))
-            pitch_match_score = float(np.clip(chroma_sim, 0.0, 1.0) * 100.0)
+        # Focus evaluation on active music frames (ignore leading/trailing silence)
+        active_mask = np.mean(c_orig_norm, axis=0) > 0.15
+        if np.sum(active_mask) > 0:
+            flat_chroma_orig = c_orig_norm[:, active_mask].flatten()
+            flat_chroma_rec = c_rec_norm[:, active_mask].flatten()
+
+            dot_chroma = np.dot(flat_chroma_orig, flat_chroma_rec)
+            norm_chroma_orig = np.linalg.norm(flat_chroma_orig)
+            norm_chroma_rec = np.linalg.norm(flat_chroma_rec)
+
+            if norm_chroma_orig > 0 and norm_chroma_rec > 0:
+                chroma_sim = float(dot_chroma / (norm_chroma_orig * norm_chroma_rec))
+                pitch_match_score = float(np.clip(chroma_sim, 0.0, 1.0) * 100.0)
+            else:
+                pitch_match_score = 0.0
         else:
             pitch_match_score = 0.0
 

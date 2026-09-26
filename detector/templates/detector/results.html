@@ -1,7 +1,7 @@
 {% extends 'detector/base.html' %}
 {% load static %}
 
-{% block title %}Results — ChordSense{% endblock %}
+{% block title %}Results — Crescendo{% endblock %}
 
 {% block content %}
 
@@ -14,21 +14,26 @@
         transform: scale(1.05);
         transition: all 0.2s ease;
     }
+
     .chord-timeline {
         overflow-x: auto;
         padding: 1rem 0;
         scroll-behavior: smooth;
     }
+
     /* Compact stat cards for results page */
     .results-page .stats-grid {
         gap: 0.75rem;
     }
+
     .results-page .stat-card {
         padding: 0.9rem 0.75rem;
     }
+
     .results-page .stat-number {
         font-size: 1.4rem;
     }
+
     .results-page .stat-label {
         font-size: 0.78rem;
         margin-top: 0.25rem;
@@ -90,112 +95,122 @@
     <!-- TAB 1: VISUALIZER & AUDIO -->
     <div id="resTabVisualizer" class="results-tab-panel active">
         <!-- AUDIO PLAYERS -->
-    {% if notes_json %}
-<script id="notes-data-json" type="application/json">{{ notes_json|safe }}</script>
-{% endif %}
-{% if chords_json %}
-<script id="chords-data-json" type="application/json">{{ chords_json|safe }}</script>
-{% endif %}
+        {% if notes_json %}
+        <script id="notes-data-json" type="application/json">{{ notes_json|safe }}</script>
+        {% endif %}
+        {% if chords_json %}
+        <script id="chords-data-json" type="application/json">{{ chords_json|safe }}</script>
+        {% endif %}
 
         <!-- AUDIO PLAYERS -->
-    <div class="audio-players reveal">
-        <!-- 1. Original Audio Player -->
-        <div class="player-card">
-            <h3><i class="fas fa-file-audio"></i> Original Audio</h3>
-            <audio controls preload="auto" class="audio-player" src="{{ original_url }}">
-                <source src="{{ original_url }}">
-            </audio>
-        </div>
+        <div class="audio-players reveal">
+            <!-- 1. Original Audio Player -->
+            <div class="player-card">
+                <h3><i class="fas fa-file-audio"></i> Original Audio</h3>
+                <audio controls preload="auto" class="audio-player" src="{{ original_url }}">
+                    <source src="{{ original_url }}">
+                </audio>
+            </div>
 
-        <!-- 2. Instrumental Track Player (Vocals Removed) -->
-        {% if has_karaoke %}
-        <div class="player-card karaoke-card">
-            <h3><i class="fas fa-microphone-slash"></i> Instrumental (Vocals Removed)</h3>
-            <audio controls preload="auto" class="audio-player" src="{{ instrumental_url }}">
-                <source src="{{ instrumental_url }}">
-            </audio>
-            <p class="player-hint">
-                Vocals suppressed using {{ karaoke_method_used }} method.
-                All pitch detections were performed on this track.
-            </p>
-        </div>
+            <!-- 2. Instrumental Track Player (Vocals Removed) -->
+            {% if has_karaoke %}
+            <div class="player-card karaoke-card">
+                <h3><i class="fas fa-microphone-slash"></i> Instrumental (Vocals Removed)</h3>
+                <audio controls preload="auto" class="audio-player" src="{{ instrumental_url }}">
+                    <source src="{{ instrumental_url }}">
+                </audio>
+                <p class="player-hint">
+                    Vocals suppressed using {{ karaoke_method_used }} method.
+                    All pitch detections were performed on this track.
+                </p>
+            </div>
 
-        <!-- 3. Isolated Vocal Track Player (Voice Only) -->
-        <div class="player-card vocal-extract-card">
-            <h3><i class="fas fa-microphone"></i> Extracted Vocals (Voice Only)</h3>
-            <audio controls preload="auto" class="audio-player" src="{{ vocal_url }}">
-                <source src="{{ vocal_url }}">
-            </audio>
-            <p class="player-hint">
-                Isolated vocal frequencies extracted using {{ karaoke_method_used }} method.
-            </p>
-        </div>
-        {% endif %}
+            <!-- 3. Isolated Vocal Track Player (Voice Only) -->
+            <div class="player-card vocal-extract-card">
+                <h3><i class="fas fa-microphone"></i> Extracted Vocals (Voice Only)</h3>
+                <audio controls preload="auto" class="audio-player" src="{{ vocal_url }}">
+                    <source src="{{ vocal_url }}">
+                </audio>
+                <p class="player-hint">
+                    Isolated vocal frequencies extracted using {{ karaoke_method_used }} method.
+                </p>
+            </div>
+            {% endif %}
 
-        <!-- 4. Full Reconstruction Synthesized Player -->
-        {% if has_reconstruction %}
-        <div class="player-card">
-            <h3><i class="fas fa-wand-magic-sparkles"></i> Full Reconstruction</h3>
-            <audio id="reconstructedAudio" controls preload="auto" class="audio-player" src="{{ reconstructed_url }}">
-                <source src="{{ reconstructed_url }}">
-            </audio>
-            <p class="player-hint">All detected notes including chords and bass</p>
-        </div>
-        {% endif %}
+            <!-- 4. Full Reconstruction Synthesized Player -->
+            {% if has_reconstruction %}
+            <div class="player-card">
+                <h3><i class="fas fa-wand-magic-sparkles"></i> Full Reconstruction</h3>
+                <audio id="reconstructedAudio" controls preload="auto" class="audio-player"
+                    src="{{ reconstructed_url }}">
+                    <source src="{{ reconstructed_url }}">
+                </audio>
+                <p class="player-hint">All detected notes including chords and bass</p>
+            </div>
+            {% endif %}
 
-        <!-- 5. Core Melody Synthesized Player -->
-        {% if has_melody %}
-        <div class="player-card melody-card">
-            <h3><i class="fas fa-music"></i> Core Melody</h3>
-            <audio controls preload="auto" class="audio-player" src="{{ melody_url }}">
-                <source src="{{ melody_url }}">
-            </audio>
-            <p class="player-hint">Single-note melody line extracted from the detection</p>
+            <!-- 5. Core Melody Synthesized Player -->
+            {% if has_melody %}
+            <div class="player-card melody-card">
+                <h3><i class="fas fa-music"></i> Core Melody</h3>
+                <audio controls preload="auto" class="audio-player" src="{{ melody_url }}">
+                    <source src="{{ melody_url }}">
+                </audio>
+                <p class="player-hint">Single-note melody line extracted from the detection</p>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
-    </div>
-    <!-- RECONSTRUCTION ERROR ANALYSIS -->
-    {% if reconstruction_metrics %}
-    <div class="metrics-section reveal" style="margin-top: 1.5rem; margin-bottom: 2rem;">
-        <div class="player-card" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius); padding: 1.5rem;">
-            <h3 style="margin-bottom: 1rem; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
-                <i class="fas fa-chart-line" style="color: var(--primary);"></i>
-                <span>Reconstruction Fidelity & Signal Error Analysis</span>
-            </h3>
-            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 0;">
-                <div class="stat-card" style="border-top: 3px solid #38bdf8; text-align: center; padding: 1rem;">
-                    <div class="stat-number" style="font-size: 1.6rem; color: #38bdf8;">{{ reconstruction_metrics.pitch_match_score }}%</div>
-                    <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Harmonic Pitch Match</div>
-                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">Chroma Pitch Cosine</p>
-                </div>
-                <div class="stat-card" style="border-top: 3px solid #4ade80; text-align: center; padding: 1rem;">
-                    <div class="stat-number" style="font-size: 1.6rem; color: #4ade80;">{{ reconstruction_metrics.match_score }}%</div>
-                    <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Signal Match Score</div>
-                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">Spectral Envelope Cosine</p>
-                </div>
-                <div class="stat-card" style="border-top: 3px solid #60a5fa; text-align: center; padding: 1rem;">
-                    <div class="stat-number" style="font-size: 1.6rem; color: #60a5fa;">{{ reconstruction_metrics.mse }}</div>
-                    <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Mean Squared Error (MSE)</div>
-                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">Time-domain deviation</p>
-                </div>
-                <div class="stat-card" style="border-top: 3px solid #c084fc; text-align: center; padding: 1rem;">
-                    <div class="stat-number" style="font-size: 1.6rem; color: #c084fc;">{{ reconstruction_metrics.rmse }}</div>
-                    <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Root MSE (RMSE)</div>
-                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">Residual magnitude</p>
-                </div>
-                <div class="stat-card" style="border-top: 3px solid #fbbf24; text-align: center; padding: 1rem;">
-                    <div class="stat-number" style="font-size: 1.6rem; color: #fbbf24;">{{ reconstruction_metrics.spectral_error }}</div>
-                    <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Log-Spectral Distance</div>
-                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">Frequency Error (LSD)</p>
+        <!-- RECONSTRUCTION ERROR ANALYSIS -->
+        {% if reconstruction_metrics %}
+        <div class="metrics-section reveal" style="margin-top: 1.5rem; margin-bottom: 2rem;">
+            <div class="player-card"
+                style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius); padding: 1.5rem;">
+                <h3 style="margin-bottom: 1rem; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-chart-line" style="color: var(--primary);"></i>
+                    <span>Reconstruction Fidelity & Signal Error Analysis</span>
+                </h3>
+                <div class="stats-grid"
+                    style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 0;">
+                    <div class="stat-card" style="border-top: 3px solid #38bdf8; text-align: center; padding: 1rem;">
+                        <div class="stat-number" style="font-size: 1.6rem; color: #38bdf8;">{{ reconstruction_metrics.pitch_match_score }}%</div>
+                        <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Harmonic Pitch Match</div>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">
+                            Chroma Pitch Cosine</p>
+                    </div>
+                    <div class="stat-card" style="border-top: 3px solid #4ade80; text-align: center; padding: 1rem;">
+                        <div class="stat-number" style="font-size: 1.6rem; color: #4ade80;">{{ reconstruction_metrics.match_score }}%</div>
+                        <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Signal Match Score</div>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">
+                            Spectral Envelope Cosine</p>
+                    </div>
+                    <div class="stat-card" style="border-top: 3px solid #60a5fa; text-align: center; padding: 1rem;">
+                        <div class="stat-number" style="font-size: 1.6rem; color: #60a5fa;">{{ reconstruction_metrics.mse }}</div>
+                        <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Mean Squared Error (MSE)
+                        </div>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">
+                            Time-domain deviation</p>
+                    </div>
+                    <div class="stat-card" style="border-top: 3px solid #c084fc; text-align: center; padding: 1rem;">
+                        <div class="stat-number" style="font-size: 1.6rem; color: #c084fc;">{{ reconstruction_metrics.rmse }}</div>
+                        <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Root MSE (RMSE)</div>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">
+                            Residual magnitude</p>
+                    </div>
+                    <div class="stat-card" style="border-top: 3px solid #fbbf24; text-align: center; padding: 1rem;">
+                        <div class="stat-number" style="font-size: 1.6rem; color: #fbbf24;">{{ reconstruction_metrics.spectral_error }}</div>
+                        <div class="stat-label" style="font-weight: 600; font-size: 0.85rem;">Log-Spectral Distance
+                        </div>
+                        <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; margin-bottom: 0;">
+                            Frequency Error (LSD)</p>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    {% endif %}
+        {% endif %}
 
-    <!-- LIVE CHORD DISPLAY (shown during piano playback) -->
-    <div id="liveChordDisplay" style="display:none; text-align:center; margin: 0.5rem 0 1.2rem 0;">
-        <div style="
+        <!-- LIVE CHORD DISPLAY (shown during piano playback) -->
+        <div id="liveChordDisplay" style="display:none; text-align:center; margin: 0.5rem 0 1.2rem 0;">
+            <div style="
             display: inline-flex;
             align-items: center;
             gap: 12px;
@@ -205,9 +220,9 @@
             padding: 0.6rem 1.8rem;
             backdrop-filter: blur(8px);
         ">
-            <i class="fas fa-music" style="color:#a78bfa; font-size:1rem;"></i>
-            <span style="color:var(--text-secondary); font-size:0.85rem; font-weight:500;">Current Chord:</span>
-            <span id="liveChordLabel" style="
+                <i class="fas fa-music" style="color:#a78bfa; font-size:1rem;"></i>
+                <span style="color:var(--text-secondary); font-size:0.85rem; font-weight:500;">Current Chord:</span>
+                <span id="liveChordLabel" style="
                 font-size: 1.5rem;
                 font-weight: 800;
                 background: linear-gradient(135deg, #818cf8, #c084fc);
@@ -218,50 +233,52 @@
                 text-align: left;
                 letter-spacing: 0.02em;
             ">—</span>
-        </div>
-    </div>
-
-    <!-- INSTRUMENT VISUALIZER TOGGLE + PIANO/GUITAR SECTION -->
-    <div class="piano-section reveal" id="instrumentVisualizerSection">
-
-        <!-- Header with controls -->
-        <div class="piano-section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
-            <div>
-                <h2 class="section-title" style="margin-bottom: 0.25rem;">
-                    <span class="gradient-text" id="vizSectionTitle">Interactive Visual Piano</span>
-                </h2>
-                <p class="section-subtitle" style="margin-bottom: 0;" id="vizSectionSubtitle">
-                    Keys light up live during playback, or click keys to play pitches manually
-                </p>
             </div>
-            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <!-- 🎹 / 🎸 Toggle -->
-                <div class="viz-instrument-toggle" id="vizInstrumentToggle">
-                    <button class="viz-instr-btn active" id="btnShowPiano" onclick="switchInstrumentView('piano')">
-                        🎹 Piano
-                    </button>
-                    <button class="viz-instr-btn" id="btnShowGuitar" onclick="switchInstrumentView('guitar')">
-                        🎸 Guitar
+        </div>
+
+        <!-- INSTRUMENT VISUALIZER TOGGLE + PIANO/GUITAR SECTION -->
+        <div class="piano-section reveal" id="instrumentVisualizerSection">
+
+            <!-- Header with controls -->
+            <div class="piano-section-header"
+                style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+                <div>
+                    <h2 class="section-title" style="margin-bottom: 0.25rem;">
+                        <span class="gradient-text" id="vizSectionTitle">Interactive Visual Piano</span>
+                    </h2>
+                    <p class="section-subtitle" style="margin-bottom: 0;" id="vizSectionSubtitle">
+                        Keys light up live during playback, or click keys to play pitches manually
+                    </p>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <!-- 🎹 / 🎸 Toggle -->
+                    <div class="viz-instrument-toggle" id="vizInstrumentToggle">
+                        <button class="viz-instr-btn active" id="btnShowPiano" onclick="switchInstrumentView('piano')">
+                            🎹 Piano
+                        </button>
+                        <button class="viz-instr-btn" id="btnShowGuitar" onclick="switchInstrumentView('guitar')">
+                            🎸 Guitar
+                        </button>
+                    </div>
+                    <!-- Play button -->
+                    <button class="btn btn-primary btn-visual-piano"
+                        onclick="toggleVisualPianoPlayback('reconstructedAudio', this)">
+                        <i class="fas fa-play"></i>
+                        <span id="vizPlayLabel">Play on Visual Piano</span>
                     </button>
                 </div>
-                <!-- Play button -->
-                <button class="btn btn-primary btn-visual-piano" onclick="toggleVisualPianoPlayback('reconstructedAudio', this)">
-                    <i class="fas fa-play"></i>
-                    <span id="vizPlayLabel">Play on Visual Piano</span>
-                </button>
             </div>
-        </div>
 
-        <!-- PIANO VIEW -->
-        <div id="vizPianoView">
-            <div class="piano-container-results">
-                <div id="resultsPiano"></div>
+            <!-- PIANO VIEW -->
+            <div id="vizPianoView">
+                <div class="piano-container-results">
+                    <div id="resultsPiano"></div>
+                </div>
             </div>
-        </div>
 
-        <!-- GUITAR VIEW (hidden by default) -->
-        <div id="vizGuitarView" style="display:none;">
-            <div id="fretboardContainer" style="
+            <!-- GUITAR VIEW (hidden by default) -->
+            <div id="vizGuitarView" style="display:none;">
+                <div id="fretboardContainer" style="
                 background: linear-gradient(135deg, rgba(28,14,9,0.95), rgba(43,24,16,0.9));
                 border: 1px solid rgba(255,200,120,0.12);
                 border-radius: 14px;
@@ -269,393 +286,407 @@
                 box-shadow: 0 8px 32px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,220,150,0.08);
                 overflow-x: auto;
             ">
-                <div id="resultsFretboard"></div>
-            </div>
-            <p style="text-align:center; color: var(--text-secondary); font-size:0.8rem; margin-top:0.8rem;">
-                Standard tuning (EADGBe) · Frets 1–15 shown · Dots light up in real-time during playback
-            </p>
-        </div> <!-- close vizGuitarView -->
-
-    </div> <!-- close instrumentVisualizerSection / piano-section -->
-
-    <!-- NOTE TIMELINE VISUALIZATION -->
-    <div class="timeline-section reveal">
-        <h2 class="section-title"><span class="gradient-text">Chord Timeline</span></h2>
-        <div class="chord-timeline">
-            <div class="timeline-track" id="timelineTrack">
-                {% for chord_item in chord_timeline %}
-                <div class="chord-block clickable-note" 
-                     title="{{ chord_item.start }}s - {{ chord_item.end }}s"
-                     onclick="playDetectedChord('{{ chord_item.chord }}', {{ chord_item.start }})">
-                    <div class="chord-name">{{ chord_item.chord }}</div>
-                    <div class="chord-type">Chord Block</div>
-                    <div class="chord-time">{{ chord_item.start }}s - {{ chord_item.end }}s</div>
+                    <div id="resultsFretboard"></div>
                 </div>
-                {% empty %}
-                <div class="chord-block rest-block" title="No chords detected">
-                    <div class="chord-name rest">—</div>
-                    <div class="chord-time">0.0s</div>
+                <p style="text-align:center; color: var(--text-secondary); font-size:0.8rem; margin-top:0.8rem;">
+                    Standard tuning (EADGBe) · Frets 1–15 shown · Dots light up in real-time during playback
+                </p>
+            </div> <!-- close vizGuitarView -->
+
+        </div> <!-- close instrumentVisualizerSection / piano-section -->
+
+        <!-- NOTE TIMELINE VISUALIZATION -->
+        <div class="timeline-section reveal">
+            <h2 class="section-title"><span class="gradient-text">Chord Timeline</span></h2>
+            <div class="chord-timeline">
+                <div class="timeline-track" id="timelineTrack">
+                    {% for chord_item in chord_timeline %}
+                    <div class="chord-block clickable-note" title="{{ chord_item.start }}s - {{ chord_item.end }}s"
+                        onclick="playDetectedChord('{{ chord_item.chord }}', {{ chord_item.start }})">
+                        <div class="chord-name">{{ chord_item.chord }}</div>
+                        <div class="chord-type">Chord Block</div>
+                        <div class="chord-time">{{ chord_item.start }}s - {{ chord_item.end }}s</div>
+                    </div>
+                    {% empty %}
+                    <div class="chord-block rest-block" title="No chords detected">
+                        <div class="chord-name rest">—</div>
+                        <div class="chord-time">0.0s</div>
+                    </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
         </div>
-    </div>
     </div> <!-- END TAB 1: VISUALIZER & AUDIO -->
 
     <!-- TAB 2: SHEET MUSIC & NOTES -->
     <div id="resTabSheet" class="results-tab-panel" style="display: none;">
         <!-- PIANO SHEET MUSIC DOWNLOAD SECTION -->
         <div class="sheet-music-section reveal" style="margin-top: 2rem; margin-bottom: 2rem;">
-        <div class="player-card" style="background: rgba(18, 18, 24, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: var(--radius); padding: 1.8rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
-            <div>
-                <h2 class="section-title" style="margin-bottom: 0.4rem; display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-file-pdf" style="color: var(--primary, #6366f1);"></i>
-                    <span class="gradient-text">Piano Sheet Music (PDF)</span>
-                </h2>
-                <p class="section-subtitle" style="margin-bottom: 0; color: var(--text-secondary, #94a3b8);">
-                    Standard notation with Treble & Bass clefs + explicit note/chord annotations | Key: <strong style="color:#f472b6;">{{ sheet_data.key|default:musical_key|default:"C" }}</strong> | BPM: <strong>{{ sheet_data.bpm|default:120 }}</strong>
-                </p>
-            </div>
-            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-                <button class="btn btn-primary" id="btnDownloadSheetPdf" onclick="downloadSheetPDF()" style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 8px; background: linear-gradient(135deg, #6366f1, #a855f7); color: white; border: none; cursor: pointer; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);">
-                    <i class="fas fa-file-pdf"></i> Download Sheet Music (PDF)
-                </button>
-                <button class="btn btn-secondary" onclick="printSheetMusic()" style="display: inline-flex; align-items: center; gap: 8px; padding: 0.75rem 1.5rem; border-radius: 8px; background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.15); cursor: pointer; font-size: 0.95rem;">
-                    <i class="fas fa-print"></i> Print Sheet
-                </button>
-            </div>
-        </div>
-
-        <!-- OFF-SCREEN PDF GENERATION CONTAINER (Hidden from results page preview) -->
-        <div style="position: absolute; left: -9999px; top: 0; width: 800px; opacity: 0; pointer-events: none; z-index: -9999;">
-            <div id="paper-sheet" style="background: #ffffff; padding: 30px; border-radius: 12px; color: #1e293b; font-family: sans-serif;">
-                <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px;">
-                    <h2 style="color: #0f172a; margin: 0 0 4px 0; font-size: 1.6rem; font-weight: 700;">Piano Sheet Music</h2>
-                    <p style="color: #64748b; margin: 0; font-size: 0.9rem;">
-                        Key: <strong>{{ sheet_data.key|default:musical_key|default:"C" }}</strong> | BPM: <strong>{{ sheet_data.bpm|default:120 }}</strong> | File: {{ filename|default:"Detected Audio" }}
+            <div class="player-card"
+                style="background: rgba(18, 18, 24, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: var(--radius); padding: 1.8rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+                <div>
+                    <h2 class="section-title"
+                        style="margin-bottom: 0.4rem; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-file-pdf" style="color: var(--primary, #6366f1);"></i>
+                        <span class="gradient-text">Piano Sheet Music (PDF)</span>
+                    </h2>
+                    <p class="section-subtitle" style="margin-bottom: 0; color: var(--text-secondary, #94a3b8);">
+                        Standard notation with Treble & Bass clefs + explicit note/chord annotations | Key: <strong
+                            style="color:#f472b6;">{{ sheet_data.key|default:musical_key|default:"C" }}</strong> | BPM:
+                        <strong>{{ sheet_data.bpm|default:120 }}</strong>
                     </p>
                 </div>
-                
-                <!-- ABC JS STAVE RENDER CONTAINER -->
-                <div id="paper-graphic-score" style="overflow-x: auto; min-height: 180px;"></div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                    <button class="btn btn-primary" id="btnDownloadSheetPdf" onclick="downloadSheetPDF()"
+                        style="display: inline-flex; align-items: center; gap: 8px; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 8px; background: linear-gradient(135deg, #6366f1, #a855f7); color: white; border: none; cursor: pointer; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);">
+                        <i class="fas fa-file-pdf"></i> Download Sheet Music (PDF)
+                    </button>
+                    <button class="btn btn-secondary" onclick="printSheetMusic()"
+                        style="display: inline-flex; align-items: center; gap: 8px; padding: 0.75rem 1.5rem; border-radius: 8px; background: rgba(255,255,255,0.08); color: white; border: 1px solid rgba(255,255,255,0.15); cursor: pointer; font-size: 0.95rem;">
+                        <i class="fas fa-print"></i> Print Sheet
+                    </button>
+                </div>
+            </div>
 
-                <!-- PIANO LEAD SHEET & NOTES GRID -->
-                <div style="margin-top: 25px;">
-                    <h3 style="color: #1e293b; font-size: 1.1rem; margin-bottom: 10px; border-left: 4px solid #6366f1; padding-left: 10px;">
-                        Piano Notes & Chords Sequence
-                    </h3>
-                    <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem; text-align: left;">
-                        <thead>
-                            <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1; color: #475569;">
-                                <th style="padding: 8px 12px;">#</th>
-                                <th style="padding: 8px 12px;">Time</th>
-                                <th style="padding: 8px 12px;">Note / Chord</th>
-                                <th style="padding: 8px 12px;">Frequency</th>
-                                <th style="padding: 8px 12px;">Clef</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sheetNotesTableBody">
-                            {% if sheet_data and sheet_data.note_summary %}
+            <!-- OFF-SCREEN PDF GENERATION CONTAINER (Hidden from results page preview) -->
+            <div
+                style="position: absolute; left: -9999px; top: 0; width: 800px; opacity: 0; pointer-events: none; z-index: -9999;">
+                <div id="paper-sheet"
+                    style="background: #ffffff; padding: 30px; border-radius: 12px; color: #1e293b; font-family: sans-serif;">
+                    <div
+                        style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px;">
+                        <h2 style="color: #0f172a; margin: 0 0 4px 0; font-size: 1.6rem; font-weight: 700;">Piano Sheet
+                            Music</h2>
+                        <p style="color: #64748b; margin: 0; font-size: 0.9rem;">
+                            Key: <strong>{{ sheet_data.key|default:musical_key|default:"C" }}</strong> | BPM: <strong>{{
+                                sheet_data.bpm|default:120 }}</strong> | File: {{ filename|default:"Detected Audio" }}
+                        </p>
+                    </div>
+
+                    <!-- ABC JS STAVE RENDER CONTAINER -->
+                    <div id="paper-graphic-score" style="overflow-x: auto; min-height: 180px;"></div>
+
+                    <!-- PIANO LEAD SHEET & NOTES GRID -->
+                    <div style="margin-top: 25px;">
+                        <h3
+                            style="color: #1e293b; font-size: 1.1rem; margin-bottom: 10px; border-left: 4px solid #6366f1; padding-left: 10px;">
+                            Piano Notes & Chords Sequence
+                        </h3>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem; text-align: left;">
+                            <thead>
+                                <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1; color: #475569;">
+                                    <th style="padding: 8px 12px;">#</th>
+                                    <th style="padding: 8px 12px;">Time</th>
+                                    <th style="padding: 8px 12px;">Note / Chord</th>
+                                    <th style="padding: 8px 12px;">Frequency</th>
+                                    <th style="padding: 8px 12px;">Clef</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sheetNotesTableBody">
+                                {% if sheet_data and sheet_data.note_summary %}
                                 {% for item in sheet_data.note_summary %}
                                 <tr style="border-bottom: 1px solid #e2e8f0;">
                                     <td style="padding: 8px 12px; color: #64748b;">{{ item.num }}</td>
                                     <td style="padding: 8px 12px; font-weight: 500;">{{ item.time }}</td>
-                                    <td style="padding: 8px 12px;"><strong style="color: #4f46e5; background: #e0e7ff; padding: 2px 8px; border-radius: 4px;">{{ item.note }}</strong></td>
+                                    <td style="padding: 8px 12px;"><strong
+                                            style="color: #4f46e5; background: #e0e7ff; padding: 2px 8px; border-radius: 4px;">{{
+                                            item.note }}</strong></td>
                                     <td style="padding: 8px 12px; color: #475569;">{{ item.frequency }}</td>
                                     <td style="padding: 8px 12px; color: #64748b;">{{ item.clef }}</td>
                                 </tr>
                                 {% endfor %}
-                            {% else %}
+                                {% else %}
                                 {% for note in notes %}
                                 {% if note.note != "REST" %}
                                 <tr style="border-bottom: 1px solid #e2e8f0;">
                                     <td style="padding: 8px 12px; color: #64748b;">{{ forloop.counter }}</td>
                                     <td style="padding: 8px 12px; font-weight: 500;">{{ note.timestamp }}</td>
-                                    <td style="padding: 8px 12px;"><strong style="color: #4f46e5; background: #e0e7ff; padding: 2px 8px; border-radius: 4px;">{{ note.note }}</strong></td>
+                                    <td style="padding: 8px 12px;"><strong
+                                            style="color: #4f46e5; background: #e0e7ff; padding: 2px 8px; border-radius: 4px;">{{
+                                            note.note }}</strong></td>
                                     <td style="padding: 8px 12px; color: #475569;">{{ note.frequency }}</td>
                                     <td style="padding: 8px 12px; color: #64748b;">Piano Staff</td>
                                 </tr>
                                 {% endif %}
                                 {% endfor %}
-                            {% endif %}
-                        </tbody>
-                    </table>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Script CDN for ABCJS and html2pdf -->
-    <script src="https://cdn.jsdelivr.net/npm/abcjs@6.4.4/dist/abcjs-basic-min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        <!-- Script CDN for ABCJS and html2pdf -->
+        <script src="https://cdn.jsdelivr.net/npm/abcjs@6.4.4/dist/abcjs-basic-min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-    <script id="sheet-abc-data" type="text/plain">{{ sheet_abc|safe }}</script>
-    <script>
-    (function() {
-        function noteNameToAbc(noteStr) {
-            if (!noteStr || noteStr === 'REST') return 'z';
-            var match = noteStr.match(/^([A-G][#b]?)(-?\d+)$/i);
-            if (!match) return 'C';
-            var pitch = match[1].toUpperCase();
-            var octave = parseInt(match[2], 10);
-            
-            var abcPitch = pitch.replace('#', '^');
-            if (pitch.indexOf('B') !== -1 && pitch.length > 1) {
-                abcPitch = '_' + pitch.charAt(0);
-            }
-            
-            if (octave === 4) return abcPitch;
-            if (octave > 4) {
-                var ticks = "'".repeat(octave - 5);
-                return abcPitch.toLowerCase() + ticks;
-            } else {
-                var commas = ",".repeat(4 - octave);
-                return abcPitch + commas;
-            }
-        }
+        <script id="sheet-abc-data" type="text/plain">{{ sheet_abc|safe }}</script>
+        <script>
+            (function () {
+                function noteNameToAbc(noteStr) {
+                    if (!noteStr || noteStr === 'REST') return 'z';
+                    var match = noteStr.match(/^([A-G][#b]?)(-?\d+)$/i);
+                    if (!match) return 'C';
+                    var pitch = match[1].toUpperCase();
+                    var octave = parseInt(match[2], 10);
 
-        function buildAbcFromDetectedNotesJS() {
-            var notesEl = document.getElementById('notes-data-json');
-            if (!notesEl) return null;
-            try {
-                var notes = JSON.parse(notesEl.textContent);
-                if (!Array.isArray(notes) || notes.length === 0) return null;
-                
-                var trebleTokens = [];
-                var bassTokens = [];
-                
-                notes.forEach(function(item) {
-                    var noteVal = item.note || 'REST';
-                    if (noteVal === 'REST') {
-                        trebleTokens.push('z2');
-                        bassTokens.push('z2');
-                        return;
+                    var abcPitch = pitch.replace('#', '^');
+                    if (pitch.indexOf('B') !== -1 && pitch.length > 1) {
+                        abcPitch = '_' + pitch.charAt(0);
                     }
-                    var parts = noteVal.split(' + ');
-                    var tNotes = [];
-                    var bNotes = [];
-                    
-                    parts.forEach(function(p) {
-                        var abc = noteNameToAbc(p.trim());
-                        var octMatch = p.match(/\d+/);
-                        var oct = octMatch ? parseInt(octMatch[0], 10) : 4;
-                        if (oct >= 4) tNotes.push(abc);
-                        else bNotes.push(abc);
-                    });
-                    
-                    var ann = '"' + noteVal + '"';
-                    if (tNotes.length > 0) {
-                        trebleTokens.push(ann + (tNotes.length === 1 ? tNotes[0] + '2' : '[' + tNotes.join('') + ']2'));
+
+                    if (octave === 4) return abcPitch;
+                    if (octave > 4) {
+                        var ticks = "'".repeat(octave - 5);
+                        return abcPitch.toLowerCase() + ticks;
                     } else {
-                        trebleTokens.push('z2');
+                        var commas = ",".repeat(4 - octave);
+                        return abcPitch + commas;
                     }
-                    
-                    if (bNotes.length > 0) {
-                        bassTokens.push(ann + (bNotes.length === 1 ? bNotes[0] + '2' : '[' + bNotes.join('') + ']2'));
-                    } else {
-                        bassTokens.push('z2');
+                }
+
+                function buildAbcFromDetectedNotesJS() {
+                    var notesEl = document.getElementById('notes-data-json');
+                    if (!notesEl) return null;
+                    try {
+                        var notes = JSON.parse(notesEl.textContent);
+                        if (!Array.isArray(notes) || notes.length === 0) return null;
+
+                        var trebleTokens = [];
+                        var bassTokens = [];
+
+                        notes.forEach(function (item) {
+                            var noteVal = item.note || 'REST';
+                            if (noteVal === 'REST') {
+                                trebleTokens.push('z2');
+                                bassTokens.push('z2');
+                                return;
+                            }
+                            var parts = noteVal.split(' + ');
+                            var tNotes = [];
+                            var bNotes = [];
+
+                            parts.forEach(function (p) {
+                                var abc = noteNameToAbc(p.trim());
+                                var octMatch = p.match(/\d+/);
+                                var oct = octMatch ? parseInt(octMatch[0], 10) : 4;
+                                if (oct >= 4) tNotes.push(abc);
+                                else bNotes.push(abc);
+                            });
+
+                            var ann = '"' + noteVal + '"';
+                            if (tNotes.length > 0) {
+                                trebleTokens.push(ann + (tNotes.length === 1 ? tNotes[0] + '2' : '[' + tNotes.join('') + ']2'));
+                            } else {
+                                trebleTokens.push('z2');
+                            }
+
+                            if (bNotes.length > 0) {
+                                bassTokens.push(ann + (bNotes.length === 1 ? bNotes[0] + '2' : '[' + bNotes.join('') + ']2'));
+                            } else {
+                                bassTokens.push('z2');
+                            }
+                        });
+
+                        var keyStr = '{{ musical_key|default:"C" }}'.replace(' Major', '').replace(' Minor', 'm');
+                        var header = "X:1\nT:Piano Sheet Music & Notes\nM:4/4\nL:1/8\nQ:1/4=120\nK:" + (keyStr || 'C') + "\n";
+                        var v1 = 'V:1 clef=treble name="Treble (Right Hand)"\n' + trebleTokens.join(' ') + ' |';
+                        var v2 = 'V:2 clef=bass name="Bass (Left Hand)"\n' + bassTokens.join(' ') + ' |';
+
+                        return header + '\n' + v1 + '\n\n' + v2 + '\n';
+                    } catch (e) {
+                        console.error("Client side ABC generation error:", e);
+                        return null;
                     }
-                });
-                
-                var keyStr = '{{ musical_key|default:"C" }}'.replace(' Major','').replace(' Minor','m');
-                var header = "X:1\nT:Piano Sheet Music & Notes\nM:4/4\nL:1/8\nQ:1/4=120\nK:" + (keyStr || 'C') + "\n";
-                var v1 = 'V:1 clef=treble name="Treble (Right Hand)"\n' + trebleTokens.join(' ') + ' |';
-                var v2 = 'V:2 clef=bass name="Bass (Left Hand)"\n' + bassTokens.join(' ') + ' |';
-                
-                return header + '\n' + v1 + '\n\n' + v2 + '\n';
-            } catch(e) {
-                console.error("Client side ABC generation error:", e);
-                return null;
+                }
+
+                function renderSheet() {
+                    var abcDataEl = document.getElementById('sheet-abc-data');
+                    var abcNotation = abcDataEl ? abcDataEl.textContent.trim() : '';
+
+                    if (!abcNotation) {
+                        abcNotation = buildAbcFromDetectedNotesJS();
+                    }
+
+                    if (abcNotation && typeof ABCJS !== 'undefined') {
+                        ABCJS.renderAbc("paper-graphic-score", abcNotation, {
+                            responsive: "resize",
+                            scale: 1.15,
+                            add_classes: true,
+                            paddingtop: 15,
+                            paddingbottom: 15,
+                            paddingleft: 15,
+                            paddingright: 15
+                        });
+                    }
+                }
+                // Expose renderSheet globally so tab switcher can call it
+                window.renderSheet = renderSheet;
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', renderSheet);
+                } else {
+                    renderSheet();
+                }
+            })();
+
+            function downloadSheetPDF() {
+                var element = document.getElementById('paper-sheet');
+                if (!element) return;
+
+                var opt = {
+                    margin: 0.3,
+                    filename: '{{ filename|default:"piano_sheet" }}_piano_sheet.pdf',
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+                    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+                };
+
+                if (typeof html2pdf !== 'undefined') {
+                    html2pdf().set(opt).from(element).save();
+                } else {
+                    printSheetMusic();
+                }
             }
-        }
 
-        function renderSheet() {
-            var abcDataEl = document.getElementById('sheet-abc-data');
-            var abcNotation = abcDataEl ? abcDataEl.textContent.trim() : '';
-            
-            if (!abcNotation) {
-                abcNotation = buildAbcFromDetectedNotesJS();
+            function printSheetMusic() {
+                var element = document.getElementById('paper-sheet');
+                if (!element) return;
+                var printWindow = window.open('', '_blank');
+                printWindow.document.write('<html><head><title>Piano Sheet Music & Notes - PitchDetect</title>');
+                printWindow.document.write('<style>body { font-family: sans-serif; text-align: center; padding: 20px; } #paper-sheet { background: white; color: black; }</style>');
+                printWindow.document.write('</head><body>');
+                printWindow.document.write(element.innerHTML);
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
+                printWindow.focus();
+                setTimeout(function () {
+                    printWindow.print();
+                    printWindow.close();
+                }, 500);
             }
-            
-            if (abcNotation && typeof ABCJS !== 'undefined') {
-                ABCJS.renderAbc("paper-graphic-score", abcNotation, {
-                    responsive: "resize",
-                    scale: 1.15,
-                    add_classes: true,
-                    paddingtop: 15,
-                    paddingbottom: 15,
-                    paddingleft: 15,
-                    paddingright: 15
-                });
-            }
-        }
-        // Expose renderSheet globally so tab switcher can call it
-        window.renderSheet = renderSheet;
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', renderSheet);
-        } else {
-            renderSheet();
-        }
-    })();
+        </script>
 
-    function downloadSheetPDF() {
-        var element = document.getElementById('paper-sheet');
-        if (!element) return;
-        
-        var opt = {
-          margin:       0.3,
-          filename:     '{{ filename|default:"piano_sheet" }}_piano_sheet.pdf',
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
-          jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-        };
-
-        if (typeof html2pdf !== 'undefined') {
-            html2pdf().set(opt).from(element).save();
-        } else {
-            printSheetMusic();
-        }
-    }
-
-    function printSheetMusic() {
-        var element = document.getElementById('paper-sheet');
-        if (!element) return;
-        var printWindow = window.open('', '_blank');
-        printWindow.document.write('<html><head><title>Piano Sheet Music & Notes - PitchDetect</title>');
-        printWindow.document.write('<style>body { font-family: sans-serif; text-align: center; padding: 20px; } #paper-sheet { background: white; color: black; }</style>');
-        printWindow.document.write('</head><body>');
-        printWindow.document.write(element.innerHTML);
-        printWindow.document.write('</body></html>');
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(function() {
-            printWindow.print();
-            printWindow.close();
-        }, 500);
-    }
-    </script>
-
-    <!-- DETAILED NOTE TABLE -->
-    <div class="table-section reveal">
-        <h2 class="section-title"><span class="gradient-text">Detailed Note List</span></h2>
-        <div class="table-container">
-            <table class="notes-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Timestamp</th>
-                        <th>Note</th>
-                        <th>Frequency</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for note in notes %}
-                    <tr class="{% if note.note == 'REST' %}rest-row{% endif %}">
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ note.timestamp }}</td>
-                        <td>
-                            {% if note.note != "REST" %}
-                            <span class="note-badge clickable-note" 
-                                  onclick="playDetectedNote('{{ note.note }}')">
-                                {{ note.note }}
-                            </span>
-                            {% else %}
-                            <span class="note-badge rest-badge">REST</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ note.frequency }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <!-- DETAILED NOTE TABLE -->
+        <div class="table-section reveal">
+            <h2 class="section-title"><span class="gradient-text">Detailed Note List</span></h2>
+            <div class="table-container">
+                <table class="notes-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Timestamp</th>
+                            <th>Note</th>
+                            <th>Frequency</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for note in notes %}
+                        <tr class="{% if note.note == 'REST' %}rest-row{% endif %}">
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ note.timestamp }}</td>
+                            <td>
+                                {% if note.note != "REST" %}
+                                <span class="note-badge clickable-note" onclick="playDetectedNote('{{ note.note }}')">
+                                    {{ note.note }}
+                                </span>
+                                {% else %}
+                                <span class="note-badge rest-badge">REST</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ note.frequency }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
     </div> <!-- END TAB 2: SHEET MUSIC & DETAILED NOTES -->
 
     <!-- TAB 3: DSP VISUALIZATIONS SECTION -->
     {% if viz_data %}
     <div id="resTabDsp" class="results-tab-panel" style="display: none;">
-    <div class="viz-section reveal">
-        <h2 class="section-title"><span class="gradient-text">DSP Laboratory</span></h2>
-        <p class="section-subtitle">Signal processing visualizations generated from your audio</p>
+        <div class="viz-section reveal">
+            <h2 class="section-title"><span class="gradient-text">DSP Laboratory</span></h2>
+            <p class="section-subtitle">Signal processing visualizations generated from your audio</p>
 
-        <!-- 1. WAVEFORM -->
-        <div class="viz-panel">
-            <div class="viz-header">
-                <h3><i class="fas fa-wave-square"></i> Waveform</h3>
-                <span class="viz-badge">Time Domain</span>
+            <!-- 1. WAVEFORM -->
+            <div class="viz-panel">
+                <div class="viz-header">
+                    <h3><i class="fas fa-wave-square"></i> Waveform</h3>
+                    <span class="viz-badge">Time Domain</span>
+                </div>
+                <p class="viz-description">
+                    The raw audio signal — air pressure variations over time.
+                    Peaks represent loud moments, flat areas represent silence.
+                </p>
+                <div class="viz-canvas-container">
+                    <canvas id="waveformCanvas" class="viz-canvas"></canvas>
+                </div>
             </div>
-            <p class="viz-description">
-                The raw audio signal — air pressure variations over time.
-                Peaks represent loud moments, flat areas represent silence.
-            </p>
-            <div class="viz-canvas-container">
-                <canvas id="waveformCanvas" class="viz-canvas"></canvas>
+
+            <!-- 2 & 3: FFT + SPECTROGRAM (side by side) -->
+            <div class="viz-row">
+                <div class="viz-panel">
+                    <div class="viz-header">
+                        <h3><i class="fas fa-chart-bar"></i> FFT Spectrum</h3>
+                        <span class="viz-badge">Frequency Domain</span>
+                    </div>
+                    <p class="viz-description">
+                        Frequency decomposition using Fast Fourier Transform.
+                        Peaks show dominant frequencies and their harmonics.
+                    </p>
+                    <div class="viz-canvas-container">
+                        <canvas id="fftCanvas" class="viz-canvas"></canvas>
+                    </div>
+                </div>
+
+                <div class="viz-panel">
+                    <div class="viz-header">
+                        <h3><i class="fas fa-fire"></i> Spectrogram</h3>
+                        <span class="viz-badge">Time-Frequency</span>
+                    </div>
+                    <p class="viz-description">
+                        Mel spectrogram showing how frequency content evolves over time.
+                        Brighter colors = more energy at that frequency.
+                    </p>
+                    <div class="viz-canvas-container">
+                        <img id="spectrogramImg" class="viz-image" alt="Spectrogram">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4 & 5: RMS + PITCH (side by side) -->
+            <div class="viz-row">
+                <div class="viz-panel">
+                    <div class="viz-header">
+                        <h3><i class="fas fa-volume-high"></i> RMS Energy</h3>
+                        <span class="viz-badge">Loudness</span>
+                    </div>
+                    <p class="viz-description">
+                        Root Mean Square energy measures signal power over time.
+                        Correlates with perceived loudness and note boundaries.
+                    </p>
+                    <div class="viz-canvas-container">
+                        <canvas id="rmsCanvas" class="viz-canvas"></canvas>
+                    </div>
+                </div>
+
+                <div class="viz-panel">
+                    <div class="viz-header">
+                        <h3><i class="fas fa-chart-line"></i> Pitch Contour</h3>
+                        <span class="viz-badge">Melody Tracking</span>
+                    </div>
+                    <p class="viz-description">
+                        Fundamental frequency (f0) over time detected by pYIN.
+                        Each dot represents the pitch at that moment.
+                    </p>
+                    <div class="viz-canvas-container">
+                        <canvas id="pitchCanvas" class="viz-canvas"></canvas>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <!-- 2 & 3: FFT + SPECTROGRAM (side by side) -->
-        <div class="viz-row">
-            <div class="viz-panel">
-                <div class="viz-header">
-                    <h3><i class="fas fa-chart-bar"></i> FFT Spectrum</h3>
-                    <span class="viz-badge">Frequency Domain</span>
-                </div>
-                <p class="viz-description">
-                    Frequency decomposition using Fast Fourier Transform.
-                    Peaks show dominant frequencies and their harmonics.
-                </p>
-                <div class="viz-canvas-container">
-                    <canvas id="fftCanvas" class="viz-canvas"></canvas>
-                </div>
-            </div>
-
-            <div class="viz-panel">
-                <div class="viz-header">
-                    <h3><i class="fas fa-fire"></i> Spectrogram</h3>
-                    <span class="viz-badge">Time-Frequency</span>
-                </div>
-                <p class="viz-description">
-                    Mel spectrogram showing how frequency content evolves over time.
-                    Brighter colors = more energy at that frequency.
-                </p>
-                <div class="viz-canvas-container">
-                    <img id="spectrogramImg" class="viz-image" alt="Spectrogram">
-                </div>
-            </div>
-        </div>
-
-        <!-- 4 & 5: RMS + PITCH (side by side) -->
-        <div class="viz-row">
-            <div class="viz-panel">
-                <div class="viz-header">
-                    <h3><i class="fas fa-volume-high"></i> RMS Energy</h3>
-                    <span class="viz-badge">Loudness</span>
-                </div>
-                <p class="viz-description">
-                    Root Mean Square energy measures signal power over time.
-                    Correlates with perceived loudness and note boundaries.
-                </p>
-                <div class="viz-canvas-container">
-                    <canvas id="rmsCanvas" class="viz-canvas"></canvas>
-                </div>
-            </div>
-
-            <div class="viz-panel">
-                <div class="viz-header">
-                    <h3><i class="fas fa-chart-line"></i> Pitch Contour</h3>
-                    <span class="viz-badge">Melody Tracking</span>
-                </div>
-                <p class="viz-description">
-                    Fundamental frequency (f0) over time detected by pYIN.
-                    Each dot represents the pitch at that moment.
-                </p>
-                <div class="viz-canvas-container">
-                    <canvas id="pitchCanvas" class="viz-canvas"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
     </div> <!-- END TAB 3: DSP -->
     {% endif %}
 
@@ -737,17 +768,17 @@
     const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
     // ── Results View Switcher ────────────────────────────────────────────────
-    window.switchResultsTab = function(tabName, btn) {
+    window.switchResultsTab = function (tabName, btn) {
         document.querySelectorAll('.results-vtab-btn').forEach(b => b.classList.remove('active'));
         if (btn) btn.classList.add('active');
 
         const pVisualizer = document.getElementById('resTabVisualizer');
-        const pSheet      = document.getElementById('resTabSheet');
-        const pDsp        = document.getElementById('resTabDsp');
+        const pSheet = document.getElementById('resTabSheet');
+        const pDsp = document.getElementById('resTabDsp');
 
         if (pVisualizer) pVisualizer.style.display = (tabName === 'visualizer') ? 'block' : 'none';
-        if (pSheet)      pSheet.style.display      = (tabName === 'sheet') ? 'block' : 'none';
-        if (pDsp)        pDsp.style.display        = (tabName === 'dsp') ? 'block' : 'none';
+        if (pSheet) pSheet.style.display = (tabName === 'sheet') ? 'block' : 'none';
+        if (pDsp) pDsp.style.display = (tabName === 'dsp') ? 'block' : 'none';
 
         if (tabName === 'dsp' && typeof initVisualizations === 'function') {
             setTimeout(initVisualizations, 60);
@@ -758,30 +789,30 @@
     };
 
     // ── Instrument view switcher ────────────────────────────────────────────
-    window.switchInstrumentView = function(view) {
+    window.switchInstrumentView = function (view) {
         activeInstrumentView = view;
-        const pianoView  = document.getElementById('vizPianoView');
+        const pianoView = document.getElementById('vizPianoView');
         const guitarView = document.getElementById('vizGuitarView');
-        const btnPiano   = document.getElementById('btnShowPiano');
-        const btnGuitar  = document.getElementById('btnShowGuitar');
-        const title      = document.getElementById('vizSectionTitle');
-        const subtitle   = document.getElementById('vizSectionSubtitle');
-        const playLabel  = document.getElementById('vizPlayLabel');
+        const btnPiano = document.getElementById('btnShowPiano');
+        const btnGuitar = document.getElementById('btnShowGuitar');
+        const title = document.getElementById('vizSectionTitle');
+        const subtitle = document.getElementById('vizSectionSubtitle');
+        const playLabel = document.getElementById('vizPlayLabel');
 
         if (view === 'guitar') {
-            pianoView.style.display  = 'none';
+            pianoView.style.display = 'none';
             guitarView.style.display = 'block';
             btnPiano.classList.remove('active');
             btnGuitar.classList.add('active');
-            title.textContent    = 'Interactive Guitar Fretboard';
+            title.textContent = 'Interactive Guitar Fretboard';
             subtitle.textContent = 'Fret positions light up in real-time during playback';
             playLabel.textContent = 'Play on Guitar View';
         } else {
-            pianoView.style.display  = 'block';
+            pianoView.style.display = 'block';
             guitarView.style.display = 'none';
             btnPiano.classList.add('active');
             btnGuitar.classList.remove('active');
-            title.textContent    = 'Interactive Visual Piano';
+            title.textContent = 'Interactive Visual Piano';
             subtitle.textContent = 'Keys light up live during playback, or click keys to play pitches manually';
             playLabel.textContent = 'Play on Visual Piano';
         }
@@ -804,7 +835,7 @@
     // =========================================================
     async function makeAudioPlayersScrubbable() {
         const audioPlayers = document.querySelectorAll('audio.audio-player');
-        
+
         for (const player of audioPlayers) {
             let sourceUrl = player.getAttribute('src');
             if (!sourceUrl) {
@@ -818,14 +849,14 @@
                     if (response.ok) {
                         const blob = await response.blob();
                         const blobUrl = URL.createObjectURL(blob);
-                        
+
                         const curTime = player.currentTime;
                         const wasPaused = player.paused;
 
                         player.src = blobUrl;
                         player.currentTime = curTime;
                         if (!wasPaused && curTime > 0) player.play();
-                        
+
                         console.log('✅ Local Blob Preloaded successfully for scrubbing:', sourceUrl);
                     }
                 } catch (e) {
@@ -898,7 +929,7 @@
         }
 
         document.querySelectorAll('audio.audio-player').forEach(audio => {
-            audio.addEventListener('play', function() {
+            audio.addEventListener('play', function () {
                 // Pause other audio elements
                 document.querySelectorAll('audio.audio-player').forEach(other => {
                     if (other !== audio && !other.paused) other.pause();
@@ -906,12 +937,12 @@
                 startVisualPianoSync(audio);
             });
 
-            audio.addEventListener('seeking', function() {
+            audio.addEventListener('seeking', function () {
                 updateChordDisplay(this.currentTime);
                 highlightTimelineBlock(this.currentTime);
             });
 
-            audio.addEventListener('seeked', function() {
+            audio.addEventListener('seeked', function () {
                 updateChordDisplay(this.currentTime);
                 highlightTimelineBlock(this.currentTime);
                 if (!this.paused) {
@@ -919,13 +950,13 @@
                 }
             });
 
-            audio.addEventListener('pause', function() {
+            audio.addEventListener('pause', function () {
                 if (currentSyncAudio === audio && !isVisualPlaybackActive && !audio.seeking) {
                     stopVisualPianoSync();
                 }
             });
 
-            audio.addEventListener('ended', function() {
+            audio.addEventListener('ended', function () {
                 if (currentSyncAudio === audio) {
                     stopVisualPianoSync();
                 }
@@ -965,9 +996,9 @@
                     if (container) {
                         const blockLeft = block.offsetLeft;
                         const containerWidth = container.clientWidth;
-                        container.scrollTo({ 
-                            left: blockLeft - (containerWidth / 2) + (block.clientWidth / 2), 
-                            behavior: 'smooth' 
+                        container.scrollTo({
+                            left: blockLeft - (containerWidth / 2) + (block.clientWidth / 2),
+                            behavior: 'smooth'
                         });
                     }
                 }
@@ -1015,7 +1046,7 @@
     }
 
     // Toggle Visual Piano Playback
-    window.toggleVisualPianoPlayback = function(audioId, btnElement) {
+    window.toggleVisualPianoPlayback = function (audioId, btnElement) {
         const audio = document.getElementById(audioId) || document.querySelector('audio.audio-player');
         if (!audio) return;
 
@@ -1056,7 +1087,7 @@
             const activeEvents = processedNotesData.filter(n => !n.isRest && currentTime >= n.start && currentTime < n.end);
 
             const activeNotes = [];
-            const activeMidi  = [];
+            const activeMidi = [];
             activeEvents.forEach(evt => {
                 evt.notes.forEach(note => {
                     if (!activeNotes.includes(note)) activeNotes.push(note);
@@ -1081,10 +1112,10 @@
                     const midiArr = activeNotes.map(n => {
                         const m = n.match(/^([A-G][#b]?)(\d+)$/);
                         if (!m) return null;
-                        const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-                        const noteFlat  = {'Db':'C#','Eb':'D#','Fb':'E','Gb':'F#','Ab':'G#','Bb':'A#','Cb':'B'};
+                        const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+                        const noteFlat = { 'Db': 'C#', 'Eb': 'D#', 'Fb': 'E', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#', 'Cb': 'B' };
                         const pname = noteFlat[m[1]] || m[1];
-                        const idx   = noteNames.indexOf(pname);
+                        const idx = noteNames.indexOf(pname);
                         if (idx === -1) return null;
                         return (parseInt(m[2]) + 1) * 12 + idx;
                     }).filter(x => x !== null);
@@ -1130,7 +1161,7 @@
     }
 
     // Play chord from timeline block and sync player
-    window.playDetectedChord = function(chordName, startTime) {
+    window.playDetectedChord = function (chordName, startTime) {
         if (!chordName || chordName === 'N/A' || chordName === 'REST' || chordName === '—') return;
 
         // Seek active audio player to start time
@@ -1143,10 +1174,10 @@
 
         // Parse chord into key formulas for synthesis
         const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-        const enharmonics = {'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#'};
+        const enharmonics = { 'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#' };
 
         let root = '';
-        let quality = 'maj'; 
+        let quality = 'maj';
 
         if (chordName.length >= 2 && (chordName[1] === '#' || chordName[1] === 'b')) {
             root = chordName.slice(0, 2);
@@ -1160,7 +1191,7 @@
         const rootIdx = notes.indexOf(root);
         if (rootIdx === -1) return;
 
-        let intervals = [0, 4, 7]; 
+        let intervals = [0, 4, 7];
         const qLower = quality.toLowerCase();
         if (qLower.includes('min') || qLower.includes('m') && !qLower.includes('maj')) {
             intervals = [0, 3, 7];
@@ -1171,7 +1202,7 @@
         if (qLower.includes('7')) {
             if (qLower.includes('maj')) intervals = [0, 4, 7, 11];
             else if (qLower.includes('min') || qLower.includes('m')) intervals = [0, 3, 7, 10];
-            else intervals = [0, 4, 7, 10]; 
+            else intervals = [0, 4, 7, 10];
         }
 
         const targetNotes = intervals.map(interval => {
@@ -1191,7 +1222,7 @@
     };
 
     // Play note or chord when clicked from detection results table
-    window.playDetectedNote = function(noteName) {
+    window.playDetectedNote = function (noteName) {
         const cleanNote = cleanNoteName(noteName);
         if (!cleanNote || cleanNote === 'REST') return;
 

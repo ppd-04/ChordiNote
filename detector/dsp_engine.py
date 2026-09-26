@@ -1,6 +1,6 @@
 import librosa
 import numpy as np
-#vabtesilam shobkichuke generalize korar bodole user ke choice dibo bivinnovabe analyze kora. taile hoito ektu easier hobe i dunno. option o barbe.xD
+
 ANALYSIS_PROFILES = {
     "clean_melody": {
         "label": "Clean Melody",
@@ -40,15 +40,15 @@ ANALYSIS_PROFILES = {
     },
     "piano": {
         "label": "Piano Music",
-        "fmin": "A0",          # Lowest piano key (27.5 Hz)
-        "fmax": "C8",          # Highest piano key (4186 Hz)
-        "hop_length": 256,     # Larger hop = better low-freq resolution
-        "frame_length": 8192,  # Larger frame = better frequency resolution for bass
-        "confidence": 0.25,    # Slightly lower to catch bass notes
+        "fmin": "A0",
+        "fmax": "C8",
+        "hop_length": 256,
+        "frame_length": 8192,
+        "confidence": 0.25,
         "onset_spacing": 0.06,
         "max_gap": 0.15,
         "reconstruction_gap": 0.18,
-        "transition_rate": 10, # Lower = smoother pitch tracking
+        "transition_rate": 10,
     },
 }
 
@@ -56,7 +56,7 @@ ANALYSIS_PROFILES = {
 def process_audio_file(file_path, profile_name="clean_melody"):
     profile = ANALYSIS_PROFILES.get(profile_name, ANALYSIS_PROFILES["clean_melody"])
     sample_rate = 22050
-    hop_length = profile["hop_length"]#bishesh droshtobbo: function er vetor parameter eshober maane ami jani na
+    hop_length = profile["hop_length"]
     frame_length = profile["frame_length"]
     duration = librosa.get_duration(path=file_path)
     chunk_seconds = 30
@@ -70,7 +70,7 @@ def process_audio_file(file_path, profile_name="clean_melody"):
     for core_start in np.arange(0, duration, chunk_seconds):
         core_end = min(core_start + chunk_seconds, duration)
         analysis_start = max(0, core_start - context_seconds)
-        analysis_duration = min(duration, core_end + context_seconds) - analysis_start#onek boro gaan er jonno array banaite gele array pura prithibi ultai boro hoye jai jormungandr er moto tai choto choto kore vangsi.
+        analysis_duration = min(duration, core_end + context_seconds) - analysis_start
         y, sr = librosa.load(
             file_path,
             sr=sample_rate,
@@ -83,28 +83,10 @@ def process_audio_file(file_path, profile_name="clean_melody"):
         if len(y) < frame_length:
             continue
 
-        # f0, voiced_flag, probabilities = librosa.pyin(
-        #     y,
-        #     fmin=librosa.note_to_hz(profile["fmin"]),
-        #     fmax=librosa.note_to_hz(profile["fmax"]),
-        #     sr=sr,
-        #     frame_length=frame_length,
-        #     hop_length=hop_length,
-        #     fill_na=None,
-        #     max_transition_rate=profile["transition_rate"],
-        # )
-
-        # changing here
-
-                # Adaptive frame length: use larger window for better bass detection
-        # Low frequencies need longer windows to resolve properly
         fmin_hz = librosa.note_to_hz(profile["fmin"])
         adaptive_frame_length = frame_length
         
-        # If we're looking for notes below C3 (130 Hz), increase frame length
-        # Rule: need at least 2 full cycles of the lowest frequency in each frame
         min_frame_for_fmin = int(2.0 * sr / fmin_hz)
-        # Round up to nearest power of 2 for FFT efficiency
         min_frame_power2 = int(2 ** np.ceil(np.log2(min_frame_for_fmin)))
         adaptive_frame_length = max(frame_length, min_frame_power2)
 
@@ -138,10 +120,10 @@ def process_audio_file(file_path, profile_name="clean_melody"):
         onset_times = onset_times[np.r_[True, np.diff(onset_times) >= profile["onset_spacing"]]]
 
         midi = np.full(len(f0), np.nan)
-        valid = voiced_flag & (probabilities >= profile["confidence"]) & ~np.isnan(f0) & (f0 > 0)#confidence er amount ekta threshold theke beshi hole nisi cause naile onek ghost note peye jai. ja shunse vabse but shune nai.
+        valid = voiced_flag & (probabilities >= profile["confidence"]) & ~np.isnan(f0) & (f0 > 0)
         midi[valid] = np.rint(librosa.hz_to_midi(f0[valid]))
         energy_floor = np.max(rms) * 10 ** (-55 / 20)
-        valid &= rms > energy_floor #to eliminate kom energy er frame jegulake voice vabse but ashole dhor background noise ba nishshash
+        valid &= rms > energy_floor
         midi[~valid] = np.nan
 
         for index in range(2, len(midi) - 2):
@@ -152,7 +134,7 @@ def process_audio_file(file_path, profile_name="clean_melody"):
             if len(neighbors) < 2:
                 continue
             neighbor_median = float(np.median(neighbors))
-            if abs(midi[index] - neighbor_median) >= 11:  # Octave error correction
+            if abs(midi[index] - neighbor_median) >= 11:
                 octave_candidate = midi[index] + (12 if midi[index] < neighbor_median else -12)
                 if abs(octave_candidate - neighbor_median) < abs(midi[index] - neighbor_median):
                     midi[index] = octave_candidate
@@ -185,7 +167,6 @@ def process_audio_file(file_path, profile_name="clean_melody"):
     states = np.full(len(times), 'REST', dtype=object)
     states[~np.isnan(midi)] = midi[~np.isnan(midi)]
 
-    #majhemajhe emni emni gap diye de ekta contunuous note er moddhe, tokhon ektu gap gula tackle korar try kora, eta arektu better kora dorkar, apatoto choto gap er duipashe same note thakle fill kore di
     max_gap_frames = max(1, round(profile["max_gap"] / frame_duration))
     for index in range(1, len(states) - 1):
         if states[index] == 'REST':
@@ -210,11 +191,11 @@ def process_audio_file(file_path, profile_name="clean_melody"):
             start = index
     events.append((start, len(states)))
 
-    grouped_sequence = []#simply sequence reconstruct kora
+    grouped_sequence = []
     for start, end in events:
         state = states[start]
         if state == 'REST':
-            note = 'REST'#rest maan jokhon kichu baaje na vabe, ekta marker diye rakha jaate reconstruct korte shubidha hoi
+            note = 'REST'
             frequency = '-'
         else:
             stable_frequencies = frequencies[start:end]
